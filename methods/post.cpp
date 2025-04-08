@@ -93,21 +93,15 @@ int redirectTheParh(std::vector<char> buffer, std::string filePath, size_t bytes
     return 0;
 }
 
-int continueFileTransfer_post(int fd, Server *server)
+int continueFileTransferPost(int fd, Server *server)
 {
     std::map<int, FileTransferState>::iterator transferIt = server->fileTransfers.find(fd);
     if (transferIt == server->fileTransfers.end())
-    {
-        std::cerr << "No file transfer in progress for fd: " << fd << std::endl;
-        return -1;
-    }
+        return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, -1;
 
     FileTransferState &state = transferIt->second;
     if (state.isComplete)
-    {
-        server->fileTransfers.erase(transferIt);
-        return 0;
-    }
+        return server->fileTransfers.erase(transferIt), 0;
 
     char buffer[CHUNK_SIZE];
     size_t remainingBytes = state.fileSize - state.offset;
@@ -153,11 +147,6 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
         std::string contentType = server->getContentType(filePath);
         size_t fileSize = server->getFileSize(filePath);
 
-        // if (fileSize == 0) {
-        //     std::cerr << "Failed to get file size or empty file: " << filePath << std::endl;
-        //     return -1;
-        // }
-
         if (fileSize > server->LARGE_FILE_THRESHOLD)
         {
             std::string httpResponse = server->createChunkedHttpResponse(contentType);
@@ -174,7 +163,7 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
             state.isComplete = false;
             server->fileTransfers[fd] = state;
 
-            return continueFileTransfer_post(fd, server);
+            return continueFileTransferPost(fd, server);
         }
         else
         {
@@ -194,12 +183,15 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
                 std::cerr << "Failed to read file: " << filePath << std::endl;
                 return -1;
             }
-
-            if (send(fd, buffer.data(), bytesRead, MSG_NOSIGNAL) == -1)
-            {
-                std::cerr << "Failed to send file content." << std::endl;
-                return -1;
-            }
+            // std::cout << "#########################\n";
+            // std::cout << buffer.data()  << std::endl;
+            // std::cout << "#########################\n";
+            // exit(0);
+            // if (send(fd, buffer.data(), bytesRead, MSG_NOSIGNAL) == -1)
+            // {
+            //     std::cerr << "Failed to send file content." << std::endl;
+            //     return -1;
+            // }
 
             return redirectTheParh(buffer, filePath, bytesRead);
         }
@@ -211,61 +203,95 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
     }
 }
 
-int Server::handle_post_request(int fd, Server *server, std::string request)
+std::pair<std::string, std::string> ft_parseRequest(std::string header)
 {
-    if (request.empty())
+
+    std::pair<std::string, std::string> pair_request(header.substr(0, header.find("\r\n\r\n", 0)),
+                                                     header.substr(header.find("\r\n\r\n", 0), header.length()));
+    return pair_request;
+}
+
+std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target)
+{
+    std::pair<size_t, std::string> pair_target;
+    std::set<std::string> node;
+    char *result = strstr((char *)header.c_str(), (char *)target.c_str());
+    std::string reachTarget = result;
+    reachTarget = reachTarget.substr(reachTarget.find(" ", 0), reachTarget.length());
+    pair_target.first = static_cast<size_t>(atoi((reachTarget.substr(reachTarget.find(" ", 0), reachTarget.length())).c_str())); 
+    pair_target.second = reachTarget.substr(reachTarget.find(" ", 0), reachTarget.length());
+    return pair_target;
+}
+
+int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
+{
+    // Handle 404 Not Found scenario
+    std::string path1 = PATHE;
+    std::string path2 = file;
+    std::string new_path = path1 + path2;
+    std::string content = server->readFile(new_path);
+    std::string httpResponse = f(server->getContentType(new_path), content.length());
+    // Consolidated error handling
+    try
     {
+        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
+        {
+            throw std::runtime_error("Failed to send error response header");
+        }
+
+        if (send(fd, content.c_str(), content.length(), MSG_NOSIGNAL) == -1)
+        {
+            throw std::runtime_error("Failed to send error content");
+        }
+
+        if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
+        {
+            throw std::runtime_error("Failed to send final CRLF");
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << std::endl;
+        close(fd);
         return -1;
     }
 
+    server->fileTransfers.erase(fd);
+    close(fd);
+    return 0;
+}
+
+
+int Server::handle_post_request(int fd, Server *server, std::string header)
+{
+    std::pair<std::string, std::string> pair_request = ft_parseRequest(header);
+    if (returnTargetFromRequest(pair_request.first, "Content-Length").first == 0)
+    {
+        return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
+    }
     // Check if we already have a file transfer in progress
+    //---------------------------------
     if (server->fileTransfers.find(fd) != server->fileTransfers.end())
     {
         // Continue the existing transfer
-        return continueFileTransfer_post(fd, server);
+        return continueFileTransferPost(fd, server); //?? 
     }
-
-    std::string filePath = server->parseRequest(request, server);
-    if (canBeOpen(filePath) && getFileType(filePath) == 2)
+    //--------------------------------
+    std::string filePath = server->parseRequest(pair_request.first, server);
+    // std::cout << "--------------------" << std::endl;
+    // std::cout << pair_request.second << std::endl;
+    // std::cout << "--------------------" << std::endl;
+    if (canBeOpen(filePath))
     {
-        return handleFileRequest_post(fd, server, filePath);
+        // std::cout << filePath << std::endl;
+        // exit(404);
+        // return handleFileRequest_post(fd, server, filePath); //???
+        return 0; 
     }
     else
-    {
+    { 
         // Handle 404 Not Found scenario
-        std::string path1 = PATHE;
-        std::string path2 = "404.html";
-        std::string new_path = path1 + path2;
-        std::string content = readFile(new_path);
-        std::string httpResponse = createNotFoundResponse(server->getContentType(new_path), content.length());
-
-        // Consolidated error handling
-        try
-        {
-            if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-            {
-                throw std::runtime_error("Failed to send error response header");
-            }
-
-            if (send(fd, content.c_str(), content.length(), MSG_NOSIGNAL) == -1)
-            {
-                throw std::runtime_error("Failed to send error content");
-            }
-
-            if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
-            {
-                throw std::runtime_error("Failed to send final CRLF");
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << e.what() << std::endl;
-            close(fd);
-            return -1;
-        }
-
-        server->fileTransfers.erase(fd);
-        close(fd);
+        return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse); 
     }
     return 0;
 }

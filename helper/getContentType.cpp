@@ -8,6 +8,7 @@ std::string Server::getContentType(const std::string &path)
     extensionToType.insert(std::make_pair(std::string(".txt"), std::string("text/txt")));
     extensionToType.insert(std::make_pair(std::string(".js"), std::string("application/javascript")));
     extensionToType.insert(std::make_pair(std::string(".json"), std::string("application/json")));
+    extensionToType.insert(std::make_pair(std::string(".cpp"), std::string("application/cpp")));
     extensionToType.insert(std::make_pair(std::string(".xml"), std::string("application/xml")));
     extensionToType.insert(std::make_pair(std::string(".mp4"), std::string("video/mp4")));
     extensionToType.insert(std::make_pair(std::string(".mp3"), std::string("audio/mpeg")));
@@ -59,7 +60,7 @@ std::string Server::createChunkedHttpResponse(std::string contentType)
 }
 
 std::string Server::httpResponse(std::string contentType, size_t contentLength)
-{
+{   
     std::ostringstream oss;
     oss << "HTTP/1.1 200 OK\r\n"
         << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
@@ -69,12 +70,35 @@ std::string Server::httpResponse(std::string contentType, size_t contentLength)
 }
 
 
-std::string Server::createNotFoundResponse(std::string contentType, int contentLength)
+std::string Server::createNotFoundResponse(std::string contentType, size_t contentLength)
 {
     std::ostringstream oss;
     oss << "HTTP/1.1 404 Not Found\r\n"
         << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
         << "Last-Modified: " << getCurrentTimeInGMT() << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+
+    return oss.str();
+}
+
+
+std::string getCurrentTimeInGMT1() {
+    time_t t = time(0);
+    tm *time_struct = gmtime(&t); // Use gmtime to get UTC time
+
+    char buffer[100];
+    strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", time_struct);
+    std::string date = buffer;
+    return date;
+}
+
+
+std::string Server::createBadResponse(std::string contentType, size_t contentLength)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 400 Bad Request\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT1() << "\r\n"
         << "Content-Length: " << contentLength << "\r\n\r\n";
 
     return oss.str();

@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/02 15:53:02 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/08 09:31:44 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,7 @@ struct FileTransferState {
     bool isComplete;
     int socket;
     int saveFd;
+    int flag;
     std::set<std::string> knownPaths;
     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
 };
@@ -94,7 +95,7 @@ public:
     std::string renderHtml(std::string path, Server *server);
     int handle_post_request(int fd, Server *server, std::string request);
     std::string readFile(const std::string &path);
-    std::string createNotFoundResponse(std::string contentType, int contentLength);
+    static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
     std::string parseRequest(std::string request, Server *server);
     int getFileType(std::string path);
     bool canBeOpen(std::string &filePath);
@@ -108,9 +109,9 @@ public:
     std::string methodNotAllowedResponse(std::string contentType, int contentLength);
     void setnonblocking(int fd);
     int processMethodNotAllowed(int fd, Server *server);
-    std::string getCurrentTimeInGMT();
+    static std::string getCurrentTimeInGMT();
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
-
+    static std::string createBadResponse(std::string contentType, size_t contentLength);
 };
 
 

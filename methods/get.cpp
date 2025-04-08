@@ -28,8 +28,8 @@ int Server::serve_file_request(int fd, Server *server, std::string request)
             return std::cerr << "Failed to send error content" << std::endl, close(fd), -1;
         if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
             return close(fd), -1;
-        // server->fileTransfers.erase(fd);
-        // close(fd);
+        server->fileTransfers.erase(fd);
+        close(fd);
     }
     return 0;
 }
