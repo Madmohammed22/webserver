@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/08 14:21:10 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/08 15:20:30 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -265,9 +265,7 @@ void check_timeout(Server *server)
             server->fileTransfers.erase(tmp);
         }
         else
-        {
             ++it;
-        }
     }
 }
 
@@ -310,16 +308,10 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 buffer[bytes] = '\0';
                 request = buffer;
                 send_buffers[events[i].data.fd] = request;
-                // if (send_buffers[events[i].data.fd].find("POST") != std::string::npos){
-                // }
             }
         }
         else if (events[i].events & EPOLLOUT)
         {
-            // std::cout << "*********************\n";
-            // std::cout << send_buffers[events[i].data.fd] << std::endl;
-            // std::cout << "*********************\n";
-            // Check if we have an ongoing file transfer
             if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
             {
                 if (server->continueFileTransfer(events[i].data.fd, server) == -1)
@@ -332,9 +324,9 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             if (request.find("POST") != std::string::npos)
             {
                
-                // exit(0);
-                if (server->handle_post_request(events[i].data.fd, server, request) == -1)
-                    return EXIT_FAILURE;
+                // if (server->handle_post_request(events[i].data.fd, server, request) == -1)
+                //     return EXIT_FAILURE;
+                exit(0);
             }
             if (request.find("DELETE") != std::string::npos)
             {
@@ -352,7 +344,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                     return EXIT_FAILURE;
             }
             else
-            {
+            {       
                 continue;
             }
 
