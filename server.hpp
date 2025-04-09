@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/08 09:31:44 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/09 11:26:42 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,7 @@
 #include <errno.h>     
 #include <string.h>
 #include <set>
+
 #define ERROR404 404
 #define ERROR405 405
 #define SUCCESS 200
@@ -112,8 +113,8 @@ public:
     static std::string getCurrentTimeInGMT();
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     static std::string createBadResponse(std::string contentType, size_t contentLength);
+    int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
 };
-
 
 #endif
 

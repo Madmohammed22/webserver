@@ -223,7 +223,7 @@ std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::
     return pair_target;
 }
 
-int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
+int Server::getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
 {
     // Handle 404 Not Found scenario
     std::string path1 = PATHE;
