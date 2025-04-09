@@ -183,16 +183,6 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
                 std::cerr << "Failed to read file: " << filePath << std::endl;
                 return -1;
             }
-            // std::cout << "#########################\n";
-            // std::cout << buffer.data()  << std::endl;
-            // std::cout << "#########################\n";
-            // exit(0);
-            // if (send(fd, buffer.data(), bytesRead, MSG_NOSIGNAL) == -1)
-            // {
-            //     std::cerr << "Failed to send file content." << std::endl;
-            //     return -1;
-            // }
-
             return redirectTheParh(buffer, filePath, bytesRead);
         }
     }
@@ -225,13 +215,11 @@ std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::
 
 int Server::getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
 {
-    // Handle 404 Not Found scenario
     std::string path1 = PATHE;
     std::string path2 = file;
     std::string new_path = path1 + path2;
     std::string content = server->readFile(new_path);
     std::string httpResponse = f(server->getContentType(new_path), content.length());
-    // Consolidated error handling
     try
     {
         if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)

@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/09 15:08:37 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/09 15:39:29 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -153,7 +153,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
             {
-                if (server->processMethodNotAllowed(events[i].data.fd, server) == -1)
+                if (server->processMethodNotAllowed(events[i].data.fd, server, request) == -1)
                     return EXIT_FAILURE;
             }
             else
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
                close(listen_sock), delete server, EXIT_FAILURE;
     }
 
-    ev.events = EPOLLIN | EPOLLET;
+    ev.events = EPOLLIN | EPOLLOUT;
     ev.data.fd = listen_sock;
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
     {
