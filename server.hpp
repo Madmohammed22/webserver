@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/09 11:26:42 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/09 14:48:15 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -107,13 +107,15 @@ public:
     int continueFileTransfer(int fd, Server * server);
     int handleFileRequest(int fd, Server *server, const std::string &filePath);
     int serve_file_request(int fd, Server *server, std::string request);
-    std::string methodNotAllowedResponse(std::string contentType, int contentLength);
+    std::string methodNotAllowedResponse(std::string contentType, size_t contentLength);
     void setnonblocking(int fd);
     int processMethodNotAllowed(int fd, Server *server);
     static std::string getCurrentTimeInGMT();
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     static std::string createBadResponse(std::string contentType, size_t contentLength);
     int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
+    std::string goneHttpResponse(std::string contentType, size_t contentLength);
+    std::string deleteHttpResponse(Server* server);
 };
 
 #endif

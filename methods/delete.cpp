@@ -1,22 +1,5 @@
 #include "../server.hpp"
 
-std::string deleteHttpResponse(Server* server)
-{
-    std::ostringstream oss;
-    oss << "HTTP/1.1 204 No Content\r\n"
-        << "Last-Modified: " << server->getCurrentTimeInGMT() << "\r\n\r\n";
-    return oss.str();
-}
-
-std::string goneHttpResponse(std::string contentType, size_t contentLength)
-{
-    std::ostringstream oss;
-    oss << "HTTP/1.1 410 Gone\r\n"
-        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
-        << "Content-Length: " << contentLength << "\r\n\r\n";
-    return oss.str();
-}
-
 
 void deleteDirectoryContents(const std::string& dir)
 {
@@ -89,46 +72,18 @@ int Server::handle_delete_request(int fd, Server *server, std::string request) {
     
     // First, check if the file can be opened
     if (server->canBeOpen(filePath)) {
-        if (server->getFileType(filePath) == 1) {
+        if (server->getFileType(filePath) == 1)
             deleteDirectoryContents(filePath.c_str());
-            std::cout << "add path: " << filePath << std::endl;
-        }
         
         if (DELETE(filePath) == -1) {
-            return std::cerr << "Failed to delete file or directory: " << filePath << std::endl,
-            close(fd), -1;
+            return server->fileTransfers.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << filePath << std::endl, 0;
         }
-
-        std::string httpResponse = deleteHttpResponse(server);
+        std::string httpResponse = server->deleteHttpResponse(server);
         if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1) {
             std::cerr << "Failed to send HTTP header." << std::endl;
-            return close(fd), -1;
+            return server->fileTransfers.erase(fd), close(fd), 0;
         }
-        server->fileTransfers.erase(fd);
-        close(fd);
-        return 0;
+        return server->fileTransfers.erase(fd), close(fd), 0;
     }
-
-    if (server->fileTransfers.find(fd) != server->fileTransfers.end()){
-        std::cout << "I was here\n";
-    }
-    std::cout << "Resource was never known\n";
-    std::string path1 = PATHE;
-    std::string path2 = "404.html";
-    std::string new_path = path1 + path2;
-    std::string content = server->readFile(new_path);
-    std::string httpResponse = server->createNotFoundResponse(server->getContentType(new_path), content.length());
-    
-    if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-        return std::cerr << "Failed to send error response header" << std::endl, -1;
-    
-    if (send(fd, content.c_str(), content.length(), MSG_NOSIGNAL) == -1)
-        return std::cerr << "Failed to send error content" << std::endl, -1;
-    
-    if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
-        return -1;
-    
-    server->fileTransfers.erase(fd);
-    close(fd);
-    return 0;
+    return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
 }

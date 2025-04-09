@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/08 15:20:30 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/09 14:52:23 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,24 +64,15 @@ bool Server::canBeOpen(std::string &filePath)
 {
 
     std::string new_path;
-    if (getFileType("/" + filePath) == 2)
+    if (filePath.at(0) != '/' && getFileType("/" + filePath) == 2)
         new_path = "/" + filePath;
-    else if (getFileType("/" + filePath) == 1)
-    {
-        // new_path = filePath;
-        // std::cout << "sakdasd:" <<  filePath << std::endl;
+    else if (filePath.at(0) != '/' && getFileType("/" + filePath) == 1)
         return true;
-    }
     else
-    {
         new_path = PATHC + filePath;
-    }
     std::ifstream file(new_path.c_str());
     if (!file.is_open())
-    {
-        // std::cout << getFileType(filePath) << std::endl;
-        return std::cerr << "Failed to open file: " << new_path << std::endl, false;
-    }
+        return std::cerr << "Failed to open file: " << filePath << std::endl, false;
     filePath = new_path;
     return true;
 }
@@ -344,9 +335,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                     return EXIT_FAILURE;
             }
             else
-            {       
                 continue;
-            }
 
             // Clear the buffer after processing to avoid reprocessing
             if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end())

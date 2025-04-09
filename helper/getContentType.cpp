@@ -104,15 +104,15 @@ std::string Server::createBadResponse(std::string contentType, size_t contentLen
     return oss.str();
 }
 
-std::string Server::methodNotAllowedResponse(std::string contentType, int contentLength)
+std::string Server::methodNotAllowedResponse(std::string contentType, size_t contentLength)
 {
     (void)contentLength;
     std::ostringstream oss;
     oss << "HTTP/1.1 405 Method Not Allowed\r\n"
         << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
         << "Allow: GET, POST, DELETE\r\n\r\n";
+        // << "Content-Length: " << contentLength << "\r\n\r\n";
         
-    // << "Content-Length: " << contentLength << "\r\n"
     return oss.str();
 }
 
@@ -124,5 +124,23 @@ std::string Server::createTimeoutResponse(std::string contentType, size_t conten
         << "Last-Modified: " << getCurrentTimeInGMT() << "\r\n"
         << "Content-Length: " << contentLength << "\r\n\r\n";
 
+    return oss.str();
+}
+
+
+std::string Server::goneHttpResponse(std::string contentType, size_t contentLength)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 410 Gone\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+    return oss.str();
+}
+
+std::string Server::deleteHttpResponse(Server* server)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 204 No Content\r\n"
+        << "Last-Modified: " << server->getCurrentTimeInGMT() << "\r\n\r\n";
     return oss.str();
 }
