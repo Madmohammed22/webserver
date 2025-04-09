@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/09 15:36:51 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/09 16:09:44 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,45 +77,47 @@ public:
     Server(const Server& Init);
     Server& operator=(const Server& Init);
     ~Server();
+
 public:
     // Map to keep track of file transfers for each client
     std::map<int, FileTransferState> fileTransfers;
-public:
     int establishingServer();
-
-public:
-    std::string parsRequest(std::string request);
-    std::string parsRequest404(std::string request);
-    std::string getContentType(const std::string &path);
 
 public:
     int pageNotFound;
     size_t LARGE_FILE_THRESHOLD;
 
 public:
-    std::string renderHtml(std::string path, Server *server);
+    // Methods
+    int serve_file_request(int fd, Server *server, std::string request);
+    int handle_delete_request(int fd, Server *server,std::string request);
     int handle_post_request(int fd, Server *server, std::string request);
+    
+    // Functions helper
+    std::string getContentType(const std::string &path);
     std::string readFile(const std::string &path);
-    static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
-    std::string parseRequest(std::string request, Server *server);
     int getFileType(std::string path);
     bool canBeOpen(std::string &filePath);
-    std::string createChunkedHttpResponse(std::string contentType);
+    std::string parseRequest(std::string request, Server *server);
     std::ifstream::pos_type getFileSize(const std::string &path);
-    std::string httpResponse(std::string contentType, size_t contentLength);
-    int handle_delete_request(int fd, Server *server,std::string request);
-    int continueFileTransfer(int fd, Server * server);
-    int handleFileRequest(int fd, Server *server, const std::string &filePath);
-    int serve_file_request(int fd, Server *server, std::string request);
-    std::string methodNotAllowedResponse(std::string contentType, size_t contentLength);
-    void setnonblocking(int fd);
-    int processMethodNotAllowed(int fd, Server *server, std::string request);
     static std::string getCurrentTimeInGMT();
-    std::string createTimeoutResponse(std::string contentType, size_t contentLength);
+    
+    // Response headers
+    static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
+    std::string createChunkedHttpResponse(std::string contentType);
+    std::string httpResponse(std::string contentType, size_t contentLength);
+    std::string methodNotAllowedResponse(std::string contentType, size_t contentLength);
+    int processMethodNotAllowed(int fd, Server *server, std::string request);
     static std::string createBadResponse(std::string contentType, size_t contentLength);
-    int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
     std::string goneHttpResponse(std::string contentType, size_t contentLength);
     std::string deleteHttpResponse(Server* server);
+    std::string createTimeoutResponse(std::string contentType, size_t contentLength);
+    int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
+    
+    // Transfer-Encoding: chunked
+    int handleFileRequest(int fd, Server *server, const std::string &filePath);
+    int continueFileTransfer(int fd, Server * server);
+    void setnonblocking(int fd);
 };
 
 #endif

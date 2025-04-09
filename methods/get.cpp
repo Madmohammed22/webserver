@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/09 15:12:18 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/09 15:54:03 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -200,8 +200,6 @@ int Server::serve_file_request(int fd, Server *server, std::string request)
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
         return server->handleFileRequest(fd, server, filePath);
     else
-    {
         return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
-    }
     return 0;
 }

@@ -3,7 +3,6 @@ SRC_DIR1 = helper
 SRC_DIR2 = methods
 
 SRC = server.cpp $(SRC_DIR2)/get.cpp $(SRC_DIR2)/post.cpp $(SRC_DIR2)/delete.cpp \
-	$(SRC_DIR1)/generateResponse.cpp \
 	$(SRC_DIR1)/getContentType.cpp $(SRC_DIR1)/parseRequest.cpp \
 	$(SRC_DIR1)/establishingServer.cpp \
 	$(SRC_DIR1)/processMethodNotAllowed.cpp
