@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/11 10:05:27 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/11 10:58:06 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ std::string Server::key_value_pair_header(std::string request, std::string targe
             result = request.substr(j, i - j);
             if (!result.empty()){
                 mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
-                            , result.substr(result.find(" ") + 1, result.length())));                
+                            , result.substr(result.find(" "), result.length())));                
             }
             j = i + 1;
         }

@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/11 10:03:02 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/11 10:59:48 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,11 +120,11 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
     
         state.isComplete = true;
         if (Connection != "keep-alive"){
-            // server->fileTransfers.erase(fd);
-            // close(fd);
+            server->fileTransfers.erase(fd);
+            close(fd);
         }
         else{
-            // state.last_activity_time = time(NULL);
+            state.last_activity_time = time(NULL);
         }
     }
 
@@ -176,11 +176,13 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
         
         delete[] buffer;
         if (Connection != "keep-alive"){
-            // server->fi
+            server->fileTransfers.erase(fd);
+            close(fd);
             
         }
         else{
-            // state.last_activity_time = time(NULL);
+            std::cout << "Start timer\n";
+            state.last_activity_time = time(NULL);
         }
         return 0; 
     }
@@ -203,11 +205,13 @@ std::string Server::readFile(const std::string &path)
 
 int Server::serve_file_request(int fd, Server *server, std::string request)
 {
+    
     std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
-    // std::string save = returnTargetFromRequest(pair_request.first, "Connection:").second;
     std::string save = server->key_value_pair_header(pair_request.first,"Connection:");
     std::string Connection = save.substr(1, save.find("\n") - 2);
 
+    std::string test = server->key_value_pair_header(pair_request.first,"Referer:");
+    std::cout << "[" << test << "]" << std::endl;
     // Check if we already have a file transfer in progress
     if (server->fileTransfers.find(fd) != server->fileTransfers.end())
         return server->continueFileTransfer(fd, server, Connection);
