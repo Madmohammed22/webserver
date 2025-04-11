@@ -82,6 +82,19 @@ void check_timeout(Server *server)
     }
 }
 
+void initializeFileTransfers(Server *server, int fd, std::string& request)
+{
+    FileTransferState state;
+   
+    state.multp.containHeader = true;
+    state.filePath = server->parseRequest(request, server);
+    state.fileSize = server->getFileSize(state.filePath);
+    state.offset = 0;
+    state.isComplete = false;
+    state.multp.flag = true;
+    server->fileTransfers[fd] = state; 
+}
+
 int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, std::string> &send_buffers)
 {
     int conn_sock;
@@ -121,6 +134,18 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 buffer[bytes] = '\0';
                 request = buffer;
                 send_buffers[events[i].data.fd] = request;
+                /*std::cout << request;*/
+
+                if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end()
+                    && request.find("POST") != std::string::npos)
+                  initializeFileTransfers(server, events[i].data.fd, request);
+                if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()
+                    && server->fileTransfers[events[i].data.fd].multp.flag == true)
+                {
+                    // [soukaina] please check this condition
+                    if (server->handle_post_request(events[i].data.fd, server, request) == -1)
+                        return EXIT_FAILURE;
+                }
             }
         }
         else if (events[i].events & EPOLLOUT)
@@ -136,10 +161,10 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 continue;
             if (request.find("POST") != std::string::npos)
             {
-               
+
                 // if (server->handle_post_request(events[i].data.fd, server, request) == -1)
                 //     return EXIT_FAILURE;
-                exit(0);
+                /*exit(0);*/
             }
             if (request.find("DELETE") != std::string::npos)
             {
@@ -202,7 +227,7 @@ int main(int argc, char **argv)
     std::map<int, std::string> send_buffers;
     while (true)
     {
-        check_timeout(server);
+        /*check_timeout(server);*/
         if (handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers) == EXIT_FAILURE)
             break;
     }

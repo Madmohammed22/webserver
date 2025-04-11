@@ -1,0 +1,5 @@
+[ ] the endpoint of the request ( i was not properly understand it)
+[ ] review how the server check for the endpoint
+[ ] file exceed the 10mb limit of the server
+[ ] unvalid  content-type
+[ ] 

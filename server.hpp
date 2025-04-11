@@ -55,6 +55,16 @@
 #define PATHE "root/error/" 
 #define PATHU "root/UPLOAD"
 
+struct Multipart
+{
+    bool flag;
+    bool containHeader;
+    std::string boundry;
+    std::string currentFileName;
+    int currentFd;
+    Multipart() : flag(false) {}
+};
+
 // Structure to hold file transfer state
 struct FileTransferState {
     time_t last_activity_time;
@@ -67,6 +77,7 @@ struct FileTransferState {
     int saveFd;
     int flag;
     std::set<std::string> knownPaths;
+    struct Multipart multp;
     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
 };
 

@@ -249,37 +249,94 @@ int Server::getSpecificRespond(int fd, Server *server, std::string file, std::st
     return 0;
 }
 
-
-int Server::handle_post_request(int fd, Server *server, std::string header)
+bool    checkEndPoint()
 {
-    std::pair<std::string, std::string> pair_request = ft_parseRequest(header);
-    if (returnTargetFromRequest(pair_request.first, "Content-Length").first == 0)
+    return (true);        
+}
+
+void    createFileName(std::string line, Server *server)
+{
+    std::string fileName;
+    
+    (void)server;
+    size_t start = fileName.find("filename=\"");
+    fileName = line.substr(start, line.npos - 1);
+    std::cout << "((((((((((((((((((((((()))))))))))))))))))))))\n";
+    std::cout << fileName << std::endl;
+    std::cout << "((((((((((((((((((((((()))))))))))))))))))))))\n";
+}
+
+void    writeData(Server *server, std::string &request)
+{
+    (void)server;
+    std::string line;
+    /*bool start;*/
+    std::string delimeter;
+
+    std::stringstream ss(request);
+    // [soukaina] should be changed to the real dilemeter
+    while(std::getline(ss, line,'\n'))
     {
-        return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
+        std::cout << "i was here once\n";
+        if (line != "\r")
+        {
+            /*std::cout << " this is the start\n";*/
+            /*std::cout << line << std::endl;*/
+            /*std::cout << " thisis the end\n";*/
+        }
+        if (line.find("------------") != line.npos)
+        {
+            std::getline(ss, line, '\n');
+            if (line.find("filename") == line.npos)
+            {
+                // here we need to generate an error
+                ;
+            }
+            else
+            {
+               createFileName(line, server); 
+            }
+            // [soukaina] return to this part later to check if the content-type is always provided
+            std::getline(ss, line, '\n');
+            std::getline(ss, line, '\n');
+        }
+        else if (line.find(delimeter + "--") == line.npos)
+        {
+            
+        }
     }
-    // Check if we already have a file transfer in progress
-    //---------------------------------
-    if (server->fileTransfers.find(fd) != server->fileTransfers.end())
+}
+
+int Server::handle_post_request(int fd, Server *server, std::string request)
+{
+    std::string contentType;
+    // header check
+    if (server->fileTransfers[fd].multp.containHeader == true)
     {
-        // Continue the existing transfer
-        return continueFileTransferPost(fd, server); //?? 
+        /*stest(pair_request.first, "Content-Length").first == 0)*/
+        /*    return getSpecificRespond(fd, server, "400.html", server->createBadResponse);*/
+
+        /*contentType = returnTargetFromRequest(pair_request.first, "Content-Type").second;*/
+        /*std::string filePath = server->parseRequest(pair_request.first, server);*/
+        
+        // [soukaina]  where gonna work on it later on when the proper function is developed 
+        
+        /*if (contentType.find("multipart") != contentType.npos)*/
+        /*{*/
+        /*    std::cout << contentType << std::endl;*/
+            /*std::cout << "found it \n";*/
+        /*}*/
+        /*else */
+        /*    generate an error*/
+        // [soukaina] here it gives error from canBeOpen
+        
+        /*if (checkEndPoint() == false)*/
+        /*    return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);*/
+        server->fileTransfers[fd].multp.containHeader = false;
+        /*request = pair_request.second;*/
     }
-    //--------------------------------
-    std::string filePath = server->parseRequest(pair_request.first, server);
-    // std::cout << "--------------------" << std::endl;
-    // std::cout << pair_request.second << std::endl;
-    // std::cout << "--------------------" << std::endl;
-    if (canBeOpen(filePath))
-    {
-        // std::cout << filePath << std::endl;
-        // exit(404);
-        // return handleFileRequest_post(fd, server, filePath); //???
-        return 0; 
-    }
-    else
-    { 
-        // Handle 404 Not Found scenario
-        return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse); 
-    }
+
+    writeData(server, request);
     return 0;
 }
+

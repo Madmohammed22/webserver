@@ -1,10 +1,11 @@
 #include "../server.hpp"
 
 int Server::processMethodNotAllowed(int fd, Server *server, std::string request){
-    std::cout << "-------( REQUEST PARSED )-------\n\n";
-    std::cout << request << std::endl;
-    std::cout << "-------( END OF REQUEST )-------\n\n";
-    
+    /*std::cout << "-------( REQUEST PARSED )-------\n\n";*/
+    /*std::cout << request << std::endl;*/
+    /*std::cout << "-------( END OF REQUEST )-------\n\n";*/
+
+    (void) request;
     std::string path1 = PATHE;
     std::string path2 = "405.html";
     std::string new_path = path1 + path2;
