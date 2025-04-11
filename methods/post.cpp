@@ -259,7 +259,9 @@ void    createFileName(std::string line, Server *server)
     std::string fileName;
     
     (void)server;
-    size_t start = fileName.find("filename=\"");
+    size_t start = fileName.find("filename");
+    if (start == fileName.npos)
+        return ;
     fileName = line.substr(start, line.npos - 1);
     std::cout << "((((((((((((((((((((((()))))))))))))))))))))))\n";
     std::cout << fileName << std::endl;
@@ -272,21 +274,19 @@ void    writeData(Server *server, std::string &request)
     std::string line;
     /*bool start;*/
     std::string delimeter;
-
+    /*request.erase(0, );*/
     std::stringstream ss(request);
     // [soukaina] should be changed to the real dilemeter
     while(std::getline(ss, line,'\n'))
     {
-        std::cout << "i was here once\n";
-        if (line != "\r")
-        {
-            /*std::cout << " this is the start\n";*/
-            /*std::cout << line << std::endl;*/
-            /*std::cout << " thisis the end\n";*/
-        }
+        /*if (line != "\r")*/
+        /*{*/
+        /*}*/
         if (line.find("------------") != line.npos)
         {
+            std::cout << line << std::endl;
             std::getline(ss, line, '\n');
+            std::cout << line << std::endl;
             if (line.find("filename") == line.npos)
             {
                 // here we need to generate an error
@@ -294,16 +294,17 @@ void    writeData(Server *server, std::string &request)
             }
             else
             {
-               createFileName(line, server); 
+                std::cout << "i was here once\n";
+                createFileName(line, server); 
             }
             // [soukaina] return to this part later to check if the content-type is always provided
             std::getline(ss, line, '\n');
             std::getline(ss, line, '\n');
         }
-        else if (line.find(delimeter + "--") == line.npos)
-        {
-            
-        }
+        /*else if (line.find(delimeter + "--") == line.npos)*/
+        /*{*/
+
+        /*}*/
     }
 }
 
