@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/09 15:54:03 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/11 10:03:02 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,14 +77,15 @@ bool sendFinalChunk(int fd)
 }
 
 // Continue sending chunks for an in-progress file transfer
-int Server::continueFileTransfer(int fd, Server *server)
+int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
 {
     if (server->fileTransfers.find(fd) == server->fileTransfers.end())
-        return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, -1;
+        return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, 0;
 
     FileTransferState &state = server->fileTransfers[fd];
-    if (state.isComplete)
-        return server->fileTransfers.erase(fd), 0;
+    if (state.isComplete){
+        return server->fileTransfers.erase(fd), close(fd), 0;
+    }
 
     char buffer[CHUNK_SIZE];
     size_t remainingBytes = state.fileSize - state.offset;
@@ -97,8 +98,7 @@ int Server::continueFileTransfer(int fd, Server *server)
     if (!readFileChunk(state.filePath, buffer, state.offset, bytesToRead, bytesRead))
     {
         std::cerr << "Failed to read chunk from file: " << state.filePath << std::endl;
-        server->fileTransfers.erase(fd);
-        return -1;
+        return server->fileTransfers.erase(fd), close(fd), 0;
     }
 
     if (!sendChunk(fd, buffer, bytesRead))
@@ -117,16 +117,22 @@ int Server::continueFileTransfer(int fd, Server *server)
             std::cerr << "Failed to send final chunk." << std::endl;
             return server->fileTransfers.erase(fd), close(fd), 0;
         }
-
+    
         state.isComplete = true;
-        server->fileTransfers.erase(fd);
+        if (Connection != "keep-alive"){
+            // server->fileTransfers.erase(fd);
+            // close(fd);
+        }
+        else{
+            // state.last_activity_time = time(NULL);
+        }
     }
 
     return 0;
 }
 
 // Handle initial file request
-int Server::handleFileRequest(int fd, Server *server, const std::string &filePath)
+int Server::handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection)
 {
     std::string contentType = server->getContentType(filePath);
     size_t fileSize = server->getFileSize(filePath);
@@ -150,10 +156,11 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
         state.last_activity_time = time(NULL); // Initialize this!
         server->fileTransfers[fd] = state;
         state.saveFd = fd;
-        return server->continueFileTransfer(fd, server);
+        return server->continueFileTransfer(fd, server, Connection);
     }
     else
     {
+        FileTransferState state;
         // Use standard Content-Length for smaller files
         std::string httpResponse = server->httpResponse(contentType, fileSize);
         if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
@@ -166,12 +173,16 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
             return std::cerr << "Failed to read file: " << filePath << std::endl, delete[] buffer, -1;
 
         send(fd, buffer, bytesRead, MSG_NOSIGNAL);
+        
         delete[] buffer;
-
-        // if (result == -1)
-        //     return std::cerr << "Failed to send file content." << std::endl, -1;
-
-        return 0;
+        if (Connection != "keep-alive"){
+            // server->fi
+            
+        }
+        else{
+            // state.last_activity_time = time(NULL);
+        }
+        return 0; 
     }
 }
 
@@ -192,13 +203,18 @@ std::string Server::readFile(const std::string &path)
 
 int Server::serve_file_request(int fd, Server *server, std::string request)
 {
+    std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
+    // std::string save = returnTargetFromRequest(pair_request.first, "Connection:").second;
+    std::string save = server->key_value_pair_header(pair_request.first,"Connection:");
+    std::string Connection = save.substr(1, save.find("\n") - 2);
+
     // Check if we already have a file transfer in progress
     if (server->fileTransfers.find(fd) != server->fileTransfers.end())
-        return server->continueFileTransfer(fd, server);
+        return server->continueFileTransfer(fd, server, Connection);
     
     std::string filePath = server->parseRequest(request,server);
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
-        return server->handleFileRequest(fd, server, filePath);
+        return server->handleFileRequest(fd, server, filePath, Connection);
     else
         return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
     return 0;

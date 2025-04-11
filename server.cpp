@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/09 15:39:29 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/11 10:05:27 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,26 @@ Server::~Server()
     std::cout << "[Server] Destructor is called" << std::endl;
 }
 
+std::string Server::key_value_pair_header(std::string request, std::string target_key){
+    std::map<std::string, std::string> mapv;
+    request.erase(std::remove(request.begin(), request.end(), '\r'), request.end());
+    size_t j = 0;
+    for (size_t i = 0; i < request.length() ; i++){
+        std::string result;
+        if (static_cast<unsigned char>(request.at(i)) == 10 ){
+            result = request.substr(j, i - j);
+            if (!result.empty()){
+                mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
+                            , result.substr(result.find(" ") + 1, result.length())));                
+            }
+            j = i + 1;
+        }
+    }
+    std::map<std::string, std::string>::iterator it = mapv.find(target_key);
+    if (it != mapv.end())
+        return it->second;
+    return "";
+}
 
 int returnTimeoutRequest(int fd, Server *server)
 {
@@ -75,6 +95,7 @@ void check_timeout(Server *server)
             std::map<int, FileTransferState>::iterator tmp = it;
             returnTimeoutRequest(tmp->second.saveFd, server);
             ++it;
+            close(it->first);
             server->fileTransfers.erase(tmp);
         }
         else
@@ -106,6 +127,8 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
                 return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
         }
+        // I need to handle the case if the client send request character by damn character.
+        
         else if (events[i].events & EPOLLIN)
         {
             int bytes = recv(events[i].data.fd, buffer, sizeof(buffer), 0);
@@ -125,10 +148,15 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
         }
         else if (events[i].events & EPOLLOUT)
         {
+                
             if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
             {
-                if (server->continueFileTransfer(events[i].data.fd, server) == -1)
-                    return std::cerr << "Failed to continue file transfer" << std::endl, EXIT_FAILURE;
+                std::pair<std::string, std::string> pair_request = server->ft_parseRequest(send_buffers[events[i].data.fd]);
+                std::string save = server->returnTargetFromRequest(pair_request.first, "Connection:").second;
+                std::string Connection = save.substr(1, save.find("\n") - 2);
+
+                if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
+                    return std::cerr << "Failed to continue file transfer" << std::endl, 0;
                 continue;
             }
             request = send_buffers[events[i].data.fd];

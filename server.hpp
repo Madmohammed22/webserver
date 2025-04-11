@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/09 16:09:44 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/11 10:00:15 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,7 @@
 #include <errno.h>     
 #include <string.h>
 #include <set>
+#include <algorithm>
 
 #define ERROR404 404
 #define ERROR405 405
@@ -49,7 +50,7 @@
 #define PORT 8080 
 #define MAX_EVENTS 10
 #define CHUNK_SIZE 16000    
-#define TIMEOUT 10
+#define TIMEOUT 2
 
 #define PATHC "root/content/"
 #define PATHE "root/error/" 
@@ -101,7 +102,7 @@ public:
     std::string parseRequest(std::string request, Server *server);
     std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
-    
+    std::string key_value_pair_header(std::string request, std::string target_key);    
     // Response headers
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
     std::string createChunkedHttpResponse(std::string contentType);
@@ -113,10 +114,11 @@ public:
     std::string deleteHttpResponse(Server* server);
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
-    
+    std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
+    std::pair<std::string, std::string> ft_parseRequest(std::string header);
     // Transfer-Encoding: chunked
-    int handleFileRequest(int fd, Server *server, const std::string &filePath);
-    int continueFileTransfer(int fd, Server * server);
+    int handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection);
+    int continueFileTransfer(int fd, Server * server, std::string Connection);
     void setnonblocking(int fd);
 };
 

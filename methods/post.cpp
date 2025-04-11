@@ -193,7 +193,7 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
     }
 }
 
-std::pair<std::string, std::string> ft_parseRequest(std::string header)
+std::pair<std::string, std::string> Server::ft_parseRequest(std::string header)
 {
 
     std::pair<std::string, std::string> pair_request(header.substr(0, header.find("\r\n\r\n", 0)),
@@ -201,7 +201,7 @@ std::pair<std::string, std::string> ft_parseRequest(std::string header)
     return pair_request;
 }
 
-std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target)
+std::pair<size_t, std::string> Server::returnTargetFromRequest(std::string header, std::string target)
 {
     std::pair<size_t, std::string> pair_target;
     std::set<std::string> node;
@@ -252,7 +252,7 @@ int Server::getSpecificRespond(int fd, Server *server, std::string file, std::st
 
 int Server::handle_post_request(int fd, Server *server, std::string header)
 {
-    std::pair<std::string, std::string> pair_request = ft_parseRequest(header);
+    std::pair<std::string, std::string> pair_request = server->ft_parseRequest(header);
     if (returnTargetFromRequest(pair_request.first, "Content-Length").first == 0)
     {
         return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
