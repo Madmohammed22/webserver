@@ -50,7 +50,7 @@
 #define PORT 8080 
 #define MAX_EVENTS 10
 #define CHUNK_SIZE 16000    
-#define TIMEOUT 5
+#define TIMEOUT 75
 
 #define PATHC "root/content/"
 #define PATHE "root/error/" 
@@ -64,6 +64,7 @@ struct FileTransferState {
     size_t endOffset;
     size_t fileSize;
     bool isComplete;
+    bool isCompleteShortFile;
     int socket;
     int saveFd;
     int flag;

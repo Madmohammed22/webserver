@@ -195,9 +195,20 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
 
 std::pair<std::string, std::string> Server::ft_parseRequest(std::string header)
 {
-
-    std::pair<std::string, std::string> pair_request(header.substr(0, header.find("\r\n\r\n", 0)),
-                                                     header.substr(header.find("\r\n\r\n", 0), header.length()));
+    std::pair<std::string, std::string> pair_request;
+    try
+    {
+        pair_request.first = header.substr(0, header.find("\r\n\r\n"));
+        pair_request.second = header.substr(header.find("\r\n\r\n"), header.length()); 
+        // pair_request(header.substr(0, header.find("\r\n\r\n", 0)),
+        //                                                  header.substr(header.find("\r\n\r\n", 0), header.length()));
+    }
+    catch(const std::exception& e)
+    {
+        exit(100);
+        std::cerr << e.what() << '\n';
+    }
+    
     return pair_request;
 }
 
@@ -253,10 +264,10 @@ int Server::getSpecificRespond(int fd, Server *server, std::string file, std::st
 int Server::handle_post_request(int fd, Server *server, std::string header)
 {
     std::pair<std::string, std::string> pair_request = server->ft_parseRequest(header);
-    if (returnTargetFromRequest(pair_request.first, "Content-Length").first == 0)
-    {
-        return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
-    }
+    // if (returnTargetFromRequest(pair_request.first, "Content-Length").first == 0)
+    // {
+    //     return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
+    // }
     // Check if we already have a file transfer in progress
     //---------------------------------
     if (server->fileTransfers.find(fd) != server->fileTransfers.end())

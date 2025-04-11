@@ -84,23 +84,25 @@ int returnTimeoutRequest(int fd, Server *server)
 
 void check_timeout(Server *server)
 {
-    std::map<int, FileTransferState>::iterator it = server->fileTransfers.begin();
-    time_t current_time = time(NULL);
-    while (it != server->fileTransfers.end())
-    {
-        if (current_time - it->second.last_activity_time > TIMEOUT)
-        {
-            std::cerr << "Client " << it->first << " timed out." << std::endl;
-            close(it->first);
-            std::map<int, FileTransferState>::iterator tmp = it;
-            returnTimeoutRequest(tmp->second.saveFd, server);
-            ++it;
-            close(it->first);
-            server->fileTransfers.erase(tmp);
-        }
-        else
-            ++it;
-    }
+    (void)server;
+    // std::map<int, FileTransferState>::iterator it = server->fileTransfers.begin();
+    // (void)it;
+    // time_t current_time = time(NULL);
+    // while (it != server->fileTransfers.end())
+    // {
+    //     if (current_time - it->second.last_activity_time > TIMEOUT)
+    //     {
+    //         // std::cerr << "Client " << it->first << " timed out." << std::endl;
+    //         // close(it->first);
+    //         // std::map<int, FileTransferState>::iterator tmp = it;
+    //         // returnTimeoutRequest(tmp->second.saveFd, server);
+    //         // ++it;
+    //         // close(it->first);
+    //         // server->fileTransfers.erase(tmp);
+    //     }
+    //     else
+    //         ++it;
+    // }
 }
 
 int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, std::string> &send_buffers)
@@ -127,7 +129,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
                 return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
         }
-        // I need to handle the case if the client send request character by damn character.
         
         else if (events[i].events & EPOLLIN)
         {
@@ -152,9 +153,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
             {
                 std::pair<std::string, std::string> pair_request = server->ft_parseRequest(send_buffers[events[i].data.fd]);
-                std::string save = server->returnTargetFromRequest(pair_request.first, "Connection:").second;
-                std::string Connection = save.substr(1, save.find("\n") - 2);
-
+                std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
                 if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
                     return std::cerr << "Failed to continue file transfer" << std::endl, 0;
                 continue;
@@ -194,8 +193,9 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 send_buffers.erase(events[i].data.fd);
             }
         }
+        // FileTransferState &state = server->fileTransfers[conn_sock];
+        // (void)state;
     }
-
     return EXIT_SUCCESS;
 }
 
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
     std::map<int, std::string> send_buffers;
     while (true)
     {
-        check_timeout(server);
+        // check_timeout(server);
         if (handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers) == EXIT_FAILURE)
             break;
     }

@@ -25,6 +25,7 @@ std::ifstream::pos_type Server::getFileSize(const std::string &path)
 // Read file in chunks
 bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t chunkSize, size_t &bytesRead)
 {
+    // std::cout << "[" << path.c_str() << "]" << std::endl;
     std::ifstream file(path.c_str(), std::ios::binary);
     if (!file.is_open())
         return false;
@@ -83,8 +84,13 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
         return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, 0;
 
     FileTransferState &state = server->fileTransfers[fd];
-    if (state.isComplete){
-        return server->fileTransfers.erase(fd), close(fd), 0;
+    if (state.isComplete == true){
+        time_t current_time = time(NULL);
+        if (current_time - state.last_activity_time > TIMEOUT){
+            close(fd);
+            server->fileTransfers.erase(fd);
+        }
+        return 0;
     }
 
     char buffer[CHUNK_SIZE];
@@ -97,7 +103,7 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
     size_t bytesRead = 0;
     if (!readFileChunk(state.filePath, buffer, state.offset, bytesToRead, bytesRead))
     {
-        std::cerr << "Failed to read chunk from file: " << state.filePath << std::endl;
+        std::cerr << "Failed to read chunk from file::::: " << state.filePath << std::endl;
         return server->fileTransfers.erase(fd), close(fd), 0;
     }
 
@@ -119,13 +125,11 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
         }
     
         state.isComplete = true;
-        if (Connection != "keep-alive"){
-            server->fileTransfers.erase(fd);
+        if (Connection != " keep-alive"){
             close(fd);
+            server->fileTransfers.erase(fd);
         }
-        else{
-            state.last_activity_time = time(NULL);
-        }
+        state.last_activity_time = time(NULL);
     }
 
     return 0;
@@ -153,7 +157,7 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
         state.fileSize = fileSize;
         state.offset = 0;
         state.isComplete = false;
-        state.last_activity_time = time(NULL); // Initialize this!
+        // state.last_activity_time = time(NULL); // Initialize this!
         server->fileTransfers[fd] = state;
         state.saveFd = fd;
         return server->continueFileTransfer(fd, server, Connection);
@@ -175,14 +179,11 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
         send(fd, buffer, bytesRead, MSG_NOSIGNAL);
         
         delete[] buffer;
-        if (Connection != "keep-alive"){
+        if (Connection != " keep-alive"){
             server->fileTransfers.erase(fd);
-            close(fd);
-            
         }
         else{
-            std::cout << "Start timer\n";
-            state.last_activity_time = time(NULL);
+            // state.isCompleteShortFile = true;
         }
         return 0; 
     }
@@ -205,13 +206,9 @@ std::string Server::readFile(const std::string &path)
 
 int Server::serve_file_request(int fd, Server *server, std::string request)
 {
-    
     std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
-    std::string save = server->key_value_pair_header(pair_request.first,"Connection:");
-    std::string Connection = save.substr(1, save.find("\n") - 2);
+    std::string Connection = server->key_value_pair_header(pair_request.first,"Connection:");
 
-    std::string test = server->key_value_pair_header(pair_request.first,"Referer:");
-    std::cout << "[" << test << "]" << std::endl;
     // Check if we already have a file transfer in progress
     if (server->fileTransfers.find(fd) != server->fileTransfers.end())
         return server->continueFileTransfer(fd, server, Connection);
