@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/11 10:59:48 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/12 17:05:59 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@ bool Server::canBeOpen(std::string &filePath)
         new_path = PATHC + filePath;
     std::ifstream file(new_path.c_str());
     if (!file.is_open())
-        return std::cerr << "Failed to open file: " << filePath << std::endl, false;
+        return std::cerr << "Failed to open file:: " << filePath << std::endl, false;
     filePath = new_path;
     return true;
 }
@@ -87,8 +87,9 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
     if (state.isComplete == true){
         time_t current_time = time(NULL);
         if (current_time - state.last_activity_time > TIMEOUT){
-            close(fd);
-            server->fileTransfers.erase(fd);
+            std::cerr << "Client " << fd << " timed out, " << std::ends;
+            std::cout << "Path: " << state.filePath << std::endl;
+            return close(fd), server->fileTransfers.erase(fd), 0;
         }
         return 0;
     }
@@ -103,14 +104,16 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
     size_t bytesRead = 0;
     if (!readFileChunk(state.filePath, buffer, state.offset, bytesToRead, bytesRead))
     {
-        std::cerr << "Failed to read chunk from file::::: " << state.filePath << std::endl;
-        return server->fileTransfers.erase(fd), close(fd), 0;
+        if (Connection != " keep-alive")
+            return server->fileTransfers.erase(fd), close(fd), 0;
+        return state.isComplete = true, state.last_activity_time = time(NULL), 0;
     }
 
     if (!sendChunk(fd, buffer, bytesRead))
     {
-        std::cerr << "Failed to send chunk." << std::endl;
-        return server->fileTransfers.erase(fd), close(fd), 0;
+        if (Connection != " keep-alive")
+            return server->fileTransfers.erase(fd), close(fd), 0;
+        return state.isComplete = true, state.last_activity_time = time(NULL), 0;
     }
 
     state.offset += bytesRead;
@@ -120,18 +123,16 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
     {
         if (!sendFinalChunk(fd))
         {
-            std::cerr << "Failed to send final chunk." << std::endl;
-            return server->fileTransfers.erase(fd), close(fd), 0;
+            if (Connection != " keep-alive")
+                return server->fileTransfers.erase(fd), close(fd), 0;
+            return state.isComplete = true, state.last_activity_time = time(NULL), 0;
         }
     
         state.isComplete = true;
-        if (Connection != " keep-alive"){
-            close(fd);
-            server->fileTransfers.erase(fd);
-        }
+        if (Connection != " keep-alive")
+            return close(fd), server->fileTransfers.erase(fd), 0;
         state.last_activity_time = time(NULL);
     }
-
     return 0;
 }
 
@@ -157,7 +158,6 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
         state.fileSize = fileSize;
         state.offset = 0;
         state.isComplete = false;
-        // state.last_activity_time = time(NULL); // Initialize this!
         server->fileTransfers[fd] = state;
         state.saveFd = fd;
         return server->continueFileTransfer(fd, server, Connection);
@@ -171,16 +171,15 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
             return std::cerr << "Failed to send HTTP header." << std::endl, -1;
 
         // Read and send the entire file at once
-        char *buffer = new char[fileSize];
+        char buffer[fileSize];
         size_t bytesRead = 0;
         if (!readFileChunk(filePath, buffer, 0, fileSize, bytesRead))
-            return std::cerr << "Failed to read file: " << filePath << std::endl, delete[] buffer, -1;
+            return std::cerr << "Failed to read file: " << filePath << std::endl, 0;
 
         send(fd, buffer, bytesRead, MSG_NOSIGNAL);
         
-        delete[] buffer;
         if (Connection != " keep-alive"){
-            server->fileTransfers.erase(fd);
+            return server->fileTransfers.erase(fd), 0;
         }
         else{
             // state.isCompleteShortFile = true;
@@ -216,7 +215,11 @@ int Server::serve_file_request(int fd, Server *server, std::string request)
     std::string filePath = server->parseRequest(request,server);
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
         return server->handleFileRequest(fd, server, filePath, Connection);
-    else
+    else{
+        FileTransferState state;
+        state.typeOfConnection = Connection;
+        server->fileTransfers[fd] = state;
         return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
+    }
     return 0;
 }

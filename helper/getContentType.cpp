@@ -144,3 +144,50 @@ std::string Server::deleteHttpResponse(Server* server)
         << "Last-Modified: " << server->getCurrentTimeInGMT() << "\r\n\r\n";
     return oss.str();
 }
+
+
+int Server::getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
+{
+    FileTransferState state  = server->fileTransfers[fd];
+    if (state.isComplete == true){
+        time_t current_time = time(NULL);
+        if (current_time - state.last_activity_time > TIMEOUT){
+            std::cerr << "Client " << fd << " timed out, " << std::ends;
+            std::cout << "Path: " << state.filePath << std::endl;
+            return server->fileTransfers.erase(fd), close(fd), 0;
+        }
+    }
+    std::string path1 = PATHE;
+    std::string path2 = file;
+    std::string new_path = path1 + path2;
+    std::string content = server->readFile(new_path);
+    std::string httpResponse = f(server->getContentType(new_path), content.length());
+    try
+    {
+        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
+        {
+            throw std::runtime_error("Failed to send error response header");
+        }
+
+        if (send(fd, content.c_str(), content.length(), MSG_NOSIGNAL) == -1)
+        {
+            throw std::runtime_error("Failed to send error content");
+        }
+
+        if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
+        {
+            throw std::runtime_error("Failed to send final CRLF");
+        }
+        if (state.typeOfConnection != " keep-alive"){
+            return server->fileTransfers.erase(fd), close(fd), 0;
+        }
+        state.isComplete = true;
+        state.last_activity_time = time(NULL);
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << std::endl;
+        return server->fileTransfers.erase(fd), 0;
+    }
+    return 0;
+}

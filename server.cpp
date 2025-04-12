@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/11 10:58:06 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/12 16:08:40 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -230,7 +230,6 @@ int main(int argc, char **argv)
     std::map<int, std::string> send_buffers;
     while (true)
     {
-        // check_timeout(server);
         if (handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers) == EXIT_FAILURE)
             break;
     }

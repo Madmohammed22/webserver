@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/11 10:48:36 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/12 17:10:35 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,9 +48,9 @@
 #define SUCCESS 200
 
 #define PORT 8080 
-#define MAX_EVENTS 10
+#define MAX_EVENTS 2024
 #define CHUNK_SIZE 16000    
-#define TIMEOUT 75
+#define TIMEOUT 20
 
 #define PATHC "root/content/"
 #define PATHE "root/error/" 
@@ -68,6 +68,7 @@ struct FileTransferState {
     int socket;
     int saveFd;
     int flag;
+    std::string typeOfConnection;
     std::set<std::string> knownPaths;
     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
 };
@@ -108,7 +109,7 @@ public:
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
     std::string createChunkedHttpResponse(std::string contentType);
     std::string httpResponse(std::string contentType, size_t contentLength);
-    std::string methodNotAllowedResponse(std::string contentType, size_t contentLength);
+    static std::string methodNotAllowedResponse(std::string contentType, size_t contentLength);
     int processMethodNotAllowed(int fd, Server *server, std::string request);
     static std::string createBadResponse(std::string contentType, size_t contentLength);
     std::string goneHttpResponse(std::string contentType, size_t contentLength);
@@ -121,6 +122,8 @@ public:
     int handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection);
     int continueFileTransfer(int fd, Server * server, std::string Connection);
     void setnonblocking(int fd);
+
+    int test(int fd, Server *server, std::string Connection);
 };
 
 #endif

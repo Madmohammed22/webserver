@@ -224,42 +224,6 @@ std::pair<size_t, std::string> Server::returnTargetFromRequest(std::string heade
     return pair_target;
 }
 
-int Server::getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
-{
-    std::string path1 = PATHE;
-    std::string path2 = file;
-    std::string new_path = path1 + path2;
-    std::string content = server->readFile(new_path);
-    std::string httpResponse = f(server->getContentType(new_path), content.length());
-    try
-    {
-        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-        {
-            throw std::runtime_error("Failed to send error response header");
-        }
-
-        if (send(fd, content.c_str(), content.length(), MSG_NOSIGNAL) == -1)
-        {
-            throw std::runtime_error("Failed to send error content");
-        }
-
-        if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
-        {
-            throw std::runtime_error("Failed to send final CRLF");
-        }
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << e.what() << std::endl;
-        close(fd);
-        return -1;
-    }
-
-    server->fileTransfers.erase(fd);
-    close(fd);
-    return 0;
-}
-
 
 int Server::handle_post_request(int fd, Server *server, std::string header)
 {
@@ -288,7 +252,7 @@ int Server::handle_post_request(int fd, Server *server, std::string header)
         return 0; 
     }
     else
-    { 
+    {
         // Handle 404 Not Found scenario
         return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse); 
     }
