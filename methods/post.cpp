@@ -254,21 +254,29 @@ bool    checkEndPoint()
     return (true);        
 }
 
-void    createFileName(std::string line, Server *server)
+void    createFileName(std::string line, Server *server, int fd)
 {
     std::string fileName;
-    
-    (void)server;
-    size_t start = fileName.find("filename");
+    std::ofstream *tmpOutfile = NULL;
+
+    size_t start = line.find("filename=\"");
+   // here we should handle if the fileName is not exist 
+    /*printf("%p\n", server->fileTransfers[fd].multp.outFile);*/
     if (start == fileName.npos)
         return ;
-    fileName = line.substr(start, line.npos - 1);
-    std::cout << "((((((((((((((((((((((()))))))))))))))))))))))\n";
-    std::cout << fileName << std::endl;
-    std::cout << "((((((((((((((((((((((()))))))))))))))))))))))\n";
+    start += 10;
+    fileName = line.substr(start, line.length() - 2 - start);
+    tmpOutfile->open(fileName.c_str());
+    server->fileTransfers[fd].multp.outFile = tmpOutfile;
+    // here we have to handle this error properly  
+    if (!server->fileTransfers[fd].multp.outFile)
+    {
+        std::cerr << "Error : can't create the file " << fileName << std::endl;
+        return ;
+    } 
 }
 
-void    writeData(Server *server, std::string &request)
+void    writeData(Server *server, std::string &request, int fd)
 {
     (void)server;
     std::string line;
@@ -284,24 +292,30 @@ void    writeData(Server *server, std::string &request)
         /*}*/
         if (line.find("------------") != line.npos)
         {
-            std::cout << line << std::endl;
+            /*std::getline(ss, line, '\n');*/
             std::getline(ss, line, '\n');
-            std::cout << line << std::endl;
             if (line.find("filename") == line.npos)
             {
                 // here we need to generate an error
-                ;
+                return ;
             }
             else
             {
-                std::cout << "i was here once\n";
-                createFileName(line, server); 
+                std::cout << line << std::endl;
+                createFileName(line, server, fd);
+                std::getline(ss, line, '\n');
             }
             // [soukaina] return to this part later to check if the content-type is always provided
-            std::getline(ss, line, '\n');
-            std::getline(ss, line, '\n');
+            /*std::getline(ss, line, '\n');*/
+            /*std::getline(ss, line, '\n');*/
         }
-        /*else if (line.find(delimeter + "--") == line.npos)*/
+        if (server->fileTransfers[fd].multp.outFile != NULL)
+        {
+            std::cout << " i was here once \n";
+            server->fileTransfers[fd].multp.outFile->write(line.c_str(), line.length());
+            server->fileTransfers[fd].multp.outFile->close();
+        } 
+            /*else if (line.find(delimeter + "--") == line.npos)*/
         /*{*/
 
         /*}*/
@@ -335,9 +349,12 @@ int Server::handle_post_request(int fd, Server *server, std::string request)
         /*    return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);*/
         server->fileTransfers[fd].multp.containHeader = false;
         /*request = pair_request.second;*/
+        std::string tmp;
+
+        tmp = ft_parseRequest(request).second;
+        writeData(server, tmp, fd);
     }
 
-    writeData(server, request);
     return 0;
 }
 

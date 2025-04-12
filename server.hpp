@@ -48,7 +48,7 @@
 
 #define PORT 8080 
 #define MAX_EVENTS 10
-#define CHUNK_SIZE 16000    
+#define CHUNK_SIZE 16000 
 #define TIMEOUT 10
 
 #define PATHC "root/content/"
@@ -60,9 +60,11 @@ struct Multipart
     bool flag;
     bool containHeader;
     std::string boundry;
+    std::ofstream *outFile;
     std::string currentFileName;
     int currentFd;
-    Multipart() : flag(false) {}
+    
+    Multipart() : flag(false) ,outFile(NULL) {}
 };
 
 // Structure to hold file transfer state
@@ -76,8 +78,8 @@ struct FileTransferState {
     int socket;
     int saveFd;
     int flag;
+    Multipart multp;
     std::set<std::string> knownPaths;
-    struct Multipart multp;
     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
 };
 
