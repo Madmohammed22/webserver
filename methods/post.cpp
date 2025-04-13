@@ -254,71 +254,87 @@ bool    checkEndPoint()
     return (true);        
 }
 
-void    createFileName(std::string line, Server *server, int fd)
+void createFileName(std::string line, Server *server, int fd)
 {
-    std::string fileName;
-    std::ofstream *tmpOutfile = NULL;
-
     size_t start = line.find("filename=\"");
-   // here we should handle if the fileName is not exist 
-    /*printf("%p\n", server->fileTransfers[fd].multp.outFile);*/
-    if (start == fileName.npos)
-        return ;
-    start += 10;
-    fileName = line.substr(start, line.length() - 2 - start);
-    tmpOutfile->open(fileName.c_str());
-    server->fileTransfers[fd].multp.outFile = tmpOutfile;
-    // here we have to handle this error properly  
-    if (!server->fileTransfers[fd].multp.outFile)
+    
+    if (start == std::string::npos)
     {
-        std::cerr << "Error : can't create the file " << fileName << std::endl;
-        return ;
-    } 
+        std::cerr << "Error: filename not found in line" << std::endl;
+        return;
+    }
+    
+    start += 10;
+    size_t end = line.find("\"", start);
+    if (end == std::string::npos) {
+        std::cerr << "Error: malformed filename in line" << std::endl;
+        return;
+    }
+
+    std::string fileName = "new" + line.substr(start, end - start);
+    
+    if (server->fileTransfers[fd].multp.outFile)
+    {
+        server->fileTransfers[fd].multp.outFile->close();
+        delete server->fileTransfers[fd].multp.outFile;
+    }
+    
+    std::ofstream *tmpOutfile = new std::ofstream(fileName.c_str(), std::ios::app);
+    
+    if (!tmpOutfile->is_open())
+    {
+        std::cerr << "Error: can't create/open the file " << fileName << std::endl;
+        delete tmpOutfile;
+        return;
+    }
+    
+    server->fileTransfers[fd].multp.outFile = tmpOutfile;
+    std::cout << "File " << fileName << " opened successfully" << std::endl;
 }
 
-void    writeData(Server *server, std::string &request, int fd)
-{
-    (void)server;
-    std::string line;
-    /*bool start;*/
-    std::string delimeter;
-    /*request.erase(0, );*/
-    std::stringstream ss(request);
-    // [soukaina] should be changed to the real dilemeter
-    while(std::getline(ss, line,'\n'))
-    {
-        /*if (line != "\r")*/
-        /*{*/
-        /*}*/
-        if (line.find("------------") != line.npos)
-        {
-            /*std::getline(ss, line, '\n');*/
-            std::getline(ss, line, '\n');
-            if (line.find("filename") == line.npos)
-            {
-                // here we need to generate an error
-                return ;
-            }
-            else
-            {
-                std::cout << line << std::endl;
-                createFileName(line, server, fd);
-                std::getline(ss, line, '\n');
-            }
-            // [soukaina] return to this part later to check if the content-type is always provided
-            /*std::getline(ss, line, '\n');*/
-            /*std::getline(ss, line, '\n');*/
-        }
-        if (server->fileTransfers[fd].multp.outFile != NULL)
-        {
-            std::cout << " i was here once \n";
-            server->fileTransfers[fd].multp.outFile->write(line.c_str(), line.length());
-            server->fileTransfers[fd].multp.outFile->close();
-        } 
-            /*else if (line.find(delimeter + "--") == line.npos)*/
-        /*{*/
+void writeData(Server *server, std::string &request, int fd) {
 
-        /*}*/
+    std::string line;
+    std::stringstream ss(request);
+    bool isWritingFileContent = false;
+
+    while (std::getline(ss, line, '\n'))
+    {
+        if (!line.empty() && line[line.length() - 1] == '\r')
+            line.erase(line.length() - 1);
+
+        if (line.find("--") == 0 && line.find("boundary") == std::string::npos)
+        {
+            while (std::getline(ss, line, '\n'))
+            {
+                if (!line.empty() && line[line.length() - 1] == '\r')
+                {
+                    line.erase(line.length() - 1);
+                }
+                if (line.empty())
+                    break;
+                if (line.find("filename=") != std::string::npos)
+                {
+                    createFileName(line, server, fd);
+                }
+            }
+            isWritingFileContent = true;
+            continue;
+        }
+
+        if (isWritingFileContent && 
+            server->fileTransfers[fd].multp.outFile && 
+            server->fileTransfers[fd].multp.outFile->is_open()) 
+        {
+            server->fileTransfers[fd].multp.outFile->write(line.c_str(), line.length());
+            server->fileTransfers[fd].multp.outFile->write("\n", 1);
+            std::cout << "Writing line: " << line << std::endl;
+        }
+    }
+
+    if (server->fileTransfers[fd].multp.outFile)
+    {
+        server->fileTransfers[fd].multp.outFile->flush();
     }
 }
 
