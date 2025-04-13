@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/12 16:08:40 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/13 16:33:20 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,30 +81,6 @@ int returnTimeoutRequest(int fd, Server *server)
     return 0;
 }
 
-
-void check_timeout(Server *server)
-{
-    (void)server;
-    // std::map<int, FileTransferState>::iterator it = server->fileTransfers.begin();
-    // (void)it;
-    // time_t current_time = time(NULL);
-    // while (it != server->fileTransfers.end())
-    // {
-    //     if (current_time - it->second.last_activity_time > TIMEOUT)
-    //     {
-    //         // std::cerr << "Client " << it->first << " timed out." << std::endl;
-    //         // close(it->first);
-    //         // std::map<int, FileTransferState>::iterator tmp = it;
-    //         // returnTimeoutRequest(tmp->second.saveFd, server);
-    //         // ++it;
-    //         // close(it->first);
-    //         // server->fileTransfers.erase(tmp);
-    //     }
-    //     else
-    //         ++it;
-    // }
-}
-
 int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, std::string> &send_buffers)
 {
     int conn_sock;
@@ -115,7 +91,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
 
     if ((nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1)) == -1)
         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
-
+    
     for (int i = 0; i < nfds; ++i)
     {
         if (events[i].data.fd == listen_sock)

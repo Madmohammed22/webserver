@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/12 17:10:35 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/13 16:10:29 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,10 +48,10 @@
 #define SUCCESS 200
 
 #define PORT 8080 
-#define MAX_EVENTS 2024
-#define CHUNK_SIZE 16000    
-#define TIMEOUT 20
-
+#define MAX_EVENTS 10000
+#define CHUNK_SIZE 17000    
+#define TIMEOUT 60
+// #define TIMEOUTMS 5000
 #define PATHC "root/content/"
 #define PATHE "root/error/" 
 #define PATHU "root/UPLOAD"
@@ -59,7 +59,7 @@
 // Structure to hold file transfer state
 struct FileTransferState {
     time_t last_activity_time;
-    std::string filePath;
+    std::string filePath;   
     size_t offset;
     size_t endOffset;
     size_t fileSize;
