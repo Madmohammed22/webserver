@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/13 16:33:20 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/13 17:49:07 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,9 +89,11 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
     struct epoll_event events[MAX_EVENTS];
     int nfds;
 
-    if ((nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1)) == -1)
+    if ((nfds = epoll_wait(epollfd, events, MAX_EVENTS, TIMEOUTMS)) == -1)
         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
-    
+    if (nfds == 0){
+        return 0;
+    }
     for (int i = 0; i < nfds; ++i)
     {
         if (events[i].data.fd == listen_sock)
@@ -109,6 +111,9 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
         else if (events[i].events & EPOLLIN)
         {
             int bytes = recv(events[i].data.fd, buffer, sizeof(buffer), 0);
+            if (bytes < 0){
+                return server->fileTransfers.erase(events[i].data.fd),close(events[i].data.fd), 0;
+            }
             if (bytes == 0)
             {
                 if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
@@ -140,9 +145,8 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             if (request.find("POST") != std::string::npos)
             {
                
-                // if (server->handle_post_request(events[i].data.fd, server, request) == -1)
-                //     return EXIT_FAILURE;
-                exit(0);
+                if (server->handle_post_request(events[i].data.fd, server, request) == -1)
+                    return EXIT_FAILURE;
             }
             if (request.find("DELETE") != std::string::npos)
             {
@@ -162,15 +166,11 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             else
                 continue;
 
-            // Clear the buffer after processing to avoid reprocessing
             if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end())
             {
-                // Only erase if we're not in the middle of a chunked transfer
                 send_buffers.erase(events[i].data.fd);
             }
         }
-        // FileTransferState &state = server->fileTransfers[conn_sock];
-        // (void)state;
     }
     return EXIT_SUCCESS;
 }
