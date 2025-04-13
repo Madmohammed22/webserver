@@ -32,7 +32,7 @@ std::string Server::getContentType(const std::string &path)
     return "application/octet-stream";
 }
 
-std::string Server::getCurrentTimeInGMT() {
+std::string Server::getCurrentTimeInGMT() { 
     time_t t = time(0);
     tm *time_struct = gmtime(&t); // Use gmtime to get UTC time
 

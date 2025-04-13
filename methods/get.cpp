@@ -59,7 +59,7 @@ bool sendChunk(int fd, const char *data, size_t size)
     chunkHeader << std::hex << size << "\r\n";
     std::string header = chunkHeader.str();
 
-    send(fd, header.c_str(), header.length(), MSG_NOSIGNAL);
+    send(fd, header.c_str( ), header.length(), MSG_NOSIGNAL);
 
     // Send chunk data
     send(fd, data, size, MSG_NOSIGNAL);
@@ -94,12 +94,13 @@ int Server::continueFileTransfer(int fd, Server *server)
     else
         bytesToRead = remainingBytes;
     size_t bytesRead = 0;
-    if (!readFileChunk(state.filePath, buffer, state.offset, bytesToRead, bytesRead))
-    {
-        std::cerr << "Failed to read chunk from file: " << state.filePath << std::endl;
-        server->fileTransfers.erase(fd);
-        return -1;
-    }
+    // [soukaina] this part is causing me some problem i ll hide it for now
+    /*if (!readFileChunk(state.filePath, buffer, state.offset, bytesToRead, bytesRead))*/
+    /*{*/
+    /*    std::cerr << "Failed to read chunk from file: " << state.filePath << std::endl;*/
+    /*    server->fileTransfers.erase(fd);*/
+    /*    return -1;*/
+    /*}*/
 
     if (!sendChunk(fd, buffer, bytesRead))
     {

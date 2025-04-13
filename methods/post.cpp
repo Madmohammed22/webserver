@@ -249,9 +249,20 @@ int Server::getSpecificRespond(int fd, Server *server, std::string file, std::st
     return 0;
 }
 
-bool    checkEndPoint()
+bool checkEndPoint(std::string &filePath)
 {
-    return (true);        
+    std::string fullPath = "./root" + filePath;
+    struct stat info;
+   
+    std::cout << fullPath << std::endl; 
+    if (stat(fullPath.c_str(), &info) != 0)
+        return false;   
+    if (S_ISDIR(info.st_mode))
+    {
+        filePath = fullPath + '/';
+        return (true);
+    }
+    return (false);
 }
 
 void createFileName(std::string line, Server *server, int fd)
@@ -270,8 +281,7 @@ void createFileName(std::string line, Server *server, int fd)
         std::cerr << "Error: malformed filename in line" << std::endl;
         return;
     }
-
-    std::string fileName = "new" + line.substr(start, end - start);
+    std::string fileName = server->fileTransfers[fd].filePath + line.substr(start, end - start);
     
     if (server->fileTransfers[fd].multp.outFile)
     {
@@ -279,11 +289,11 @@ void createFileName(std::string line, Server *server, int fd)
         delete server->fileTransfers[fd].multp.outFile;
     }
     
-    std::ofstream *tmpOutfile = new std::ofstream(fileName.c_str(), std::ios::app);
+    std::ofstream *tmpOutfile = new std::ofstream(fileName.c_str(), std::ios::binary);
     
     if (!tmpOutfile->is_open())
     {
-        std::cerr << "Error: can't create/open the file " << fileName << std::endl;
+        std::cerr << "Error: can't create or open the file " << fileName << std::endl;
         delete tmpOutfile;
         return;
     }
@@ -294,12 +304,20 @@ void createFileName(std::string line, Server *server, int fd)
 
 void writeData(Server *server, std::string &request, int fd) {
 
-    std::string line;
-    std::stringstream ss(request);
+    // std::string line;
+    std::basic_string<std::string> line;
+    // std::basic_str
+    std::ifstream ss(request.c_str() , std::ios::binary);
     bool isWritingFileContent = false;
 
+    if (!std::getline(ss, line, '\n').good())
+    {
+        std::cout << " errooooooooooooooooooooor\n";     
+    }
     while (std::getline(ss, line, '\n'))
     {
+        std::cout << "-----------------------------------------\n";
+        std::cout << line << std::endl;
         if (!line.empty() && line[line.length() - 1] == '\r')
             line.erase(line.length() - 1);
 
@@ -341,6 +359,8 @@ void writeData(Server *server, std::string &request, int fd) {
 int Server::handle_post_request(int fd, Server *server, std::string request)
 {
     std::string contentType;
+
+    /*(void)request;  */
     // header check
     if (server->fileTransfers[fd].multp.containHeader == true)
     {
@@ -361,16 +381,11 @@ int Server::handle_post_request(int fd, Server *server, std::string request)
         /*    generate an error*/
         // [soukaina] here it gives error from canBeOpen
         
-        /*if (checkEndPoint() == false)*/
-        /*    return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);*/
+        if (checkEndPoint(server->fileTransfers[fd].filePath) == false)
+            return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
         server->fileTransfers[fd].multp.containHeader = false;
-        /*request = pair_request.second;*/
-        std::string tmp;
-
-        tmp = ft_parseRequest(request).second;
-        writeData(server, tmp, fd);
     }
-
+    writeData(server, request, fd);
     return 0;
 }
 
