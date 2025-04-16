@@ -200,12 +200,9 @@ std::pair<std::string, std::string> Server::ft_parseRequest(std::string header)
     {
         pair_request.first = header.substr(0, header.find("\r\n\r\n"));
         pair_request.second = header.substr(header.find("\r\n\r\n"), header.length()); 
-        // pair_request(header.substr(0, header.find("\r\n\r\n", 0)),
-        //                                                  header.substr(header.find("\r\n\r\n", 0), header.length()));
     }
     catch(const std::exception& e)
     {
-        exit(100);
         std::cerr << e.what() << '\n';
     }
     

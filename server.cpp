@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/13 17:49:07 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/16 16:38:21 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,17 +36,20 @@ Server::~Server()
     std::cout << "[Server] Destructor is called" << std::endl;
 }
 
-std::string Server::key_value_pair_header(std::string request, std::string target_key){
+std::string Server::key_value_pair_header(std::string request, std::string target_key)
+{
     std::map<std::string, std::string> mapv;
     request.erase(std::remove(request.begin(), request.end(), '\r'), request.end());
     size_t j = 0;
-    for (size_t i = 0; i < request.length() ; i++){
+    for (size_t i = 0; i < request.length(); i++)
+    {
         std::string result;
-        if (static_cast<unsigned char>(request.at(i)) == 10 ){
+        if (static_cast<unsigned char>(request.at(i)) == 10)
+        {
             result = request.substr(j, i - j);
-            if (!result.empty()){
-                mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
-                            , result.substr(result.find(" "), result.length())));                
+            if (!result.empty())
+            {
+                mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" ")), result.substr(result.find(" "), result.length())));
             }
             j = i + 1;
         }
@@ -81,17 +84,19 @@ int returnTimeoutRequest(int fd, Server *server)
     return 0;
 }
 
-int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, std::string> &send_buffers)
+int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, Binary_String >& send_buffers)
 {
     int conn_sock;
-    char buffer[CHUNK_SIZE];
+    std::vector<unsigned char> buffer(CHUNK_SIZE);
+    Binary_String holder;
     std::string request;
     struct epoll_event events[MAX_EVENTS];
     int nfds;
 
     if ((nfds = epoll_wait(epollfd, events, MAX_EVENTS, TIMEOUTMS)) == -1)
         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
-    if (nfds == 0){
+    if (nfds == 0)
+    {
         return 0;
     }
     for (int i = 0; i < nfds; ++i)
@@ -107,69 +112,56 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
                 return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
         }
-        
+
         else if (events[i].events & EPOLLIN)
         {
-            int bytes = recv(events[i].data.fd, buffer, sizeof(buffer), 0);
-            if (bytes < 0){
-                return server->fileTransfers.erase(events[i].data.fd),close(events[i].data.fd), 0;
+            int bytes = recv(events[i].data.fd, &buffer[0], buffer.size(), 0);
+            if (bytes < 0)
+            {
+                return server->fileTransfers.erase(events[i].data.fd), close(events[i].data.fd), 0;
             }
             if (bytes == 0)
             {
                 if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
                     server->fileTransfers.erase(events[i].data.fd);
-                close(events[i].data.fd);
                 continue;
             }
             else
             {
                 buffer[bytes] = '\0';
-                request = buffer;
-                send_buffers[events[i].data.fd] = request;
+                send_buffers[events[i].data.fd] = holder.append(reinterpret_cast<char*> (&buffer[0]), 0, bytes);
+                std::cout << holder.to_string() << std::ends;
             }
         }
         else if (events[i].events & EPOLLOUT)
         {
-                
             if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
             {
-                std::pair<std::string, std::string> pair_request = server->ft_parseRequest(send_buffers[events[i].data.fd]);
+                request = send_buffers[events[i].data.fd].to_string();
+                std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
                 std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
                 if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
-                    return std::cerr << "Failed to continue file transfer" << std::endl, 0;
+                return std::cerr << "Failed to continue file transfer" << std::endl, 0;
                 continue;
             }
-            request = send_buffers[events[i].data.fd];
+            request = send_buffers[events[i].data.fd].to_string();
             if (request.empty())
                 continue;
-            if (request.find("POST") != std::string::npos)
-            {
-               
-                if (server->handle_post_request(events[i].data.fd, server, request) == -1)
-                    return EXIT_FAILURE;
-            }
             if (request.find("DELETE") != std::string::npos)
             {
-                if (server->handle_delete_request(events[i].data.fd, server, request) == -1)
-                    return EXIT_FAILURE;
+                server->handle_delete_request(events[i].data.fd, server, request);
             }
             else if (request.find("GET") != std::string::npos)
             {
-                if (server->serve_file_request(events[i].data.fd, server, request) == -1)
-                    return EXIT_FAILURE;
+                server->serve_file_request(events[i].data.fd, server, request);
             }
             else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
             {
-                if (server->processMethodNotAllowed(events[i].data.fd, server, request) == -1)
-                    return EXIT_FAILURE;
+                server->processMethodNotAllowed(events[i].data.fd, server, request);
             }
-            else
-                continue;
 
             if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end())
-            {
                 send_buffers.erase(events[i].data.fd);
-            }
         }
     }
     return EXIT_SUCCESS;
@@ -203,7 +195,8 @@ int main(int argc, char **argv)
                close(listen_sock), close(epollfd), delete server, EXIT_FAILURE;
     }
 
-    std::map<int, std::string> send_buffers;
+    // std::map<int, std::vector<unsigned char> > send_buffers;
+    std::map<int, Binary_String > send_buffers;
     while (true)
     {
         if (handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers) == EXIT_FAILURE)

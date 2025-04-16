@@ -35,8 +35,3 @@ int Server::processMethodNotAllowed(int fd, Server *server, std::string request)
 //     //         ++it;
 //     // }
 // }
-
-
-// if (nfds == 0){
-//     std::cout << "TIMEOUT VIA EPOLL_WAIT" << std::endl;
-// }
