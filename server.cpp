@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/17 13:51:04 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/17 16:29:05 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,6 +84,11 @@ int returnTimeoutRequest(int fd, Server *server)
     return 0;
 }
 
+void ft_fo(std::string holder){
+    for (size_t i = 0; i < holder.size(); i++){
+        std::cout << holder[i] << std::ends;
+    }
+}
 int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, Binary_String >& send_buffers)
 {
     int conn_sock;
@@ -128,7 +133,9 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             else
             {
                 holder[bytes] = '\0';
-                send_buffers[events[i].data.fd] = holder.append(holder[0], 0, bytes);
+                send_buffers[events[i].data.fd] = holder;
+                std::string save;
+                save += holder.to_string();
             }
         }
         else if (events[i].events & EPOLLOUT)
@@ -141,8 +148,9 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
                 return std::cerr << "Failed to continue file transfer" << std::endl, 0;
                 continue;
-            }
+            } 
             request = send_buffers[events[i].data.fd].to_string();
+            // request = std::string(reinterpret_cast<const char *>(send_buffers[events[i].data.fd][0]), send_buffers[events[i].data.fd].size());
             if (request.empty())
                 continue;
             if (request.find("DELETE") != std::string::npos)

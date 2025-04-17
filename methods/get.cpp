@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/17 13:35:56 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/17 15:26:34 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,9 +84,11 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
         return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, 0;
 
     FileTransferState &state = server->fileTransfers[fd];
-    if (state.isComplete == true){
+    if (state.isComplete == true)
+    {
         time_t current_time = time(NULL);
-        if (current_time - state.last_activity_time > TIMEOUT){
+        if (current_time - state.last_activity_time > TIMEOUT)
+        {
             std::cerr << "Client " << fd << " timed out, " << std::ends;
             std::cout << "Path: " << state.filePath << std::endl;
             return close(fd), server->fileTransfers.erase(fd), 0;
@@ -127,7 +129,7 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
                 return server->fileTransfers.erase(fd), close(fd), 0;
             return state.isComplete = true, state.last_activity_time = time(NULL), 0;
         }
-    
+
         state.isComplete = true;
         if (Connection != " keep-alive")
             return close(fd), server->fileTransfers.erase(fd), 0;
@@ -177,14 +179,17 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
             return std::cerr << "Failed to read file: " << filePath << std::endl, 0;
 
         send(fd, buffer, bytesRead, MSG_NOSIGNAL);
-        
-        if (Connection != " keep-alive"){
-            return server->fileTransfers.erase(fd), 0;
+
+        if (Connection != " keep-alive")
+        {
+            return close(fd), server->fileTransfers.erase(fd), 0;
         }
-        else{
-            // state.isCompleteShortFile = true;
+        else
+        {
+            // std::cout << Connection << std::endl;
+            state.isCompleteShortFile = true;
         }
-        return 0; 
+        return 0;
     }
 }
 
@@ -206,16 +211,15 @@ std::string Server::readFile(const std::string &path)
 int Server::serve_file_request(int fd, Server *server, std::string request)
 {
     std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
-    std::string Connection = server->key_value_pair_header(pair_request.first,"Connection:");
-
-    // Check if we already have a file transfer in progress
+    std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
     if (server->fileTransfers.find(fd) != server->fileTransfers.end())
         return server->continueFileTransfer(fd, server, Connection);
-    
-    std::string filePath = server->parseRequest(request,server);
+
+    std::string filePath = server->parseRequest(request, server);
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
         return server->handleFileRequest(fd, server, filePath, Connection);
-    else{
+    else
+    {
         FileTransferState state;
         state.typeOfConnection = Connection;
         server->fileTransfers[fd] = state;
