@@ -152,8 +152,7 @@ int Server::getSpecificRespond(int fd, Server *server, std::string file, std::st
     if (state.isComplete == true){
         time_t current_time = time(NULL);
         if (current_time - state.last_activity_time > TIMEOUT){
-            std::cerr << "Client " << fd << " timed out, " << std::ends;
-            std::cout << "Path: " << state.filePath << std::endl;
+            std::cerr << "Client " << fd << " timed out." << std::ends;
             return server->fileTransfers.erase(fd), close(fd), 0;
         }
     }
@@ -205,5 +204,6 @@ std::pair<std::string, std::string> Server::ft_parseRequest(std::string header)
         std::cerr << e.what() << '\n';
     }
     
+
     return pair_request;
 }

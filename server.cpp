@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/17 16:29:05 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/17 22:33:36 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -100,9 +100,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
     if ((nfds = epoll_wait(epollfd, events, MAX_EVENTS, TIMEOUTMS)) == -1)
         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
     if (nfds == 0)
-    {
         return 0;
-    }
     for (int i = 0; i < nfds; ++i)
     {
         if (events[i].data.fd == listen_sock)
@@ -120,6 +118,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
         else if (events[i].events & EPOLLIN)
         {
             int bytes = recv(events[i].data.fd, &holder[0], holder.size(), 0);
+            
             if (bytes < 0)
             {
                 return server->fileTransfers.erase(events[i].data.fd), close(events[i].data.fd), 0;
@@ -134,8 +133,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 holder[bytes] = '\0';
                 send_buffers[events[i].data.fd] = holder;
-                std::string save;
-                save += holder.to_string();
             }
         }
         else if (events[i].events & EPOLLOUT)
@@ -150,7 +147,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 continue;
             } 
             request = send_buffers[events[i].data.fd].to_string();
-            // request = std::string(reinterpret_cast<const char *>(send_buffers[events[i].data.fd][0]), send_buffers[events[i].data.fd].size());
             if (request.empty())
                 continue;
             if (request.find("DELETE") != std::string::npos)
@@ -160,12 +156,12 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             else if (request.find("GET") != std::string::npos)
             {
                 server->serve_file_request(events[i].data.fd, server, request);
+                
             }
             else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
             {
                 server->processMethodNotAllowed(events[i].data.fd, server, request);
             }
-
             if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end())
                 send_buffers.erase(events[i].data.fd);
         }
