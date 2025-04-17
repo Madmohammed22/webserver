@@ -193,21 +193,6 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
     }
 }
 
-std::pair<std::string, std::string> Server::ft_parseRequest(std::string header)
-{
-    std::pair<std::string, std::string> pair_request;
-    try
-    {
-        pair_request.first = header.substr(0, header.find("\r\n\r\n"));
-        pair_request.second = header.substr(header.find("\r\n\r\n"), header.length()); 
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-    
-    return pair_request;
-}
 
 std::pair<size_t, std::string> Server::returnTargetFromRequest(std::string header, std::string target)
 {

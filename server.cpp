@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/16 16:38:21 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/17 13:51:04 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,8 +87,7 @@ int returnTimeoutRequest(int fd, Server *server)
 int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, Binary_String >& send_buffers)
 {
     int conn_sock;
-    std::vector<unsigned char> buffer(CHUNK_SIZE);
-    Binary_String holder;
+    Binary_String holder(CHUNK_SIZE);
     std::string request;
     struct epoll_event events[MAX_EVENTS];
     int nfds;
@@ -115,7 +114,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
 
         else if (events[i].events & EPOLLIN)
         {
-            int bytes = recv(events[i].data.fd, &buffer[0], buffer.size(), 0);
+            int bytes = recv(events[i].data.fd, &holder[0], holder.size(), 0);
             if (bytes < 0)
             {
                 return server->fileTransfers.erase(events[i].data.fd), close(events[i].data.fd), 0;
@@ -128,9 +127,8 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             else
             {
-                buffer[bytes] = '\0';
-                send_buffers[events[i].data.fd] = holder.append(reinterpret_cast<char*> (&buffer[0]), 0, bytes);
-                std::cout << holder.to_string() << std::ends;
+                holder[bytes] = '\0';
+                send_buffers[events[i].data.fd] = holder.append(holder[0], 0, bytes);
             }
         }
         else if (events[i].events & EPOLLOUT)
@@ -195,7 +193,6 @@ int main(int argc, char **argv)
                close(listen_sock), close(epollfd), delete server, EXIT_FAILURE;
     }
 
-    // std::map<int, std::vector<unsigned char> > send_buffers;
     std::map<int, Binary_String > send_buffers;
     while (true)
     {

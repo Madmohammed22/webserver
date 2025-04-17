@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/16 16:35:59 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/17 13:51:25 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@
 #define SUCCESS 200
 
 #define PORT 8080 
-#define MAX_EVENTS 10000
+#define MAX_EVENTS 1024
 #define CHUNK_SIZE 17000    
 #define TIMEOUT 60
 #define TIMEOUTMS 60000
