@@ -327,20 +327,26 @@ int Server::handle_post_request(int fd, Server *server, binary_string request)
 {
     std::string contentType;
     FileTransferState state;
-
+    std::string header;
     state = server->fileTransfers[fd];
     /*(void)request;  */
     // header check
     if (state.multp.containHeader == true)
     {
-        if (server->key_value_pair_header(request.to_string(), "Content-Length") == "")
+        header = ft_parseRequest(request.to_string()).first;
+        std::cout << "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh\n";
+        std::cout << header << std::endl;
+        std::cout << "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh\n";
+        //contentType = server->key_value_pair_header(request.to_string(), "Content-Length");
+        if (server->key_value_pair_header(header, "Content-Type:") == "")
             return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
 
-        contentType = server->key_value_pair_header(request.to_string(), "Content-Length");
+        exit(0);
+        //contentType = server->key_value_pair_header(request.to_string(), "Content-Length");
         /*std::string filePath = server->parseRequest(pair_request.first, server);*/
         
         // [soukaina]  where gonna work on it later on when the proper function is developed 
-        std::cout << " the content type " << contentType << std::endl;
+        //std::cout << " the content type " << contentType << std::endl;
         exit(0);
         if (contentType.find("multipart") != contentType.npos)
         {

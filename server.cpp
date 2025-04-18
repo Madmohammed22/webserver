@@ -36,11 +36,16 @@ Server::~Server()
     std::cout << "[Server] Destructor is called" << std::endl;
 }
 
+// improved key_value_pair
+
+
+
 std::string Server::key_value_pair_header(std::string request, std::string target_key)
 {
     std::map<std::string, std::string> mapv;
     request.erase(std::remove(request.begin(), request.end(), '\r'), request.end());
     size_t j = 0;
+    
     for (size_t i = 0; i < request.length(); i++)
     {
         std::string result;
@@ -56,7 +61,7 @@ std::string Server::key_value_pair_header(std::string request, std::string targe
     }
     std::map<std::string, std::string>::iterator it = mapv.find(target_key);
     if (it != mapv.end())
-        return it->second;
+        std::cout << it->second << std::endl;
     return "";
 }
 
