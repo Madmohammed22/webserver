@@ -84,11 +84,24 @@ int returnTimeoutRequest(int fd, Server *server)
     return 0;
 }
 
-int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, Binary_String >& send_buffers)
+void initializeFileTransfers(Server *server, int fd, binary_string& request)
+{
+    FileTransferState state;
+   
+    state.multp.containHeader = true;
+    state.filePath = server->parseRequest(request.to_string(), server);
+    state.fileSize = server->getFileSize(state.filePath);
+    state.offset = 0;
+    state.isComplete = false;
+    state.multp.flag = true;
+    server->fileTransfers[fd] = state; 
+}
+
+int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, binary_string >& send_buffers)
 {
     int conn_sock;
     std::vector<unsigned char> buffer(CHUNK_SIZE);
-    Binary_String holder;
+    binary_string holder;
     std::string request;
     struct epoll_event events[MAX_EVENTS];
     int nfds;
@@ -129,8 +142,18 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             else
             {
                 buffer[bytes] = '\0';
-                send_buffers[events[i].data.fd] = holder.append(reinterpret_cast<char*> (&buffer[0]), 0, bytes);
-                std::cout << holder.to_string() << std::ends;
+                send_buffers[events[i].data.fd] = holder.append(reinterpret_cast<char*> (&buffer[0]), 0, bytes + 1);
+                /*std::cout << holder.to_string() << std::ends;*/
+                if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end()
+                    && holder.find("POST") != std::string::npos)
+                    initializeFileTransfers(server, events[i].data.fd, holder);
+                if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()
+                     && server->fileTransfers[events[i].data.fd].multp.flag == true)
+                {
+                     // [soukaina] please check this condition
+                     if (server->handle_post_request(events[i].data.fd, server, holder) == -1)
+                         return EXIT_FAILURE;
+                }
             }
         }
         else if (events[i].events & EPOLLOUT)
@@ -142,7 +165,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
                 if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
                 return std::cerr << "Failed to continue file transfer" << std::endl, 0;
-                continue;
+                /*continue;*/
             }
             request = send_buffers[events[i].data.fd].to_string();
             if (request.empty())
@@ -196,7 +219,7 @@ int main(int argc, char **argv)
     }
 
     // std::map<int, std::vector<unsigned char> > send_buffers;
-    std::map<int, Binary_String > send_buffers;
+    std::map<int, binary_string > send_buffers;
     while (true)
     {
         if (handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers) == EXIT_FAILURE)

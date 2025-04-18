@@ -221,37 +221,140 @@ std::pair<size_t, std::string> Server::returnTargetFromRequest(std::string heade
     return pair_target;
 }
 
-
-int Server::handle_post_request(int fd, Server *server, std::string header)
+bool checkEndPoint(std::string &filePath)
 {
-    std::pair<std::string, std::string> pair_request = server->ft_parseRequest(header);
-    // if (returnTargetFromRequest(pair_request.first, "Content-Length").first == 0)
-    // {
-    //     return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
-    // }
-    // Check if we already have a file transfer in progress
-    //---------------------------------
-    if (server->fileTransfers.find(fd) != server->fileTransfers.end())
+    std::string fullPath = "./root" + filePath;
+    struct stat info;
+   
+    std::cout << fullPath << std::endl; 
+    if (stat(fullPath.c_str(), &info) != 0)
+        return false;   
+    if (S_ISDIR(info.st_mode))
     {
-        // Continue the existing transfer
-        return continueFileTransferPost(fd, server); //?? 
+        filePath = fullPath + '/';
+        return (true);
     }
-    //--------------------------------
-    std::string filePath = server->parseRequest(pair_request.first, server);
-    // std::cout << "--------------------" << std::endl;
-    // std::cout << pair_request.second << std::endl;
-    // std::cout << "--------------------" << std::endl;
-    if (canBeOpen(filePath))
+    return (false);
+}
+
+void createFileName(std::string line, Server *server, int fd)
+{
+    size_t start = line.find("filename=\"");
+    
+    if (start == std::string::npos)
     {
-        // std::cout << filePath << std::endl;
-        // exit(404);
-        // return handleFileRequest_post(fd, server, filePath); //???
-        return 0; 
+        std::cerr << "Error: filename not found in line" << std::endl;
+        return;
     }
-    else
+    
+    start += 10;
+    size_t end = line.find("\"", start);
+    if (end == std::string::npos) {
+        std::cerr << "Error: malformed filename in line" << std::endl;
+        return;
+    }
+    std::string fileName = server->fileTransfers[fd].filePath + line.substr(start, end - start);
+    
+    if (server->fileTransfers[fd].multp.outFile)
     {
-        // Handle 404 Not Found scenario
-        return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse); 
+        server->fileTransfers[fd].multp.outFile->close();
+        delete server->fileTransfers[fd].multp.outFile;
     }
+    
+    std::ofstream *tmpOutfile = new std::ofstream(fileName.c_str(), std::ios::binary);
+    
+    if (!tmpOutfile->is_open())
+    {
+        std::cerr << "Error: can't create or open the file " << fileName << std::endl;
+        delete tmpOutfile;
+        return;
+    }
+    
+    server->fileTransfers[fd].multp.outFile = tmpOutfile;
+    std::cout << "File " << fileName << " opened successfully" << std::endl;
+}
+
+/*void writeData(Server *server, binary_string &request, int fd)*/
+/*{*/
+/**/
+/*    std::string line;*/
+/*    // char *line;*/
+/*    // std::basic_str*/
+/*    // Write raw binary data directly to the output file*/
+/*    bool isWritingFileContent = false;*/
+/**/
+/*    if (request.find(server->fileTransfers[fd].multp.boundry))*/
+/*    {*/
+/*        if (!line.empty() && line[line.length() - 1] == '\r')*/
+/*            line.erase(line.length() - 1);*/
+/**/
+/*        if (line.find("--") == 0 && line.find("boundary") == std::string::npos)*/
+/*        {*/
+/*            while (std::getline(ss, line, '\n'))*/
+/*            {*/
+/*                if (!line.empty() && line[line.length() - 1] == '\r')*/
+/*                {*/
+/*                    line.erase(line.length() - 1);*/
+/*                }*/
+/*                if (line.empty())*/
+/*                    break;*/
+/*                if (line.find("filename=") != std::string::npos)*/
+/*                {*/
+/*                    createFileName(line, server, fd);*/
+/*                }*/
+/*            }*/
+/*            isWritingFileContent = true;*/
+            /*continue;*/
+/*        }*/
+/**/
+/*        if (isWritingFileContent && */
+/*            server->fileTransfers[fd].multp.outFile && */
+/*            server->fileTransfers[fd].multp.outFile->is_open()) */
+/*        {*/
+/*            server->fileTransfers[fd].multp.outFile->write(line.c_str(), line.length());*/
+/*            server->fileTransfers[fd].multp.outFile->write("\n", 1);*/
+/*            std::cout << "Writing line: " << line << std::endl;*/
+/*        }*/
+/*    }*/
+/**/
+/*    if (server->fileTransfers[fd].multp.outFile)*/
+/*    {*/
+/*        server->fileTransfers[fd].multp.outFile->flush();*/
+/*    }*/
+/*}*/
+
+int Server::handle_post_request(int fd, Server *server, binary_string request)
+{
+    std::string contentType;
+    FileTransferState state;
+
+    state = server->fileTransfers[fd];
+    /*(void)request;  */
+    // header check
+    if (state.multp.containHeader == true)
+    {
+        if (server->key_value_pair_header(request.to_string(), "Content-Length") == "")
+            return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
+
+        contentType = server->key_value_pair_header(request.to_string(), "Content-Length");
+        /*std::string filePath = server->parseRequest(pair_request.first, server);*/
+        
+        // [soukaina]  where gonna work on it later on when the proper function is developed 
+        std::cout << " the content type " << contentType << std::endl;
+        exit(0);
+        if (contentType.find("multipart") != contentType.npos)
+        {
+            std::cout << contentType << std::endl;
+            std::cout << "found it \n";
+        }
+        /*else */
+        /*    generate an error*/
+        /*state.multp.boundry =  find()    */
+        // [soukaina] here it gives error from canBeOpen
+        if (checkEndPoint(state.filePath) == false)
+            return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
+        server->fileTransfers[fd].multp.containHeader = false;
+    }
+    /*writeData(server, request, fd);*/
     return 0;
 }

@@ -43,7 +43,6 @@
 #include <set>
 #include <algorithm>
 
-
 #define ERROR404 404
 #define ERROR405 405
 #define SUCCESS 200
@@ -57,6 +56,17 @@
 #define PATHE "root/error/" 
 #define PATHU "root/UPLOAD"
 
+struct Multipart
+{
+    bool flag;
+    bool containHeader;
+    std::string boundry;
+    std::ofstream *outFile;
+    std::string currentFileName;
+    int currentFd;
+    
+    Multipart() : flag(false) ,outFile(NULL) {}
+};
 // Structure to hold file transfer state
 struct FileTransferState {
     time_t last_activity_time;
@@ -69,9 +79,45 @@ struct FileTransferState {
     int socket;
     int saveFd;
     int flag;
+    Multipart multp;
     std::string typeOfConnection;
     std::set<std::string> knownPaths;
     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
+};
+
+class binary_string
+{
+    private:
+        std::vector <uint8_t > buffer;
+        static const size_t npos = -1;
+    public:
+        binary_string(const char* str, size_t n);
+        binary_string();
+        binary_string(const binary_string& other);
+        binary_string(size_t n);
+        ~binary_string();
+        size_t find(const char* s, size_t pos = 0) const;
+        size_t find(const std::string& s, size_t pos = 0) const;
+        binary_string substr(size_t pos, size_t n) const;
+        binary_string& append(const char* str, size_t subpos, size_t sublen);
+        binary_string& append(const std::string& str, size_t subpos, size_t sublen);
+        binary_string& append(const binary_string& str, size_t subpos, size_t sublen);
+        void clear();
+        std::string to_string() const;
+        const char* c_str() const;
+        size_t size() const;
+        uint8_t operator[](size_t i) const;
+        uint8_t& operator[](size_t i);
+        uint8_t* data();
+        bool empty() const;
+        std::vector <uint8_t >::iterator begin();
+        std::vector <uint8_t >::iterator end();
+        void push_back(uint8_t c);
+        binary_string operator+(const binary_string& other) const;
+        binary_string operator+=(const binary_string& other);
+        bool operator==(const binary_string& other) const;
+        bool operator!=(const binary_string& other) const;
+
 };
 
 class Server
@@ -95,7 +141,7 @@ public:
     // Methods
     int serve_file_request(int fd, Server *server, std::string request);
     int handle_delete_request(int fd, Server *server,std::string request);
-    int handle_post_request(int fd, Server *server, std::string request);
+    int handle_post_request(int fd, Server *server, binary_string request);
     
     // Functions helper
     std::string getContentType(const std::string &path);
@@ -127,41 +173,7 @@ public:
     int test(int fd, Server *server, std::string Connection);
 };
 
-class Binary_String
-{
-    private:
-        std::vector <uint8_t > buffer;
-        static const size_t npos = -1;
-    public:
-        Binary_String(const char* str, size_t n);
-        Binary_String();
-        Binary_String(const Binary_String& other);
-        Binary_String(size_t n);
-        ~Binary_String();
-        size_t find(const char* s, size_t pos = 0) const;
-        size_t find(const std::string& s, size_t pos = 0) const;
-        Binary_String substr(size_t pos, size_t n) const;
-        Binary_String& append(const char* str, size_t subpos, size_t sublen);
-        Binary_String& append(const std::string& str, size_t subpos, size_t sublen);
-        Binary_String& append(const Binary_String& str, size_t subpos, size_t sublen);
-        void clear();
-        std::string to_string() const;
-        const char* c_str() const;
-        size_t size() const;
-        uint8_t operator[](size_t i) const;
-        uint8_t& operator[](size_t i);
-        uint8_t* data();
-        bool empty() const;
-        std::vector <uint8_t >::iterator begin();
-        std::vector <uint8_t >::iterator end();
-        void push_back(uint8_t c);
-        Binary_String operator+(const Binary_String& other) const;
-        Binary_String operator+=(const Binary_String& other);
-        bool operator==(const Binary_String& other) const;
-        bool operator!=(const Binary_String& other) const;
 
-};
-
-std::ostream& operator<<(std::ostream& os, const Binary_String& buffer);
+std::ostream& operator<<(std::ostream& os, const binary_string& buffer);
 #endif
 
