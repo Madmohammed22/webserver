@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/17 22:33:36 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/18 13:52:16 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,12 +49,16 @@ std::string Server::key_value_pair_header(std::string request, std::string targe
             result = request.substr(j, i - j);
             if (!result.empty())
             {
-                mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" ")), result.substr(result.find(" "), result.length())));
+                mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
+                                , result.substr(result.find(" "), result.length())));
             }
-            j = i + 1;
+            j = i + 1;                
         }
     }
-    std::map<std::string, std::string>::iterator it = mapv.find(target_key);
+    std::string result = request.substr(j, request.length());
+    mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
+                                , result.substr(result.find(" "), result.length())));
+    std::map<std::string, std::string>::iterator it = mapv.find(target_key);    
     if (it != mapv.end())
         return it->second;
     return "";

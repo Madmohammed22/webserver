@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/17 21:46:30 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/18 13:04:20 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,6 +106,7 @@ public:
     std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
     std::string key_value_pair_header(std::string request, std::string target_key);    
+
     // Response headers
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
     std::string createChunkedHttpResponse(std::string contentType);
@@ -119,6 +120,7 @@ public:
     int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
     std::pair<std::string, std::string> ft_parseRequest(std::string header);
+
     // Transfer-Encoding: chunked
     int handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection);
     int continueFileTransfer(int fd, Server * server, std::string Connection);

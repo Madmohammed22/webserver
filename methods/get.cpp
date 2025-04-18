@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/17 23:11:53 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/18 13:12:04 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -216,6 +216,8 @@ int Server::serve_file_request(int fd, Server *server, std::string request)
 {
     std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
     std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
+    std::string Test = server->key_value_pair_header(pair_request.first, "sec-ch-ua-platform:");
+    std::cout << Test << std::endl;
     if (server->fileTransfers.find(fd) != server->fileTransfers.end())
     {
         return server->continueFileTransfer(fd, server, Connection);
