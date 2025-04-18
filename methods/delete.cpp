@@ -44,7 +44,7 @@ void deleteDirectoryContents(const std::string& dir)
     }
 
     closedir(dp);
-    (void)rmdir(dir.c_str());
+    rmdir(dir.c_str());
 }
 
 int DELETE(std::string request){    
@@ -74,8 +74,11 @@ int Server::handle_delete_request(int fd, Server *server, std::string request) {
     
     std::string filePath = server->parseRequest(request, server);
     if (server->canBeOpen(filePath)) {
-        if (server->getFileType(filePath) == 1)
+        if (filePath.at(0) != '/')
+            filePath = "/" + filePath;
+        if (server->getFileType(filePath) == 1){
             deleteDirectoryContents(filePath.c_str());
+        }
         
         if (DELETE(filePath) == -1) {
             return server->fileTransfers.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << filePath << std::endl, 0;
