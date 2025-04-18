@@ -12,26 +12,3 @@ int Server::processMethodNotAllowed(int fd, Server *server, std::string request)
     return getSpecificRespond(fd, server, "405.html", server->methodNotAllowedResponse);
 }
 
-
-// void check_timeout(Server *server)
-// {
-//     (void)server;
-//     // std::map<int, FileTransferState>::iterator it = server->fileTransfers.begin();
-//     // (void)it;
-//     // time_t current_time = time(NULL);
-//     // while (it != server->fileTransfers.end())
-//     // {
-//     //     if (current_time - it->second.last_activity_time > TIMEOUT)
-//     //     {
-//     //         // std::cerr << "Client " << it->first << " timed out." << std::endl;
-//     //         // close(it->first);
-//     //         // std::map<int, FileTransferState>::iterator tmp = it;
-//     //         // returnTimeoutRequest(tmp->second.saveFd, server);
-//     //         // ++it;
-//     //         // close(it->first);
-//     //         // server->fileTransfers.erase(tmp);
-//     //     }
-//     //     else
-//     //         ++it;
-//     // }
-// }
