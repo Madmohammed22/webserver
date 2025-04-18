@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/18 13:52:16 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/18 14:48:20 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,13 @@ Server::~Server()
     std::cout << "[Server] Destructor is called" << std::endl;
 }
 
+std::string trim(std::string str)
+{
+    str.erase(str.find_last_not_of(' ') + 1);
+    str.erase(0, str.find_first_not_of(' '));
+    return str;
+}
+
 std::string Server::key_value_pair_header(std::string request, std::string target_key)
 {
     std::map<std::string, std::string> mapv;
@@ -46,18 +53,24 @@ std::string Server::key_value_pair_header(std::string request, std::string targe
         std::string result;
         if (static_cast<unsigned char>(request.at(i)) == 10)
         {
-            result = request.substr(j, i - j);
-            if (!result.empty())
-            {
-                mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
-                                , result.substr(result.find(" "), result.length())));
+            try{
+                result = request.substr(j, i - j);
+                if (!result.empty())
+                {
+                    mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
+                                    , trim(result.substr(result.find(" "), result.length()))));
+                }
+                j = i + 1;                
+                
             }
-            j = i + 1;                
+            catch(std::exception& e){
+                return "";
+            }
         }
     }
     std::string result = request.substr(j, request.length());
     mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
-                                , result.substr(result.find(" "), result.length())));
+                                , trim(result.substr(result.find(" "), result.length()))));
     std::map<std::string, std::string>::iterator it = mapv.find(target_key);    
     if (it != mapv.end())
         return it->second;

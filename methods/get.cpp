@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/18 13:12:04 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/18 14:49:20 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -108,14 +108,14 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
     size_t bytesRead = 0;
     if (!readFileChunk(state.filePath, buffer, state.offset, bytesToRead, bytesRead))
     {
-        if (Connection != " keep-alive")
+        if (Connection != "keep-alive")
             return server->fileTransfers.erase(fd), close(fd), 0;
         return state.isComplete = true, state.last_activity_time = time(NULL), 0;
     }
 
     if (!sendChunk(fd, buffer, bytesRead))
     {
-        if (Connection != " keep-alive")
+        if (Connection != "keep-alive")
             return server->fileTransfers.erase(fd), close(fd), 0;
         return state.isComplete = true, state.last_activity_time = time(NULL), 0;
     }
@@ -127,14 +127,14 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
     {
         if (!sendFinalChunk(fd))
         {
-            if (Connection != " keep-alive")
+            if (Connection != "keep-alive")
                 return server->fileTransfers.erase(fd), close(fd), 0;
             state.isComplete = true;
             state.last_activity_time = time(NULL);
             return 0;
         }
 
-        if (Connection != " keep-alive")
+        if (Connection != "keep-alive")
             return close(fd), server->fileTransfers.erase(fd), 0;
         state.isComplete = true;
         state.last_activity_time = time(NULL);
@@ -184,7 +184,7 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
             close(fd), server->fileTransfers.erase(fd), 0;
         }
 
-        if (Connection != " keep-alive")
+        if (Connection != "keep-alive")
         {
             return close(fd), server->fileTransfers.erase(fd), 0;
         }
@@ -216,8 +216,6 @@ int Server::serve_file_request(int fd, Server *server, std::string request)
 {
     std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
     std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
-    std::string Test = server->key_value_pair_header(pair_request.first, "sec-ch-ua-platform:");
-    std::cout << Test << std::endl;
     if (server->fileTransfers.find(fd) != server->fileTransfers.end())
     {
         return server->continueFileTransfer(fd, server, Connection);
