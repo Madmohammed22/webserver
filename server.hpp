@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/18 14:35:01 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 13:07:00 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,11 +51,33 @@
 #define PORT 8080 
 #define MAX_EVENTS 1024
 #define CHUNK_SIZE 17000    
-#define TIMEOUT 10
-#define TIMEOUTMS 60000
+#define TIMEOUT 4
+#define TIMEOUTMS 30000
 #define PATHC "root/content/"
 #define PATHE "root/error/" 
 #define PATHU "root/UPLOAD"
+#define STATIC "root/static/"
+
+class Client
+{
+    public : Client() {
+        this->tester = 0;
+        this->current_time = time(NULL);
+        this->state = "NULL";
+        this->isComplete = false;
+    };
+    public : Client(int tester, time_t current_time, std::string state, bool isComplete) {
+        this->tester = tester;
+        this->current_time = current_time;
+        this->state = state;
+        this->isComplete = isComplete;
+    };
+    public:
+        int tester;
+        time_t current_time;
+        std::string state;
+        bool isComplete;
+};
 
 // Structure to hold file transfer state
 struct FileTransferState {
@@ -73,6 +95,7 @@ struct FileTransferState {
     std::set<std::string> knownPaths;
     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
 };
+
 
 class Server
 {
@@ -93,7 +116,7 @@ public:
 
 public:
     // Methods
-    int serve_file_request(int fd, Server *server, std::string request);
+    int serve_file_request(int fd, Server *server, std::string request, std::map <int, Client>& client);
     int handle_delete_request(int fd, Server *server,std::string request);
     int handle_post_request(int fd, Server *server, std::string request);
     

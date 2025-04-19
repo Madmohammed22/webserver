@@ -5,10 +5,7 @@ std::string Server::parseRequest(std::string request, Server *server)
     (void)server;
     std::cout << "-------( REQUEST PARSED )-------\n\n";
     std::cout << request << std::endl;
-    std::cout << "-------( END OF REQUEST )-------\n\n";
-
-    if (request.empty())
-        return "";
+    std::cout << "-------( END OF REQUEST )-------\n\n\n";
 
     std::string filePath = "/index.html";
 

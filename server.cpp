@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/18 14:48:20 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 14:46:58 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -101,11 +101,27 @@ int returnTimeoutRequest(int fd, Server *server)
     return 0;
 }
 
-void ft_fo(std::string holder){
-    for (size_t i = 0; i < holder.size(); i++){
-        std::cout << holder[i] << std::ends;
+int add_time_out_for_client(int fd, std::map<int, Client> &client)
+{
+    Client state = client[fd];
+    if (state.isComplete == true  && state.state == "keep-alive") 
+    {
+        time_t current_time = time(NULL);
+        return close(fd), 0;
+        if (current_time - state.current_time > TIMEOUT)
+        {
+            std::cerr << "Client " << fd << " timed out." << std::ends;
+            state.isComplete = false;
+            state.current_time = time(NULL);
+        }
+        else{
+            std::cout << "ERROR" << std::endl;
+            return close(fd), 0;
+        }
     }
+    return 0;
 }
+
 int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, Binary_String >& send_buffers)
 {
     int conn_sock;
@@ -116,15 +132,18 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
 
     if ((nfds = epoll_wait(epollfd, events, MAX_EVENTS, TIMEOUTMS)) == -1)
         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
-    if (nfds == 0)
+    if (nfds == 0){
         return 0;
+    }
+    std::map<int, Client > client;
     for (int i = 0; i < nfds; ++i)
     {
         if (events[i].data.fd == listen_sock)
         {
             conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
             if (conn_sock == -1)
-                return std::cerr << "accept" << std::endl, EXIT_FAILURE;
+                return std::cerr << "accept" << std::endl, close(conn_sock), 0;
+            
             server->setnonblocking(conn_sock);
             ev.events = EPOLLIN | EPOLLOUT;
             ev.data.fd = conn_sock;
@@ -158,6 +177,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 request = send_buffers[events[i].data.fd].to_string();
                 std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
+                
                 std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
                 if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
                 return std::cerr << "Failed to continue file transfer" << std::endl, 0;
@@ -172,15 +192,16 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             else if (request.find("GET") != std::string::npos)
             {
-                server->serve_file_request(events[i].data.fd, server, request);
-                
+                server->serve_file_request(events[i].data.fd, server, request, client);
+
             }
             else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
             {
                 server->processMethodNotAllowed(events[i].data.fd, server, request);
             }
-            if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end())
+            if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end()){
                 send_buffers.erase(events[i].data.fd);
+            }
         }
     }
     return EXIT_SUCCESS;
@@ -199,7 +220,7 @@ int main(int argc, char **argv)
     if ((listen_sock = server->establishingServer()) == EXIT_FAILURE)
         return delete server, EXIT_FAILURE;
 
-    std::cout << "Server is listening" << std::endl;
+    std::cout << "Server is listening\n" << std::endl;
     if ((epollfd = epoll_create1(0)) == -1)
     {
         return std::cout << "Failed to create epoll file descriptor" << std::endl,
