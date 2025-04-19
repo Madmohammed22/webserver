@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/19 18:33:59 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 23:52:07 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,49 +43,28 @@ std::string trim(std::string str)
     return str;
 }
 
-std::string Server::key_value_pair_header(std::string request, std::string target_key)
-{
-    (void)request;
-    (void)target_key;
-    // std::cout << "->" << request << std::endl;
-    // std::map<std::string, std::string> mapv;
-    // try
-    // {
-    //     request.erase(std::remove(request.begin(), request.end(), '\r'), request.end());
-    // }
-    // catch(const std::exception& e)
-    // {
-    //     std::cerr << e.what() << '\n';
-    // }
-    // exit(200);
-    // size_t j = 0;
-    // for (size_t i = 0; i < request.length(); i++)
-    // {
-    //     std::string result;
-    //     if (static_cast<unsigned char>(request.at(i)) == 10)
-    //     {
-    //         try{
-    //             result = request.substr(j, i - j);
-    //             if (!result.empty())
-    //             {
-    //                 mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
-    //                                 , trim(result.substr(result.find(" "), result.length()))));
-    //             }
-    //             j = i + 1;
 
-    //         }
-    //         catch(std::exception& e){
-    //             return "";
-    //         }
-    //     }
-    // }
-    // std::string result = request.substr(j, request.length());
-    // mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
-    //                             , trim(result.substr(result.find(" "), result.length()))));
-    // std::map<std::string, std::string>::iterator it = mapv.find(target_key);
-    // if (it != mapv.end())
-    //     return it->second;
-    return "";
+void Server::key_value_pair_header(int fd,  Server *server, std::string header)
+{
+    std::map<std::string, std::string> mapv = server->fileTransfers[fd].mapOnHeader;
+    size_t j = 0;
+    for (size_t i = 0; i < header.length(); i++)
+    {
+        std::string result;
+        if (static_cast<unsigned char>(header.at(i)) == 10)
+        {
+            result = header.substr(j, i - j);
+            if (!result.empty())
+            {
+                mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), trim(result.substr(result.find(" "), result.length()))));
+            }
+            j = i + 1;
+        }
+    }
+    std::string result = header.substr(j, header.length());
+    mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" ")))
+                                , trim(result.substr(result.find(" "), result.length()))));
+    server->fileTransfers[fd].mapOnHeader = mapv;
 }
 
 int returnTimeoutRequest(int fd, Server *server)
@@ -195,16 +174,16 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 holder[bytes] = '\0';
                 send_buffers[events[i].data.fd] = holder;
-                if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end() && holder.find("POST") != std::string::npos)
-                {
-                    std::pair<Binary_String, Binary_String> pair_whise_request = server->ft_parseRequest_binary(holder);
-                    // server->fileTransfers[events[i].data.fd].mapOnHeader = server->ke
-                    std::cout << "--------------------------" << std::endl;
-                    std::cout << pair_whise_request.first.c_str() << std::endl;
-                    std::cout << "--------------------------" << std::endl;
-                    // const char *Tester = holder.c_str();
-                    initializeFileTransfers(server, events[i].data.fd, holder);
-                }
+                // if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end() && holder.find("POST") != std::string::npos)
+                // {
+                //     std::pair<Binary_String, Binary_String> pair_whise_request = server->ft_parseRequest_binary(holder);
+                //     // server->fileTransfers[events[i].data.fd].mapOnHeader = server->ke
+                //     std::cout << "--------------------------" << std::endl;
+                //     std::cout << pair_whise_request.first.c_str() << std::endl;
+                //     std::cout << "--------------------------" << std::endl;
+                //     // const char *Tester = holder.c_str();
+                //     initializeFileTransfers(server, events[i].data.fd, holder);
+                // }
 
                 // if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()
                 //     && server->fileTransfers[events[i].data.fd].multp.flag == true)
@@ -221,10 +200,10 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 request = send_buffers[events[i].data.fd].to_string();
                 std::pair<std::string, std::string> pair_request = server->ft_parseRequest(events[i].data.fd,server, request);
-
-                std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
+                server->key_value_pair_header(events[i].data.fd, server, server->ft_parseRequest(events[i].data.fd, server, request).first);
+                std::string Connection = server->fileTransfers[events[i].data.fd].mapOnHeader.find("Connection:")->second;
                 if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
-                    return std::cerr << "Failed to continue file transfer" << std::endl, 0;
+                    return std::cerr << "Failed to continue file transfer" << std::endl, close(events[i].data.fd), 0;
                 continue;
             }
             request = send_buffers[events[i].data.fd].to_string();
@@ -234,6 +213,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             else if (request.find("GET") != std::string::npos)
             {
+                server->key_value_pair_header(events[i].data.fd, server, server->ft_parseRequest(events[i].data.fd, server, request).first);
                 server->serve_file_request(events[i].data.fd, server, request, client);
             }
             else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)

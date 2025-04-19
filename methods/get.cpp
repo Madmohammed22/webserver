@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/19 18:29:19 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 23:52:26 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,7 +79,7 @@ bool sendFinalChunk(int fd)
 int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
 {
     if (server->fileTransfers.find(fd) == server->fileTransfers.end())
-        return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, 0;
+        return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, close(fd), 0;
 
     FileTransferState &state = server->fileTransfers[fd];
     if (state.isComplete == true)
@@ -205,9 +205,7 @@ int Server::serve_file_request(int fd, Server *server, std::string request, std:
 {
     (void)client;
     std::pair<std::string, std::string> pair_request = server->ft_parseRequest(fd, server, request);
-
-    std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
-    
+    std::string Connection = server->fileTransfers[fd].mapOnHeader.find("Connection:")->second;
     std::string filePath = server->parseRequest(request, server);
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
     {
@@ -222,27 +220,3 @@ int Server::serve_file_request(int fd, Server *server, std::string request, std:
     }
     return 0;
 }
-
-// int Server::serve_file_request(int fd, Server *server, std::string request)
-// {
-//     std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
-//     std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
-//     if (server->fileTransfers.find(fd) != server->fileTransfers.end())
-//     {
-//         return server->continueFileTransfer(fd, server, Connection);
-//     }
-
-//     std::string filePath = server->parseRequest(request, server);
-//     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
-//     {
-//         return server->handleFileRequest(fd, server, filePath, Connection);
-//     }
-//     else
-//     {
-//         FileTransferState state;
-//         state.typeOfConnection = Connection;
-//         server->fileTransfers[fd] = state;
-//         return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
-//     }
-//     return 0;
-// }

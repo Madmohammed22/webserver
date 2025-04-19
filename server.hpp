@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/19 18:28:47 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 22:50:21 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -166,6 +166,7 @@ public:
     std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
     std::string key_value_pair_header(std::string request, std::string target_key);
+    void key_value_pair_header(int fd,  Server *server, std::string header);
     std::pair<Binary_String, Binary_String> ft_parseRequest_binary(Binary_String header);
     // std::string trim(std::string &str);
 

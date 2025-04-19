@@ -305,10 +305,15 @@ int Server::parsePostRequest(Server *server, int fd, std::string header)
     std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
     std::cout << header;
     std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
-    if (server->key_value_pair_header(header, "Content-Length:") == "")
+    // if (server->key_value_pair_header(header, "Content-Length:"). == "")
+    // std::map<std::string, std::string>::iterator it = server->fileTransfers[fd].mapOnHeader.find("Connection:");
+    // if (it != server->fileTransfers[fd].mapOnHeader.end()){
+
+    // }
+    if (state.mapOnHeader.find("Content-Length:")->second == "")
         return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
 
-    contentType = server->key_value_pair_header(header, "Content-Type:");
+    contentType = state.mapOnHeader.find("Content-Type:")->second;
     filePath = server->parseRequest(header, server); 
     if (contentType.find("multipart/form-data") == std::string::npos)
         return getSpecificRespond(fd, server, "415.html", server->createUnsupportedMediaResponse);
