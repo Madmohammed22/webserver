@@ -104,6 +104,17 @@ std::string Server::createBadResponse(std::string contentType, size_t contentLen
     return oss.str();
 }
 
+std::string Server::createUnsupportedMediaResponse(std::string contentType, size_t contentLength)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 415 Unsupported Media Type\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT1() << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+
+    return oss.str();
+}
+
 std::string Server::methodNotAllowedResponse(std::string contentType, size_t contentLength)
 {
     (void)contentLength;
@@ -144,7 +155,6 @@ std::string Server::deleteHttpResponse(Server* server)
         << "Last-Modified: " << server->getCurrentTimeInGMT() << "\r\n\r\n";
     return oss.str();
 }
-
 
 int Server::getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
 {

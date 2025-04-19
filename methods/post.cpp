@@ -193,6 +193,22 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
     }
 }
 
+std::pair<binary_string, binary_string> Server::ft_parseRequest_binary(binary_string header)
+{
+    std::pair<binary_string, binary_string> pair_request;
+    try
+    {
+        pair_request.first = header.substr(0, header.find("\r\n\r\n"));
+        pair_request.second = header.substr(header.find("\r\n\r\n"), header.size()); 
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
+    return pair_request;
+}
+
 std::pair<std::string, std::string> Server::ft_parseRequest(std::string header)
 {
     std::pair<std::string, std::string> pair_request;
@@ -223,63 +239,46 @@ std::pair<size_t, std::string> Server::returnTargetFromRequest(std::string heade
 
 bool checkEndPoint(std::string &filePath)
 {
-    std::string fullPath = "./root" + filePath;
     struct stat info;
    
-    std::cout << fullPath << std::endl; 
-    if (stat(fullPath.c_str(), &info) != 0)
+    if (stat(filePath.c_str(), &info) != 0)
         return false;   
     if (S_ISDIR(info.st_mode))
     {
-        filePath = fullPath + '/';
         return (true);
     }
     return (false);
 }
 
-void createFileName(std::string line, Server *server, int fd)
+void createFileName(std::string line, Server *server, int fd) 
 {
     size_t start = line.find("filename=\"");
     
-    if (start == std::string::npos)
-    {
-        std::cerr << "Error: filename not found in line" << std::endl;
-        return;
-    }
-    
     start += 10;
     size_t end = line.find("\"", start);
-    if (end == std::string::npos) {
-        std::cerr << "Error: malformed filename in line" << std::endl;
-        return;
-    }
+   
     std::string fileName = server->fileTransfers[fd].filePath + line.substr(start, end - start);
-    
-    if (server->fileTransfers[fd].multp.outFile)
+    std::ofstream *newFile = new std::ofstream(fileName.c_str(), std::ios::binary | std::ios::trunc);
+    if (!newFile->is_open())
     {
-        server->fileTransfers[fd].multp.outFile->close();
-        delete server->fileTransfers[fd].multp.outFile;
-    }
-    
-    std::ofstream *tmpOutfile = new std::ofstream(fileName.c_str(), std::ios::binary);
-    
-    if (!tmpOutfile->is_open())
-    {
-        std::cerr << "Error: can't create or open the file " << fileName << std::endl;
-        delete tmpOutfile;
+        std::cerr << "Error: Failed to open file: " << fileName << std::endl;
+        delete newFile;
+        //[soukaina] here what should i do ???? quit the program ! 
         return;
     }
+
+    server->fileTransfers[fd].multp.outFiles.push_back(newFile);
+    server->fileTransfers[fd].multp.currentFileIndex = server->fileTransfers[fd].multp.outFiles.size() - 1;
     
-    server->fileTransfers[fd].multp.outFile = tmpOutfile;
-    std::cout << "File " << fileName << " opened successfully" << std::endl;
+    std::cout << "Opened file #" << server->fileTransfers[fd].multp.currentFileIndex 
+              << ": " << fileName << std::endl;
 }
 
+/*void    writeData(Se)*/
 /*void writeData(Server *server, binary_string &request, int fd)*/
 /*{*/
-/**/
 /*    std::string line;*/
-/*    // char *line;*/
-/*    // std::basic_str*/
+/**/
 /*    // Write raw binary data directly to the output file*/
 /*    bool isWritingFileContent = false;*/
 /**/
@@ -304,7 +303,6 @@ void createFileName(std::string line, Server *server, int fd)
 /*                }*/
 /*            }*/
 /*            isWritingFileContent = true;*/
-            /*continue;*/
 /*        }*/
 /**/
 /*        if (isWritingFileContent && */
@@ -323,44 +321,100 @@ void createFileName(std::string line, Server *server, int fd)
 /*    }*/
 /*}*/
 
-int Server::handle_post_request(int fd, Server *server, binary_string request)
+void Server::writeData(Server* server, binary_string& chunk, int fd)
+{
+    FileTransferState& state = server->fileTransfers[fd];
+    
+    std::string boundaryEnd = "--" + state.multp.boundary;
+
+    state.multp.partialHeaderBuffer += chunk.to_string();
+    while (true)
+    {
+        if (state.multp.isInHeader) 
+        {
+            size_t headerEnd = state.multp.partialHeaderBuffer.find("\r\n\r\n");
+            if (headerEnd == std::string::npos)
+                break;
+            std::string headers = state.multp.partialHeaderBuffer.substr(0, headerEnd);
+            size_t namePos = headers.find("filename=\"");
+            if (namePos != std::string::npos)
+                createFileName(headers, server, fd);
+            state.multp.partialHeaderBuffer.erase(0, headerEnd + 4);
+            state.multp.isInHeader = false;
+        }
+        else
+        {
+            size_t boundaryPos = state.multp.partialHeaderBuffer.find(boundaryEnd);
+            if (boundaryPos == std::string::npos)
+            {
+                if (!state.multp.outFiles.empty())
+                {
+                    std::ofstream *file = state.multp.outFiles.back();
+                    file->write(state.multp.partialHeaderBuffer.data(), 
+                                state.multp.partialHeaderBuffer.size());
+                }
+                state.multp.partialHeaderBuffer.clear();
+                break;
+            }
+            else
+            {
+                if (!state.multp.outFiles.empty())
+                {
+                    std::ofstream* file = state.multp.outFiles.back();
+                    file->write(state.multp.partialHeaderBuffer.data(), boundaryPos);
+                }
+                state.multp.partialHeaderBuffer.erase(0, boundaryPos + boundaryEnd.size());
+                state.multp.isInHeader = true;
+            }
+        }
+    }
+}
+
+int Server::parsePostRequest(Server *server, int fd, std::string header)
 {
     std::string contentType;
-    FileTransferState state;
-    std::string header;
-    state = server->fileTransfers[fd];
-    /*(void)request;  */
-    // header check
-    if (state.multp.containHeader == true)
-    {
-        header = ft_parseRequest(request.to_string()).first;
-        std::cout << "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh\n";
-        std::cout << header << std::endl;
-        std::cout << "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh\n";
-        //contentType = server->key_value_pair_header(request.to_string(), "Content-Length");
-        if (server->key_value_pair_header(header, "Content-Type:") == "")
-            return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
+    std::string filePath;
+    FileTransferState &state = server->fileTransfers[fd];
+    size_t boundaryStart;
 
-        exit(0);
-        //contentType = server->key_value_pair_header(request.to_string(), "Content-Length");
-        /*std::string filePath = server->parseRequest(pair_request.first, server);*/
-        
-        // [soukaina]  where gonna work on it later on when the proper function is developed 
-        //std::cout << " the content type " << contentType << std::endl;
-        exit(0);
-        if (contentType.find("multipart") != contentType.npos)
-        {
-            std::cout << contentType << std::endl;
-            std::cout << "found it \n";
-        }
-        /*else */
-        /*    generate an error*/
-        /*state.multp.boundry =  find()    */
-        // [soukaina] here it gives error from canBeOpen
-        if (checkEndPoint(state.filePath) == false)
-            return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
-        server->fileTransfers[fd].multp.containHeader = false;
+    // [soukaina] here i have to check if the content length is 0 so i can threw an error
+    // no centent check if == 0
+    if (server->key_value_pair_header(header, "Content-Length:") == "")
+        return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
+
+    contentType = server->key_value_pair_header(header, "Content-Type:");
+    filePath = server->parseRequest(header, server); 
+    if (contentType.find("multipart/form-data") == std::string::npos)
+        return getSpecificRespond(fd, server, "415.html", server->createUnsupportedMediaResponse);
+    if (contentType.find("boundary=") != std::string::npos) 
+    {
+        boundaryStart = contentType.find("boundary=") + 9;         
+        state.multp.boundary = contentType.substr(boundaryStart, contentType.length());
+        if (state.multp.boundary.length() == 0)
+            return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
     }
-    /*writeData(server, request, fd);*/
-    return 0;
+    if (checkEndPoint(state.filePath) == false)
+        getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
+    return (0);
+}
+
+int Server::handlePostRequest(int fd, Server *server, binary_string request)
+{
+    int exitCode;
+    std::pair <binary_string, binary_string> pairRequest;
+
+    pairRequest = ft_parseRequest_binary(request);
+    exitCode = 0;
+    if (server->fileTransfers[fd].multp.containHeader == true)
+    {
+        exitCode = parsePostRequest(server, fd, pairRequest.first.to_string());
+        server->fileTransfers[fd].multp.containHeader = false;
+        if (!pairRequest.second.empty())
+            writeData(server, pairRequest.second, fd);       
+    }
+    // [soukaina]  after writing all data in the fd i should turn the containHeader to true
+    // or i have just to ereas the fd from the fileTransfers
+    else
+        writeData(server, request, fd);
+    return exitCode;
 }

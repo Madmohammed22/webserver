@@ -36,35 +36,47 @@ Server::~Server()
     std::cout << "[Server] Destructor is called" << std::endl;
 }
 
-// improved key_value_pair
-
-
+std::string trim(std::string str)
+{
+    str.erase(str.find_last_not_of(' ') + 1);
+    str.erase(0, str.find_first_not_of(' '));
+    return str;
+}
 
 std::string Server::key_value_pair_header(std::string request, std::string target_key)
 {
     std::map<std::string, std::string> mapv;
     request.erase(std::remove(request.begin(), request.end(), '\r'), request.end());
     size_t j = 0;
-    
     for (size_t i = 0; i < request.length(); i++)
     {
         std::string result;
         if (static_cast<unsigned char>(request.at(i)) == 10)
         {
-            result = request.substr(j, i - j);
-            if (!result.empty())
-            {
-                mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" ")), result.substr(result.find(" "), result.length())));
+            try{
+                result = request.substr(j, i - j);
+                if (!result.empty())
+                {
+                    mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
+                                    , trim(result.substr(result.find(" "), result.length()))));
+                }
+                j = i + 1;                
+                
             }
-            j = i + 1;
+            catch(std::exception& e){
+                return "";
+            }
         }
     }
-    std::map<std::string, std::string>::iterator it = mapv.find(target_key);
+    std::string result = request.substr(j, request.length());
+    mapv.insert(std::pair<std::string, std::string>(result.substr(0, result.find(" "))
+                                , trim(result.substr(result.find(" "), result.length()))));
+    std::map<std::string, std::string>::iterator it = mapv.find(target_key);    
     if (it != mapv.end())
-        std::cout << it->second << std::endl;
+        return it->second;
     return "";
 }
-
+ 
 int returnTimeoutRequest(int fd, Server *server)
 {
     std::string path1 = PATHE;
@@ -156,7 +168,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                      && server->fileTransfers[events[i].data.fd].multp.flag == true)
                 {
                      // [soukaina] please check this condition
-                     if (server->handle_post_request(events[i].data.fd, server, holder) == -1)
+                     if (server->handlePostRequest(events[i].data.fd, server, holder) == -1)
                          return EXIT_FAILURE;
                 }
             }

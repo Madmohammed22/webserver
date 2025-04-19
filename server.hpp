@@ -60,12 +60,15 @@ struct Multipart
 {
     bool flag;
     bool containHeader;
-    std::string boundry;
-    std::ofstream *outFile;
+    bool isInHeader;
+    std::string boundary;
+    std::vector<std::ofstream*> outFiles;
+    int currentFileIndex;
+    std::string partialHeaderBuffer;
     std::string currentFileName;
     int currentFd;
     
-    Multipart() : flag(false) ,outFile(NULL) {}
+    Multipart() : flag(false), currentFileIndex(0){}
 };
 // Structure to hold file transfer state
 struct FileTransferState {
@@ -141,17 +144,20 @@ public:
     // Methods
     int serve_file_request(int fd, Server *server, std::string request);
     int handle_delete_request(int fd, Server *server,std::string request);
-    int handle_post_request(int fd, Server *server, binary_string request);
-    
+    int handlePostRequest(int fd, Server *server, binary_string request);
+   
     // Functions helper
+    int parsePostRequest(Server *server, int fd,  std::string header);
     std::string getContentType(const std::string &path);
     std::string readFile(const std::string &path);
     int getFileType(std::string path);
+    void writeData(Server *server, binary_string& data, int fd);
     bool canBeOpen(std::string &filePath);
     std::string parseRequest(std::string request, Server *server);
     std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
     std::string key_value_pair_header(std::string request, std::string target_key);    
+
     // Response headers
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
     std::string createChunkedHttpResponse(std::string contentType);
@@ -159,12 +165,14 @@ public:
     static std::string methodNotAllowedResponse(std::string contentType, size_t contentLength);
     int processMethodNotAllowed(int fd, Server *server, std::string request);
     static std::string createBadResponse(std::string contentType, size_t contentLength);
+    static std::string createUnsupportedMediaResponse(std::string contentType, size_t contentLength);
     std::string goneHttpResponse(std::string contentType, size_t contentLength);
     std::string deleteHttpResponse(Server* server);
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
     std::pair<std::string, std::string> ft_parseRequest(std::string header);
+    std::pair<binary_string, binary_string> ft_parseRequest_binary(binary_string header);
     // Transfer-Encoding: chunked
     int handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection);
     int continueFileTransfer(int fd, Server * server, std::string Connection);
