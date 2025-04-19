@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/19 14:49:38 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 18:29:19 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -204,9 +204,10 @@ std::string Server::readFile(const std::string &path)
 int Server::serve_file_request(int fd, Server *server, std::string request, std::map<int, Client> &client)
 {
     (void)client;
-    std::pair<std::string, std::string> pair_request = server->ft_parseRequest(request);
+    std::pair<std::string, std::string> pair_request = server->ft_parseRequest(fd, server, request);
 
     std::string Connection = server->key_value_pair_header(pair_request.first, "Connection:");
+    
     std::string filePath = server->parseRequest(request, server);
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
     {

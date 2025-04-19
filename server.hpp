@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/19 16:46:35 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 18:28:47 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,6 +79,18 @@ class Client
         bool isComplete;
 };
 
+
+struct Multipart
+{
+    bool flag;
+    bool containHeader;
+    std::string boundry;
+    std::ofstream *outFile;
+    std::string currentFileName;
+    int currentFd;
+    
+    Multipart() : flag(false) ,outFile(NULL) {}
+};
 // Structure to hold file transfer state
 struct FileTransferState {
     time_t last_activity_time;
@@ -92,11 +104,31 @@ struct FileTransferState {
     int saveFd;
     int flag;
     std::map<std::string, std::string> mapOnHeader;
+    Multipart multp;
     std::string typeOfConnection;
     std::set<std::string> knownPaths;
     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
 };
 
+// // Structure to hold file transfer state
+// struct FileTransferState {
+//     time_t last_activity_time;
+//     std::string filePath;   
+//     size_t offset;
+//     size_t endOffset;
+//     size_t fileSize;
+//     bool isComplete;
+//     bool isCompleteShortFile;
+//     int socket;
+//     int saveFd;
+//     int flag;
+//     std::map<std::string, std::string> mapOnHeader;
+//     std::string typeOfConnection;
+//     std::set<std::string> knownPaths;
+//     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
+// };
+
+class Binary_String;
 
 class Server
 {
@@ -130,6 +162,7 @@ public:
     std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
     std::string key_value_pair_header(std::string request, std::string target_key);
+    std::pair<Binary_String, Binary_String> ft_parseRequest_binary(Binary_String header);
     // std::string trim(std::string &str);
 
     // Response headers
@@ -144,7 +177,7 @@ public:
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
-    std::pair<std::string, std::string> ft_parseRequest(std::string header);
+    std::pair<std::string, std::string> ft_parseRequest(int fd, Server* server, std::string header);
 
     // Transfer-Encoding: chunked
     int handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection);

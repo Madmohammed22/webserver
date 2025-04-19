@@ -209,7 +209,7 @@ std::pair<size_t, std::string> Server::returnTargetFromRequest(std::string heade
 
 int Server::handle_post_request(int fd, Server *server, std::string header)
 {
-    std::pair<std::string, std::string> pair_request = server->ft_parseRequest(header);
+    std::pair<std::string, std::string> pair_request = server->ft_parseRequest(fd, server, header);
     // if (returnTargetFromRequest(pair_request.first, "Content-Length").first == 0)
     // {
     //     return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
