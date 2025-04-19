@@ -68,7 +68,7 @@ struct Multipart
     std::string currentFileName;
     int currentFd;
     
-    Multipart() : flag(false), currentFileIndex(0){}
+    Multipart() : flag(false), isInHeader(true), currentFileIndex(0){}
 };
 // Structure to hold file transfer state
 struct FileTransferState {

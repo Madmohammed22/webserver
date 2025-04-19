@@ -68,9 +68,9 @@ bool searchOnPath(std::vector<std::string>& nodePath, const std::string& filePat
 }
 
 int Server::handle_delete_request(int fd, Server *server, std::string request) {
-    std::cout << "-------( REQUEST PARSED )-------\n\n";
-    std::cout << request << std::endl;
-    std::cout << "-------( END OF REQUEST )-------\n\n";
+    /*std::cout << "-------( REQUEST PARSED )-------\n\n";*/
+    /*std::cout << request << std::endl;*/
+    /*std::cout << "-------( END OF REQUEST )-------\n\n";*/
     
     std::string filePath = server->parseRequest(request, server);
     if (server->canBeOpen(filePath)) {

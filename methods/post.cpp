@@ -200,6 +200,9 @@ std::pair<binary_string, binary_string> Server::ft_parseRequest_binary(binary_st
     {
         pair_request.first = header.substr(0, header.find("\r\n\r\n"));
         pair_request.second = header.substr(header.find("\r\n\r\n"), header.size()); 
+        /*std::cout << " \nthis the second part 11111111111111111111111111111111\n";*/
+        /*std::cout << pair_request.second.to_string();*/
+        /*std::cout << " \nthis the second part 11111111111111111111111111111111\n";*/
     }
     catch(const std::exception& e)
     {
@@ -379,6 +382,9 @@ int Server::parsePostRequest(Server *server, int fd, std::string header)
 
     // [soukaina] here i have to check if the content length is 0 so i can threw an error
     // no centent check if == 0
+    std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+    std::cout << header;
+    std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
     if (server->key_value_pair_header(header, "Content-Length:") == "")
         return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
 

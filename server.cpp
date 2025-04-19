@@ -117,8 +117,7 @@ void initializeFileTransfers(Server *server, int fd, binary_string& request)
 int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, binary_string >& send_buffers)
 {
     int conn_sock;
-    std::vector<unsigned char> buffer(CHUNK_SIZE);
-    binary_string holder;
+    binary_string holder(CHUNK_SIZE);
     std::string request;
     struct epoll_event events[MAX_EVENTS];
     int nfds;
@@ -145,7 +144,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
 
         else if (events[i].events & EPOLLIN)
         {
-            int bytes = recv(events[i].data.fd, &buffer[0], buffer.size(), 0);
+            int bytes = recv(events[i].data.fd, &holder[0], holder.size(), 0);
             if (bytes < 0)
             {
                 return server->fileTransfers.erase(events[i].data.fd), close(events[i].data.fd), 0;
@@ -158,8 +157,13 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             else
             {
-                buffer[bytes] = '\0';
-                send_buffers[events[i].data.fd] = holder.append(reinterpret_cast<char*> (&buffer[0]), 0, bytes + 1);
+                holder[bytes] = '\0';
+                /*std::cout << holder.to_string();*/
+                /*for (int i = 0; i < bytes; i++)*/
+                /*{*/
+                /*    std::cout << buffer[i];*/
+                /*}*/
+                send_buffers[events[i].data.fd] = holder;
                 /*std::cout << holder.to_string() << std::ends;*/
                 if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end()
                     && holder.find("POST") != std::string::npos)
