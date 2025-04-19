@@ -84,12 +84,15 @@ struct Multipart
 {
     bool flag;
     bool containHeader;
-    std::string boundry;
-    std::ofstream *outFile;
+    bool isInHeader;
+    std::string partialHeaderBuffer;
+    std::string boundary;
+    std::vector<std::ofstream*> outFiles;
+    int currentFileIndex;
     std::string currentFileName;
     int currentFd;
     
-    Multipart() : flag(false) ,outFile(NULL) {}
+    Multipart() : flag(false), isInHeader(true), currentFileIndex(0){}
 };
 // Structure to hold file transfer state
 struct FileTransferState {
@@ -151,9 +154,10 @@ public:
     // Methods
     int serve_file_request(int fd, Server *server, std::string request, std::map <int, Client>& client);
     int handle_delete_request(int fd, Server *server,std::string request);
-    int handle_post_request(int fd, Server *server, std::string request);
+    int handlePostRequest(int fd, Server *server, Binary_String request);
     
     // Functions helper
+    int parsePostRequest(Server *server, int fd, std::string header);
     std::string getContentType(const std::string &path);
     std::string readFile(const std::string &path);
     int getFileType(std::string path);
@@ -171,7 +175,9 @@ public:
     std::string httpResponse(std::string contentType, size_t contentLength);
     static std::string methodNotAllowedResponse(std::string contentType, size_t contentLength);
     int processMethodNotAllowed(int fd, Server *server, std::string request);
+    static std::string createUnsupportedMediaResponse(std::string contentType, size_t contentLength);
     static std::string createBadResponse(std::string contentType, size_t contentLength);
+    void writeData(Server* server, Binary_String& chunk, int fd);
     std::string goneHttpResponse(std::string contentType, size_t contentLength);
     std::string deleteHttpResponse(Server* server);
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);

@@ -82,6 +82,17 @@ std::string Server::createNotFoundResponse(std::string contentType, size_t conte
 }
 
 
+std::string Server::createUnsupportedMediaResponse(std::string contentType, size_t contentLength)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 415 Unsupported Media Type\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT() << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+
+    return oss.str();
+}
+
 std::string getCurrentTimeInGMT1() {
     time_t t = time(0);
     tm *time_struct = gmtime(&t); // Use gmtime to get UTC time

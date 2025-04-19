@@ -44,8 +44,8 @@ bool Server::canBeOpen(std::string &filePath)
         return true;
     else
     {
-        new_path = STATIC + filePath;
-        // new_path = PATHC + filePath;
+        // new_path = STATIC + filePath;
+        new_path = PATHC + filePath;
     }
     std::ifstream file(new_path.c_str());
     if (!file.is_open())

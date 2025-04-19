@@ -96,8 +96,8 @@ int redirectTheParh(std::vector<char> buffer, std::string filePath, size_t bytes
 int continueFileTransferPost(int fd, Server *server)
 {
     std::map<int, FileTransferState>::iterator transferIt = server->fileTransfers.find(fd);
-    if (transferIt == server->fileTransfers.end())
-        return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, -1;
+    // if (transferIt == server->fileTransfers.end())
+    //     return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, -1;
 
     FileTransferState &state = transferIt->second;
     if (state.isComplete)
@@ -194,6 +194,80 @@ int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
 }
 
 
+
+void createFileName(std::string line, Server *server, int fd) 
+{
+    size_t start = line.find("filename=\"");
+    
+    start += 10;
+    size_t end = line.find("\"", start);
+   
+    std::string fileName = server->fileTransfers[fd].filePath + line.substr(start, end - start);
+    std::ofstream *newFile = new std::ofstream(fileName.c_str(), std::ios::binary | std::ios::trunc);
+    if (!newFile->is_open())
+    {
+        std::cerr << "Error: Failed to open file: " << fileName << std::endl;
+        delete newFile;
+        //[soukaina] here what should i do ???? quit the program ! 
+        return;
+    }
+
+    server->fileTransfers[fd].multp.outFiles.push_back(newFile);
+    server->fileTransfers[fd].multp.currentFileIndex = server->fileTransfers[fd].multp.outFiles.size() - 1;
+    
+    std::cout << "Opened file #" << server->fileTransfers[fd].multp.currentFileIndex 
+              << ": " << fileName << std::endl;
+}
+
+void Server::writeData(Server* server, Binary_String& chunk, int fd)
+{
+    FileTransferState& state = server->fileTransfers[fd];
+    
+    std::string boundaryEnd = "--" + state.multp.boundary;
+
+    state.multp.partialHeaderBuffer += chunk.to_string();
+    while (true)
+    {
+        if (state.multp.isInHeader) 
+        {
+            size_t headerEnd = state.multp.partialHeaderBuffer.find("\r\n\r\n");
+            if (headerEnd == std::string::npos)
+                break;
+            std::string headers = state.multp.partialHeaderBuffer.substr(0, headerEnd);
+            size_t namePos = headers.find("filename=\"");
+            if (namePos != std::string::npos)
+                createFileName(headers, server, fd);
+            state.multp.partialHeaderBuffer.erase(0, headerEnd + 4);
+            state.multp.isInHeader = false;
+        }
+        else
+        {
+            size_t boundaryPos = state.multp.partialHeaderBuffer.find(boundaryEnd);
+            if (boundaryPos == std::string::npos)
+            {
+                if (!state.multp.outFiles.empty())
+                {
+                    std::ofstream *file = state.multp.outFiles.back();
+                    file->write(state.multp.partialHeaderBuffer.data(), 
+                                state.multp.partialHeaderBuffer.size());
+                }
+                state.multp.partialHeaderBuffer.clear();
+                break;
+            }
+            else
+            {
+                if (!state.multp.outFiles.empty())
+                {
+                    std::ofstream* file = state.multp.outFiles.back();
+                    file->write(state.multp.partialHeaderBuffer.data(), boundaryPos);
+                }
+                state.multp.partialHeaderBuffer.erase(0, boundaryPos + boundaryEnd.size());
+                state.multp.isInHeader = true;
+            }
+        }
+    }
+}
+
 std::pair<size_t, std::string> Server::returnTargetFromRequest(std::string header, std::string target)
 {
     std::pair<size_t, std::string> pair_target;
@@ -206,37 +280,67 @@ std::pair<size_t, std::string> Server::returnTargetFromRequest(std::string heade
     return pair_target;
 }
 
-
-int Server::handle_post_request(int fd, Server *server, std::string header)
+bool checkEndPoint(std::string &filePath)
 {
-    std::pair<std::string, std::string> pair_request = server->ft_parseRequest(fd, server, header);
-    // if (returnTargetFromRequest(pair_request.first, "Content-Length").first == 0)
-    // {
-    //     return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
-    // }
-    // Check if we already have a file transfer in progress
-    //---------------------------------
-    if (server->fileTransfers.find(fd) != server->fileTransfers.end())
+    struct stat info;
+   
+    if (stat(filePath.c_str(), &info) != 0)
+        return false;   
+    if (S_ISDIR(info.st_mode))
     {
-        // Continue the existing transfer
-        return continueFileTransferPost(fd, server); //?? 
+        return (true);
     }
-    //--------------------------------
-    std::string filePath = server->parseRequest(pair_request.first, server);
-    // std::cout << "--------------------" << std::endl;
-    // std::cout << pair_request.second << std::endl;
-    // std::cout << "--------------------" << std::endl;
-    if (canBeOpen(filePath))
+    return (false);
+}
+
+int Server::parsePostRequest(Server *server, int fd, std::string header)
+{
+    std::string contentType;
+    std::string filePath;
+    FileTransferState &state = server->fileTransfers[fd];
+    size_t boundaryStart;
+
+    // [soukaina] here i have to check if the content length is 0 so i can threw an error
+    // no centent check if == 0
+    std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+    std::cout << header;
+    std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+    if (server->key_value_pair_header(header, "Content-Length:") == "")
+        return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
+
+    contentType = server->key_value_pair_header(header, "Content-Type:");
+    filePath = server->parseRequest(header, server); 
+    if (contentType.find("multipart/form-data") == std::string::npos)
+        return getSpecificRespond(fd, server, "415.html", server->createUnsupportedMediaResponse);
+    if (contentType.find("boundary=") != std::string::npos) 
     {
-        // std::cout << filePath << std::endl;
-        // exit(404);
-        // return handleFileRequest_post(fd, server, filePath); //???
-        return 0; 
+        boundaryStart = contentType.find("boundary=") + 9;         
+        state.multp.boundary = contentType.substr(boundaryStart, contentType.length());
+        if (state.multp.boundary.length() == 0)
+            return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
     }
+    if (checkEndPoint(state.filePath) == false)
+        getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
+    return (0);
+}
+
+int Server::handlePostRequest(int fd, Server *server, Binary_String request)
+{
+    int exitCode;
+    std::pair <Binary_String, Binary_String> pairRequest;
+
+    pairRequest = ft_parseRequest_binary(request);
+    exitCode = 0;
+    if (server->fileTransfers[fd].multp.containHeader == true)
+    {
+        exitCode = parsePostRequest(server, fd, pairRequest.first.to_string());
+        server->fileTransfers[fd].multp.containHeader = false;
+        if (!pairRequest.second.empty())
+            writeData(server, pairRequest.second, fd);       
+    }
+    // [soukaina]  after writing all data in the fd i should turn the containHeader to true
+    // or i have just to ereas the fd from the fileTransfers
     else
-    {
-        // Handle 404 Not Found scenario
-        return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse); 
-    }
-    return 0;
+        writeData(server, request, fd);
+    return exitCode;
 }
