@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/19 13:07:00 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 16:46:35 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,6 +91,7 @@ struct FileTransferState {
     int socket;
     int saveFd;
     int flag;
+    std::map<std::string, std::string> mapOnHeader;
     std::string typeOfConnection;
     std::set<std::string> knownPaths;
     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}

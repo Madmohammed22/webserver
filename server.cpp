@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/19 14:46:58 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 16:46:54 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -184,8 +184,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 continue;
             } 
             request = send_buffers[events[i].data.fd].to_string();
-            if (request.empty())
-                continue;
             if (request.find("DELETE") != std::string::npos)
             {
                 server->handle_delete_request(events[i].data.fd, server, request);
