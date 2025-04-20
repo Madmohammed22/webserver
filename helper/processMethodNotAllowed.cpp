@@ -5,7 +5,7 @@ int Server::processMethodNotAllowed(int fd, Server *server, std::string request)
     std::cout << request << std::endl;
     std::cout << "-------( END OF REQUEST )-------\n\n\n";
     
-    std::pair<std::string, std::string> pair_request = server->ft_parseRequest(fd, server, request);
+    std::pair<std::string, std::string> pair_request = ft_parseRequest_T(fd, server, request);
     FileTransferState state;
     state.typeOfConnection = server->fileTransfers[fd].mapOnHeader.find("Connection:")->second;
     server->fileTransfers[fd] = state;

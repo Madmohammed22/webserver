@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/19 23:52:07 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/20 16:01:40 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,30 +67,6 @@ void Server::key_value_pair_header(int fd,  Server *server, std::string header)
     server->fileTransfers[fd].mapOnHeader = mapv;
 }
 
-int returnTimeoutRequest(int fd, Server *server)
-{
-    std::string path1 = PATHE;
-    std::string path2 = "408.html";
-    std::string new_path = path1 + path2;
-    std::string content = server->readFile(new_path);
-    std::string httpResponse = server->createTimeoutResponse(server->getContentType(new_path), content.length());
-    if (!httpResponse.empty())
-    {
-        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-        {
-            return std::cerr << "Failed to send error response header" << std::endl, server->fileTransfers.erase(fd), close(fd), 0;
-        }
-
-        if (send(fd, content.c_str(), content.length(), MSG_NOSIGNAL) == -1)
-            return std::cerr << "Failed to send error content" << std::endl, server->fileTransfers.erase(fd), close(fd), 0;
-
-        if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
-            return server->fileTransfers.erase(fd), close(fd), 0;
-    }
-
-    return 0;
-}
-
 int add_time_out_for_client(int fd, std::map<int, Client> &client)
 {
     Client state = client[fd];
@@ -118,7 +94,7 @@ void initializeFileTransfers(Server *server, int fd, Binary_String &request)
     FileTransferState state;
 
     state.multp.containHeader = true;
-    state.filePath = server->parseRequest(request.to_string(), server);
+    state.filePath = server->parseSpecificRequest(request.to_string(), server);
     state.fileSize = server->getFileSize(state.filePath);
     state.offset = 0;
     state.isComplete = false;
@@ -137,9 +113,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
     if ((nfds = epoll_wait(epollfd, events, MAX_EVENTS, TIMEOUTMS)) == -1)
         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
     if (nfds == 0)
-    {
         return 0;
-    }
     std::map<int, Client> client;
     for (int i = 0; i < nfds; ++i)
     {
@@ -166,32 +140,16 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             if (bytes == 0)
             {
-                if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
+                if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()){
                     server->fileTransfers.erase(events[i].data.fd);
+                    close(events[i].data.fd);
+                }
                 continue;
             }
             else
             {
                 holder[bytes] = '\0';
                 send_buffers[events[i].data.fd] = holder;
-                // if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end() && holder.find("POST") != std::string::npos)
-                // {
-                //     std::pair<Binary_String, Binary_String> pair_whise_request = server->ft_parseRequest_binary(holder);
-                //     // server->fileTransfers[events[i].data.fd].mapOnHeader = server->ke
-                //     std::cout << "--------------------------" << std::endl;
-                //     std::cout << pair_whise_request.first.c_str() << std::endl;
-                //     std::cout << "--------------------------" << std::endl;
-                //     // const char *Tester = holder.c_str();
-                //     initializeFileTransfers(server, events[i].data.fd, holder);
-                // }
-
-                // if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()
-                //     && server->fileTransfers[events[i].data.fd].multp.flag == true)
-                // {
-                //     // [soukaina] please check this condition
-                //     if (server->handle_post_request(events[i].data.fd, server, request) == -1)
-                //         return EXIT_FAILURE;
-                // }
             }
         }
         else if (events[i].events & EPOLLOUT)
@@ -199,9 +157,8 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
             {
                 request = send_buffers[events[i].data.fd].to_string();
-                std::pair<std::string, std::string> pair_request = server->ft_parseRequest(events[i].data.fd,server, request);
-                server->key_value_pair_header(events[i].data.fd, server, server->ft_parseRequest(events[i].data.fd, server, request).first);
-                std::string Connection = server->fileTransfers[events[i].data.fd].mapOnHeader.find("Connection:")->second;
+                server->key_value_pair_header(events[i].data.fd, server, ft_parseRequest_T(events[i].data.fd, server, request).first);
+                std::string Connection = server->fileTransfers[events[i].data.fd].mapOnHeader.find("Connection:")->second;    
                 if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
                     return std::cerr << "Failed to continue file transfer" << std::endl, close(events[i].data.fd), 0;
                 continue;
@@ -213,7 +170,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             else if (request.find("GET") != std::string::npos)
             {
-                server->key_value_pair_header(events[i].data.fd, server, server->ft_parseRequest(events[i].data.fd, server, request).first);
                 server->serve_file_request(events[i].data.fd, server, request, client);
             }
             else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
@@ -261,8 +217,12 @@ int main(int argc, char **argv)
     std::map<int, Binary_String> send_buffers;
     while (true)
     {
-        if (handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers) == EXIT_FAILURE)
-            break;
+        try{
+            handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers);
+        }
+        catch(std::exception& e){
+                break;
+        }
     }
 
     for (std::map<int, FileTransferState>::iterator it = server->fileTransfers.begin(); it != server->fileTransfers.end(); ++it)

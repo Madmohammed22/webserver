@@ -204,23 +204,22 @@ int Server::getSpecificRespond(int fd, Server *server, std::string file, std::st
     return 0;
 }
 
-std::pair<std::string, std::string> Server::ft_parseRequest(int fd, Server* server,  std::string header)
-{
-    std::pair<std::string, std::string> pair_request;
-    try
-    {
-        pair_request.first = header.substr(0, header.find("\r\n\r\n"));
-        pair_request.second = header.substr(header.find("\r\n\r\n"), header.length()); 
-    }
-    catch(const std::exception& e)
-    {
-        getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
-        // std::cerr << e.what() << '\n';
-    }
+// std::pair<std::string, std::string> Server::ft_parseRequest(int fd, Server* server,  std::string header)
+// {
+//     std::pair<std::string, std::string> pair_request;
+//     try
+//     {
+//         pair_request.first = header.substr(0, header.find("\r\n\r\n"));
+//         pair_request.second = header.substr(header.find("\r\n\r\n"), header.length()); 
+//     }
+//     catch(const std::exception& e)
+//     {
+//         getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
+//     }
     
 
-    return pair_request;
-}
+//     return pair_request;
+// }
 
 std::pair<Binary_String, Binary_String> Server::ft_parseRequest_binary(Binary_String header)
 {
@@ -232,6 +231,7 @@ std::pair<Binary_String, Binary_String> Server::ft_parseRequest_binary(Binary_St
     }
     catch(const std::exception& e)
     {
+        // getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
         std::cerr << e.what() << '\n';
     }
     

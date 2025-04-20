@@ -314,7 +314,7 @@ int Server::parsePostRequest(Server *server, int fd, std::string header)
         return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
 
     contentType = state.mapOnHeader.find("Content-Type:")->second;
-    filePath = server->parseRequest(header, server); 
+    filePath = server->parseSpecificRequest(header, server); 
     if (contentType.find("multipart/form-data") == std::string::npos)
         return getSpecificRespond(fd, server, "415.html", server->createUnsupportedMediaResponse);
     if (contentType.find("boundary=") != std::string::npos) 
