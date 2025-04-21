@@ -82,8 +82,10 @@ struct Multipart
 {
     bool flag;
     bool containHeader;
+    size_t readPosition;   
     size_t currentOffset;
     bool isInHeader; 
+    size_t offset;
     std::string partialHeaderBuffer;
     std::string boundary;
     std::vector<std::ofstream*> outFiles;
@@ -91,7 +93,7 @@ struct Multipart
     std::string currentFileName;
     int currentFd;
 
-    Multipart() : flag(false), isInHeader(true), currentFileIndex(0){}
+    Multipart() : flag(false), readPosition(0), isInHeader(true), currentFileIndex(0){}
 };
 
 // Structure to hold file transfer state

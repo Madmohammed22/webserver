@@ -164,10 +164,12 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             if (bytes == 0)
             {
-                if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
-                    server->fileTransfers.erase(events[i].data.fd);
-                if (server->fileTransfers[events[i].data.fd].multp.flag == false)
+                /*if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())*/
+                /*{*/
+                    std::cout << "i have been here\n\n";
                     server->fileTransfers[events[i].data.fd].multp.flag = true;
+                    /*server->fileTransfers.erase(events[i].data.fd);*/
+                /*}*/
                 continue;
             }
             else
@@ -180,10 +182,11 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 /*}*/
                 bool isPostRequest = holder.to_string().find("POST") != std::string::npos;
                 if (!isPostRequest)
-                  std::cout << "true" << std::endl;
+                    std::cout << "true" << std::endl;
                 bool isExistingTransfer = server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end();
                 if (isPostRequest || isExistingTransfer)
                 {
+                    std::cout << bytes << std::endl;
                     std::cout << "i am in the post methode\n";
                     if (isPostRequest && !isExistingTransfer)
                     {
@@ -196,6 +199,13 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                             continue;
                         }
                         server->fileTransfers[events[i].data.fd].file = file;
+                        server->fileTransfers[events[i].data.fd].file->write(holder.c_str(), bytes);
+                        if (server->fileTransfers[events[i].data.fd].file->fail()) 
+                        {
+                          std::cerr << "File write failed\n";
+                          server->fileTransfers.erase(events[i].data.fd);
+                          continue;
+                        }
                     }
 
                     if (isExistingTransfer && server->fileTransfers[events[i].data.fd].file)
@@ -207,6 +217,11 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                           server->fileTransfers.erase(events[i].data.fd);
                           continue;
                         }
+                        if (bytes < CHUNK_SIZE)
+                        {
+                           server->fileTransfers[events[i].data.fd].file->close();
+                           server->fileTransfers[events[i].data.fd].multp.flag = true;
+                        }
                         server->fileTransfers[events[i].data.fd].file->flush();
                     }
                 }
@@ -214,23 +229,23 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
         }
         else if (events[i].events & EPOLLOUT)
         {
-            if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
-            {
-                request = send_buffers[events[i].data.fd].to_string();
-                std::pair<std::string, std::string> pair_request = ft_parseRequest_T(events[i].data.fd, server, request);
-                server->key_value_pair_header(events[i].data.fd, server, ft_parseRequest_T(events[i].data.fd, server, request).first);
-                std::string Connection = server->fileTransfers[events[i].data.fd].mapOnHeader.find("Connection:")->second;
-                if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
-                    return std::cerr << "Failed to continue file transfer" << std::endl, close(events[i].data.fd), 0;
-                continue;
-            }
-            request = send_buffers[events[i].data.fd].to_string();
-            
             if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end() && server->fileTransfers[events[i].data.fd].multp.flag == true)
             {
-                std::cout << "i was here once\n";
+                std::cout << "i was heregcc once\n";
                 server->handlePostRequest(events[i].data.fd, server); 
             }
+            /*if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())*/
+            /*{*/
+            /*    request = send_buffers[events[i].data.fd].to_string();*/
+            /*    std::pair<std::string, std::string> pair_request = ft_parseRequest_T(events[i].data.fd, server, request);*/
+            /*    server->key_value_pair_header(events[i].data.fd, server, ft_parseRequest_T(events[i].data.fd, server, request).first);*/
+            /*    std::string Connection = server->fileTransfers[events[i].data.fd].mapOnHeader.find("Connection:")->second;*/
+            /*    if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)*/
+            /*        return std::cerr << "Failed to continue file transfer" << std::endl, close(events[i].data.fd), 0;*/
+            /*    continue;*/
+            /*}*/
+            request = send_buffers[events[i].data.fd].to_string();
+            
             if (request.find("DELETE") != std::string::npos)
             {
                 server->handle_delete_request(events[i].data.fd, server, request);
@@ -245,10 +260,10 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 server->processMethodNotAllowed(events[i].data.fd, server, request);
             }
-            if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end())
-            {
-                send_buffers.erase(events[i].data.fd);
-            }
+            /*if (server->fileTransfers.find(events[i].data.fd) == server->fileTransfers.end())*/
+            /*{*/
+            /*    send_buffers.erase(events[i].data.fd);*/
+            /*}*/
         }
     }
     return EXIT_SUCCESS;

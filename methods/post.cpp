@@ -1,38 +1,41 @@
 #include "../server.hpp"
 
-// Read file in chunks with error handling
-
-/*bool readFileChunk_post(const std::string &path, char *buffer, size_t offset, size_t chunkSize, size_t &bytesRead)*/
-/*{*/
-/*    std::ifstream file(path.c_str(), std::ios::binary);*/
-/*    if (!file.is_open())*/
-/*    {*/
-/*        std::cerr << "Failed to open file: " << path << std::endl;*/
-/*        return false;*/
-/*    }*/
-/**/
-/*    file.seekg(offset, std::ios::beg);*/
-/*    file.read(buffer, chunkSize);*/
-/*    bytesRead = file.gcount();*/
-/*    return true;*/
-/*}*/
 
 Binary_String readFileChunk_post(int fd, Server *server)
 {
-    std::fstream *file;
-    file = server->fileTransfers[fd].file;
-
-    if (!file->is_open() || file->eof())
+    std::fstream *file = server->fileTransfers[fd].file;
+    
+    if (server->fileTransfers[fd].multp.readPosition == 0)
     {
-        std::cerr << "Failed to open file: " << std::endl;
-        return false;
+        file->open("TMP");
+        if (!file->is_open()) {
+          std::cerr << "File is not open for reading" << std::endl;
+        return Binary_String();
     }
+        /*file->seekg(0, std::ios::beg);*/
+        /*file->seekp(0, std::ios::beg);*/
+        /*file->clear();*/
+    }
+    
+    if (!file->is_open()) {
+        std::cerr << "File is not open for reading" << std::endl;
+        return Binary_String();
+    }
+
     char *buffer = new char[CHUNK_SIZE];
     file->read(buffer, CHUNK_SIZE);
     size_t bytesRead = file->gcount();
+    
+    server->fileTransfers[fd].multp.readPosition += bytesRead;
+    
+    
     Binary_String chunk(buffer, bytesRead);
+    /*std::cout << "---------------------------------\n";*/
+    /*for (size_t i = 0; i < bytesRead; i++)*/
+    /*    std::cout << buffer[i] << std::ends;*/
+    /*std::cout << "---------------------------------\n";*/
     delete[] buffer;
-    return true;
+    return chunk;
 }
 
 // Send a chunk of data using chunked encoding.
@@ -243,19 +246,24 @@ int Server::handlePostRequest(int fd, Server *server)
 
     std::pair <Binary_String, Binary_String> pairRequest;
     chunkedData = readFileChunk_post(fd, server);
-    pairRequest = ft_parseRequest_T(fd, server, chunkedData);
+    /*exit(0);*/
+    if (chunkedData.empty())
+      return server->fileTransfers.erase(fd) , 0;
     exitCode = 0;
     if (server->fileTransfers[fd].multp.containHeader == true)
     {
+        pairRequest = ft_parseRequest_T(fd, server, chunkedData);
         server->key_value_pair_header(fd, server, pairRequest.first.to_string());
         exitCode = parsePostRequest(server, fd, pairRequest.first.to_string());
         server->fileTransfers[fd].multp.containHeader = false;
         if (!pairRequest.second.empty())
-            writeData(server, pairRequest.second, fd);       
+            writeData(server, pairRequest.second, fd);   
     }
     // [soukaina]  after writing all data in the fd i should turn the containHeader to true
     // or i have just to ereas the fd from the fileTransfers
     else
+    {
         writeData(server, chunkedData, fd);
+    }
     return exitCode;
 }
