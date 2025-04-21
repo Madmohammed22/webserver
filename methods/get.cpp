@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/20 16:01:40 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 23:52:26 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,8 +44,8 @@ bool Server::canBeOpen(std::string &filePath)
         return true;
     else
     {
-        // new_path = STATIC + filePath;
-        new_path = PATHC + filePath;
+         new_path = STATIC + filePath;
+        /*new_path = PATHC + filePath;*/
     }
     std::ifstream file(new_path.c_str());
     if (!file.is_open())
@@ -204,9 +204,9 @@ std::string Server::readFile(const std::string &path)
 int Server::serve_file_request(int fd, Server *server, std::string request, std::map<int, Client> &client)
 {
     (void)client;
-    server->key_value_pair_header(fd, server, ft_parseRequest_T(fd, server, request).first);
+    std::pair<std::string, std::string> pair_request = ft_parseRequest_T(fd, server, request);
     std::string Connection = server->fileTransfers[fd].mapOnHeader.find("Connection:")->second;
-    std::string filePath = server->parseSpecificRequest(request, server);
+    std::string filePath = server->parseRequest(request, server);
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
     {
         return server->handleFileRequest(fd, server, filePath, Connection);

@@ -68,15 +68,14 @@ bool searchOnPath(std::vector<std::string>& nodePath, const std::string& filePat
 }
 
 int Server::handle_delete_request(int fd, Server *server, std::string request) {
-    std::cout << "-------( REQUEST PARSED )-------\n\n";
-    std::cout << request << std::endl;
-    std::cout << "-------( END OF REQUEST )-------\n\n\n";
-
+    /*std::cout << "-------( REQUEST PARSED )-------\n\n";*/
+    /*std::cout << request << std::endl;*/
+    /*std::cout << "-------( END OF REQUEST )-------\n\n\n";*/
     std::pair<std::string, std::string> pair_request = ft_parseRequest_T(fd, server,request);
     FileTransferState state;
     state.typeOfConnection = server->fileTransfers[fd].mapOnHeader.find("Connection:")->second;
     server->fileTransfers[fd] = state;
-    std::string filePath = server->parseSpecificRequest(request, server);
+    std::string filePath = server->parseRequest(request, server);
     if (server->canBeOpen(filePath)) {
         if (filePath.at(0) != '/')
             filePath = "/" + filePath;

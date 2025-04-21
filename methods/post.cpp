@@ -214,7 +214,7 @@ void createFileName(std::string line, Server *server, int fd)
 
     server->fileTransfers[fd].multp.outFiles.push_back(newFile);
     server->fileTransfers[fd].multp.currentFileIndex = server->fileTransfers[fd].multp.outFiles.size() - 1;
-    
+   
     std::cout << "Opened file #" << server->fileTransfers[fd].multp.currentFileIndex 
               << ": " << fileName << std::endl;
 }
@@ -302,9 +302,9 @@ int Server::parsePostRequest(Server *server, int fd, std::string header)
 
     // [soukaina] here i have to check if the content length is 0 so i can threw an error
     // no centent check if == 0
-    std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
-    std::cout << header;
-    std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+    /*std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";*/
+    /*std::cout << header;*/
+    /*std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";*/
     // if (server->key_value_pair_header(header, "Content-Length:"). == "")
     // std::map<std::string, std::string>::iterator it = server->fileTransfers[fd].mapOnHeader.find("Connection:");
     // if (it != server->fileTransfers[fd].mapOnHeader.end()){
@@ -312,9 +312,8 @@ int Server::parsePostRequest(Server *server, int fd, std::string header)
     // }
     if (state.mapOnHeader.find("Content-Length:")->second == "")
         return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
-
-    contentType = state.mapOnHeader.find("Content-Type:")->second;
-    filePath = server->parseSpecificRequest(header, server); 
+    contentType = state.mapOnHeader.find("Content-Type:")->second;  
+    filePath = server->parseRequest(header, server); 
     if (contentType.find("multipart/form-data") == std::string::npos)
         return getSpecificRespond(fd, server, "415.html", server->createUnsupportedMediaResponse);
     if (contentType.find("boundary=") != std::string::npos) 
@@ -334,10 +333,11 @@ int Server::handlePostRequest(int fd, Server *server, Binary_String request)
     int exitCode;
     std::pair <Binary_String, Binary_String> pairRequest;
 
-    pairRequest = ft_parseRequest_binary(request);
+    pairRequest = ft_parseRequest_T(fd, server, request);
     exitCode = 0;
     if (server->fileTransfers[fd].multp.containHeader == true)
     {
+        server->key_value_pair_header(fd, server, pairRequest.first.to_string());
         exitCode = parsePostRequest(server, fd, pairRequest.first.to_string());
         server->fileTransfers[fd].multp.containHeader = false;
         if (!pairRequest.second.empty())

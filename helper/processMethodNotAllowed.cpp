@@ -1,9 +1,9 @@
 #include "../server.hpp"
 
 int Server::processMethodNotAllowed(int fd, Server *server, std::string request){
-    std::cout << "-------( REQUEST PARSED )-------\n\n";
-    std::cout << request << std::endl;
-    std::cout << "-------( END OF REQUEST )-------\n\n\n";
+    /*std::cout << "-------( REQUEST PARSED )-------\n\n";*/
+    /*std::cout << request << std::endl;*/
+    /*std::cout << "-------( END OF REQUEST )-------\n\n\n";*/
     
     std::pair<std::string, std::string> pair_request = ft_parseRequest_T(fd, server, request);
     FileTransferState state;

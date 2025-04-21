@@ -1,42 +1,5 @@
 #include "../server.hpp"
 
-// class Binary_String
-// {
-//     private:
-//         std::vector <uint8_t > buffer;
-//         static const size_t npos = -1;
-//     public:
-//         Binary_String(const char* str, size_t n);
-//         Binary_String();
-//         Binary_String(const Binary_String& other);
-//         Binary_String(size_t n);
-//         ~Binary_String();
-//         size_t find(const char* s, size_t pos = 0) const;
-//         size_t find(const std::string& s, size_t pos = 0) const;
-//         Binary_String substr(size_t pos, size_t n) const;
-//         Binary_String& append(const char* str, size_t subpos, size_t sublen);
-//         Binary_String& append(const std::string& str, size_t subpos, size_t sublen);
-//         Binary_String& append(const Binary_String& str, size_t subpos, size_t sublen);
-//         void clear();
-//         std::string to_string() const;
-//         const char* c_str() const;
-//         size_t size() const;
-//         uint8_t operator[](size_t i) const;
-//         uint8_t& operator[](size_t i);
-//         uint8_t* data();
-//         bool empty() const;
-//         std::vector <uint8_t >::iterator begin();
-//         std::vector <uint8_t >::iterator end();
-//         void push_back(uint8_t c);
-//         Binary_String operator+(const Binary_String& other) const;
-//         Binary_String operator+=(const Binary_String& other);
-//         bool operator==(const Binary_String& other) const;
-//         bool operator!=(const Binary_String& other) const;
-
-// };
-
-// std::ostream& operator<<(std::ostream& os, const Binary_String& buffer);
-
 Binary_String::Binary_String(const char* str, size_t n)
 {
     buffer.resize(n);
@@ -88,7 +51,7 @@ std::vector <uint8_t >::iterator Binary_String::end()
     return buffer.end();
 }
 
-size_t Binary_String::size() const
+size_t Binary_String::length() const
 {
     return buffer.size();
 }
@@ -175,7 +138,7 @@ bool Binary_String::operator!=(const Binary_String& other) const
 
 std::ostream& operator<<(std::ostream& os, const Binary_String& buffer)
 {
-    for (size_t i = 0; i < buffer.size(); i++)
+    for (size_t i = 0; i < buffer.length(); i++)
     {
         if (isprint(buffer[i]))
             os << buffer[i];
@@ -244,28 +207,4 @@ Binary_String& Binary_String::append(const Binary_String& str, size_t subpos, si
 //     //     else
 //     //         ++it;
 //     // }
-// }
-
-// int returnTimeoutRequest(int fd, Server *server)
-// {
-//     std::string path1 = PATHE;
-//     std::string path2 = "408.html";
-//     std::string new_path = path1 + path2;
-//     std::string content = server->readFile(new_path);
-//     std::string httpResponse = server->createTimeoutResponse(server->getContentType(new_path), content.length());
-//     if (!httpResponse.empty())
-//     {
-//         if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-//         {
-//             return std::cerr << "Failed to send error response header" << std::endl, server->fileTransfers.erase(fd), close(fd), 0;
-//         }
-
-//         if (send(fd, content.c_str(), content.length(), MSG_NOSIGNAL) == -1)
-//             return std::cerr << "Failed to send error content" << std::endl, server->fileTransfers.erase(fd), close(fd), 0;
-
-//         if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
-//             return server->fileTransfers.erase(fd), close(fd), 0;
-//     }
-
-//     return 0;
 // }

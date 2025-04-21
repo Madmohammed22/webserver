@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/20 16:01:40 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 22:50:21 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,6 @@
 
 #include <time.h>
 #include <bits/types.h>
-#include "server.hpp"
 #include <unistd.h>
 #include <iomanip>  
 #include <filesystem>
@@ -42,7 +41,6 @@
 #include <string.h>
 #include <set>
 #include <algorithm>
-
 
 #define ERROR404 404
 #define ERROR405 405
@@ -83,6 +81,7 @@ class Client
 struct Multipart
 {
     bool flag;
+    std::fstream *file;
     bool containHeader;
     bool isInHeader;
     std::string partialHeaderBuffer;
@@ -112,6 +111,24 @@ struct FileTransferState {
     std::set<std::string> knownPaths;
     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
 };
+
+// // Structure to hold file transfer state
+// struct FileTransferState {
+//     time_t last_activity_time;
+//     std::string filePath;   
+//     size_t offset;
+//     size_t endOffset;
+//     size_t fileSize;
+//     bool isComplete;
+//     bool isCompleteShortFile;
+//     int socket;
+//     int saveFd;
+//     int flag;
+//     std::map<std::string, std::string> mapOnHeader;
+//     std::string typeOfConnection;
+//     std::set<std::string> knownPaths;
+//     FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
+// };
 
 class Binary_String;
 
@@ -144,12 +161,13 @@ public:
     std::string readFile(const std::string &path);
     int getFileType(std::string path);
     bool canBeOpen(std::string &filePath);
-    std::string parseSpecificRequest(std::string request, Server *server);
+    std::string parseRequest(std::string request, Server *server);
     std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
     std::string key_value_pair_header(std::string request, std::string target_key);
     void key_value_pair_header(int fd,  Server *server, std::string header);
     std::pair<Binary_String, Binary_String> ft_parseRequest_binary(Binary_String header);
+    // std::string trim(std::string &str);
 
     // Response headers
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
@@ -165,12 +183,14 @@ public:
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
-    // std::pair<std::string, std::string> ft_parseRequest(int fd, Server* server, std::string header);
+    std::pair<std::string, std::string> ft_parseRequest(int fd, Server* server, std::string header);
 
     // Transfer-Encoding: chunked
     int handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection);
     int continueFileTransfer(int fd, Server * server, std::string Connection);
     void setnonblocking(int fd);
+
+    int test(int fd, Server *server, std::string Connection);
 };
 
 template <typename T> std::pair<T, T> ft_parseRequest_T(int fd, Server* server,T header){
@@ -179,7 +199,7 @@ template <typename T> std::pair<T, T> ft_parseRequest_T(int fd, Server* server,T
     try
     {
         pair_request.first = header.substr(0, header.find("\r\n\r\n"));
-        pair_request.second = header.substr(header.find("\r\n\r\n"), header.size()); 
+        pair_request.second = header.substr(header.find("\r\n\r\n"), header.length()); 
     }
     catch(const std::exception& e)
     {
@@ -209,7 +229,7 @@ class Binary_String
         void clear();
         std::string to_string() const;
         const char* c_str() const;
-        size_t size() const;
+        size_t length() const;
         uint8_t operator[](size_t i) const;
         uint8_t& operator[](size_t i);
         uint8_t* data();
@@ -225,6 +245,5 @@ class Binary_String
 };
 
 std::ostream& operator<<(std::ostream& os, const Binary_String& buffer);
-
 #endif
 

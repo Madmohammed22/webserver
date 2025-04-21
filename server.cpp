@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/20 16:01:40 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/19 23:52:07 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,8 +43,7 @@ std::string trim(std::string str)
     return str;
 }
 
-
-void Server::key_value_pair_header(int fd,  Server *server, std::string header)
+void Server::key_value_pair_header(int fd, Server *server, std::string header)
 {
     std::map<std::string, std::string> mapv = server->fileTransfers[fd].mapOnHeader;
     size_t j = 0;
@@ -62,9 +61,32 @@ void Server::key_value_pair_header(int fd,  Server *server, std::string header)
         }
     }
     std::string result = header.substr(j, header.length());
-    mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" ")))
-                                , trim(result.substr(result.find(" "), result.length()))));
+    mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), trim(result.substr(result.find(" "), result.length()))));
     server->fileTransfers[fd].mapOnHeader = mapv;
+}
+
+int returnTimeoutRequest(int fd, Server *server)
+{
+    std::string path1 = PATHE;
+    std::string path2 = "408.html";
+    std::string new_path = path1 + path2;
+    std::string content = server->readFile(new_path);
+    std::string httpResponse = server->createTimeoutResponse(server->getContentType(new_path), content.length());
+    if (!httpResponse.empty())
+    {
+        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
+        {
+            return std::cerr << "Failed to send error response header" << std::endl, server->fileTransfers.erase(fd), close(fd), 0;
+        }
+
+        if (send(fd, content.c_str(), content.length(), MSG_NOSIGNAL) == -1)
+            return std::cerr << "Failed to send error content" << std::endl, server->fileTransfers.erase(fd), close(fd), 0;
+
+        if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
+            return server->fileTransfers.erase(fd), close(fd), 0;
+    }
+
+    return 0;
 }
 
 int add_time_out_for_client(int fd, std::map<int, Client> &client)
@@ -94,7 +116,7 @@ void initializeFileTransfers(Server *server, int fd, Binary_String &request)
     FileTransferState state;
 
     state.multp.containHeader = true;
-    state.filePath = server->parseSpecificRequest(request.to_string(), server);
+    state.filePath = server->parseRequest(request.to_string(), server);
     state.fileSize = server->getFileSize(state.filePath);
     state.offset = 0;
     state.isComplete = false;
@@ -113,7 +135,9 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
     if ((nfds = epoll_wait(epollfd, events, MAX_EVENTS, TIMEOUTMS)) == -1)
         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
     if (nfds == 0)
+    {
         return 0;
+    }
     std::map<int, Client> client;
     for (int i = 0; i < nfds; ++i)
     {
@@ -126,13 +150,14 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             server->setnonblocking(conn_sock);
             ev.events = EPOLLIN | EPOLLOUT;
             ev.data.fd = conn_sock;
+            
             if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
                 return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
         }
 
         else if (events[i].events & EPOLLIN)
         {
-            int bytes = recv(events[i].data.fd, &holder[0], holder.size(), 0);
+            int bytes = recv(events[i].data.fd, &holder[0], holder.length(), 0);
 
             if (bytes < 0)
             {
@@ -140,16 +165,87 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             if (bytes == 0)
             {
-                if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()){
+                if (server->fileTransfers[events[i].data.fd].multp.file)
+                   server->fileTransfers[events[i].data.fd].multp.file->close();
+                if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
                     server->fileTransfers.erase(events[i].data.fd);
-                    close(events[i].data.fd);
-                }
                 continue;
             }
             else
             {
                 holder[bytes] = '\0';
                 send_buffers[events[i].data.fd] = holder;
+                if (bytes >= holder.size())
+                {
+                    std::cerr << "Buffer overflow prevented\n";
+                    continue; // or handle error
+                }
+holder[bytes] = '\0';
+
+send_buffers[events[i].data.fd] = holder;
+
+if (holder.find("POST") != std::string::npos) 
+{
+    // 1. Create a dynamically allocated fstream to avoid scope issues
+    auto* file = new std::fstream();
+    file->open("TMP", std::ios::out | std::ios::binary | std::ios::trunc);
+    
+    if (!file->is_open()) {
+        std::cerr << "Failed to open file TMP\n";
+        delete file;
+        continue;
+    }
+
+    // 2. Store in your transfer structure
+    server->fileTransfers[events[i].data.fd].multp.file = file;
+    initializeFileTransfers(server, events[i].data.fd, holder);
+
+    // 3. Write entire buffer at once (more efficient)
+    file->write(holder.c_str(), bytes);
+    if (file->fail()) {
+        std::cerr << "File write failed\n";
+    }
+
+    // 4. Flush to ensure data is written
+    file->flush();
+    
+    server->fileTransfers[events[i].data.fd].multp.flag = true;
+}
+                /*else if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()*/
+                /*    && server->fileTransfers[events[i].data.fd].multp.flag == true)*/
+                /*{*/
+                /*    for (int i = 0; i < bytes; i++)*/
+                /*    {*/
+                        /*std::cout << holder[i] << std::endl;*/
+                /*        server->fileTransfers[events[i].data.fd].multp.file->put(holder[i]);*/
+                /*    }*/
+                /*}                */
+                // std::string file_tmp;
+                // std::ofstream file(file_tmp.c_str(), std::ios::binary | std::ios::in | std::ios::beg);
+
+                /*std::pair<Binary_String, Binary_String> pair_whise_request = ft_parseRequest_T(events[i].data.fd, server, holder);*/
+                // server->fileTransfers[events[i].data.fd].mapOnHeader = server->ke
+                /*std::cout << "--------------------------" << std::endl;*/
+                /*std::cout << pair_whise_request.first.c_str() << std::endl;*/
+                /*std::cout << "--------------------------" << std::endl;*/
+                // const char *Tester = holder.c_str();
+                /*    initializeFileTransfers(server, events[i].data.fd, holder);*/
+                /*}*/
+
+                /*if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()*/
+                /*    && server->fileTransfers[events[i].data.fd].multp.flag == true)*/
+                /*{*/
+                /*    server->fileTransfers[events[i].data.fd].multp.file->write(holder.c_str(), std::ios::binary); */
+                // [soukaina] please check this condition
+                /*    if (server->handlePostRequest(events[i].data.fd, server, holder) == -1)*/
+                /*        return EXIT_FAILURE;*/
+                /*}*/
+                /*std::cout << "**********************************************\n";*/
+                /*for (size_t i = 0; i < holder.length(); i++)*/
+                /*{*/
+                /*     std::cout << holder[i];*/
+                /*}*/
+                /*std::cout << "**********************************************\n";*/
             }
         }
         else if (events[i].events & EPOLLOUT)
@@ -157,19 +253,28 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
             {
                 request = send_buffers[events[i].data.fd].to_string();
+                std::pair<std::string, std::string> pair_request = ft_parseRequest_T(events[i].data.fd, server, request);
                 server->key_value_pair_header(events[i].data.fd, server, ft_parseRequest_T(events[i].data.fd, server, request).first);
-                std::string Connection = server->fileTransfers[events[i].data.fd].mapOnHeader.find("Connection:")->second;    
+                std::string Connection = server->fileTransfers[events[i].data.fd].mapOnHeader.find("Connection:")->second;
                 if (server->continueFileTransfer(events[i].data.fd, server, Connection) == -1)
                     return std::cerr << "Failed to continue file transfer" << std::endl, close(events[i].data.fd), 0;
                 continue;
             }
             request = send_buffers[events[i].data.fd].to_string();
+            /*if (request.find("POST") != std::string::npos)*/
+            /*{*/
+            /*    server->fileTransfers[events[i].data.fd].multp.file->open();*/
+            /*    std::string buffer;*/
+            /*    file.read(buffer, 1000);*/
+
+            /*}*/
             if (request.find("DELETE") != std::string::npos)
             {
                 server->handle_delete_request(events[i].data.fd, server, request);
             }
             else if (request.find("GET") != std::string::npos)
             {
+                server->key_value_pair_header(events[i].data.fd, server, ft_parseRequest_T(events[i].data.fd, server, request).first);
                 server->serve_file_request(events[i].data.fd, server, request, client);
             }
             else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
@@ -217,12 +322,8 @@ int main(int argc, char **argv)
     std::map<int, Binary_String> send_buffers;
     while (true)
     {
-        try{
-            handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers);
-        }
-        catch(std::exception& e){
-                break;
-        }
+        if (handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers) == EXIT_FAILURE)
+            break;
     }
 
     for (std::map<int, FileTransferState>::iterator it = server->fileTransfers.begin(); it != server->fileTransfers.end(); ++it)

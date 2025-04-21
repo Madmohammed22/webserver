@@ -1,0 +1,14 @@
+POST /UPLOAD HTTP/1.1
+Connection: close
+User-Agent: PostmanRuntime/7.43.3
+Accept: */*
+Postman-Token: f883a6a7-afd2-4f00-9431-d68a78f13975
+Host: localhost:8080
+Accept-Encoding: gzip, deflate, br
+Content-Type: multipart/form-data; boundary=--------------------------863207253620509321691829
+Content-Length: 9039
+
+----------------------------863207253620509321691829
+Content-Disposition: form-data; name=""; filename="image-avatar.png"
+Content-Type: image/png
+
