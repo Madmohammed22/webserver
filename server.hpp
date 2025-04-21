@@ -48,7 +48,7 @@
 
 #define PORT 8080 
 #define MAX_EVENTS 1024
-#define CHUNK_SIZE 17000    
+#define CHUNK_SIZE 1700    
 #define TIMEOUT 4
 #define TIMEOUTMS 30000
 #define PATHC "root/content/"
@@ -82,6 +82,7 @@ struct Multipart
 {
     bool flag;
     bool containHeader;
+    size_t currentOffset;
     bool isInHeader; 
     std::string partialHeaderBuffer;
     std::string boundary;
@@ -95,7 +96,6 @@ struct Multipart
 
 // Structure to hold file transfer state
 struct FileTransferState {
-    std::fstream *file;
     time_t last_activity_time;
     std::string filePath;   
     size_t offset;
@@ -103,6 +103,7 @@ struct FileTransferState {
     size_t fileSize;
     bool isComplete;
     bool isCompleteShortFile;
+    std::fstream *file;
     int socket;
     int saveFd;
     int flag;
@@ -154,7 +155,7 @@ public:
     // Methods
     int serve_file_request(int fd, Server *server, std::string request, std::map <int, Client>& client);
     int handle_delete_request(int fd, Server *server,std::string request);
-    int handlePostRequest(int fd, Server *server, Binary_String request);
+    int handlePostRequest(int fd, Server *server);
     
     // Functions helper
     int parsePostRequest(Server *server, int fd, std::string header);

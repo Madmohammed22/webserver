@@ -17,17 +17,21 @@
 /*    return true;*/
 /*}*/
 
-bool readFileChunk_post(char *buffer, size_t offset, size_t chunkSize)
+Binary_String readFileChunk_post(int fd, Server *server)
 {
-    if (!file.is_open())
+    std::fstream *file;
+    file = server->fileTransfers[fd].file;
+
+    if (!file->is_open() || file->eof())
     {
-        std::cerr << "Failed to open file: " << path << std::endl;
+        std::cerr << "Failed to open file: " << std::endl;
         return false;
     }
-
-    file.seekg(offset, std::ios::beg);
-    file.read(buffer, chunkSize);
-    bytesRead = file.gcount();
+    char *buffer = new char[CHUNK_SIZE];
+    file->read(buffer, CHUNK_SIZE);
+    size_t bytesRead = file->gcount();
+    Binary_String chunk(buffer, bytesRead);
+    delete[] buffer;
     return true;
 }
 
@@ -107,108 +111,6 @@ int redirectTheParh(std::vector<char> buffer, std::string filePath, size_t bytes
     std::cout << "File successfully saved to: " << newFilePath << std::endl;
     return 0;
 }
-
-int continueFileTransferPost(int fd, Server *server)
-{
-    std::map<int, FileTransferState>::iterator transferIt = server->fileTransfers.find(fd);
-    // if (transferIt == server->fileTransfers.end())
-    //     return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, -1;
-
-    FileTransferState &state = transferIt->second;
-    if (state.isComplete)
-        return server->fileTransfers.erase(transferIt), 0;
-
-    char buffer[CHUNK_SIZE];
-    size_t remainingBytes = state.fileSize - state.offset;
-    size_t bytesToRead = std::min(remainingBytes, static_cast<size_t>(CHUNK_SIZE));
-    size_t bytesRead = 0;
-
-    if (!readFileChunk_post(state.filePath, buffer, state.offset, bytesToRead, bytesRead))
-    {
-        std::cerr << "Failed to read chunk from file: " << state.filePath << std::endl;
-        server->fileTransfers.erase(transferIt);
-        return -1;
-    }
-
-    if (!sendChunk_post(fd, buffer, bytesRead))
-    {
-        std::cerr << "Failed to send chunk." << std::endl;
-        server->fileTransfers.erase(transferIt);
-        return -1;
-    }
-
-    state.offset += bytesRead;
-    // Check if we've sent the entire file
-    if (state.offset >= state.fileSize)
-    {
-        if (!sendFinalChunk_post(fd))
-        {
-            std::cerr << "Failed to send final chunk." << std::endl;
-            server->fileTransfers.erase(transferIt);
-            return -1;
-        }
-
-        state.isComplete = true;
-        server->fileTransfers.erase(transferIt);
-    }
-    std::vector<char> bufferVector(buffer, buffer + bytesRead);
-    return redirectTheParh(bufferVector, server->fileTransfers[fd].filePath, bytesRead);
-}
-
-int handleFileRequest_post(int fd, Server *server, const std::string &filePath)
-{
-    try
-    {
-        std::string contentType = server->getContentType(filePath);
-        size_t fileSize = server->getFileSize(filePath);
-
-        if (fileSize > server->LARGE_FILE_THRESHOLD)
-        {
-            std::string httpResponse = server->createChunkedHttpResponse(contentType);
-            if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-            {
-                std::cerr << "Failed to send chunked HTTP header." << std::endl;
-                return -1;
-            }
-
-            FileTransferState state;
-            state.filePath = filePath;
-            state.fileSize = fileSize;
-            state.offset = 0;
-            state.isComplete = false;
-            server->fileTransfers[fd] = state;
-
-            return continueFileTransferPost(fd, server);
-        }
-        else
-        {
-            std::string httpResponse = server->httpResponse(contentType, fileSize);
-
-            if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-            {
-                std::cerr << "Failed to send HTTP header." << std::endl;
-                return -1;
-            }
-
-            std::vector<char> buffer(fileSize);
-            size_t bytesRead = 0;
-
-            if (!readFileChunk_post(filePath, buffer.data(), 0, fileSize, bytesRead))
-            {
-                std::cerr << "Failed to read file: " << filePath << std::endl;
-                return -1;
-            }
-            return redirectTheParh(buffer, filePath, bytesRead);
-        }
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Exception in handleFileRequest_post: " << e.what() << std::endl;
-        return -1;
-    }
-}
-
-
 
 void createFileName(std::string line, Server *server, int fd) 
 {
@@ -334,15 +236,17 @@ int Server::parsePostRequest(Server *server, int fd, std::string header)
     return (0);
 }
 
-int Server::handlePostRequest(int fd, Server *server, Binary_String request)
+int Server::handlePostRequest(int fd, Server *server)
 {
     int exitCode;
+    Binary_String chunkedData;
+
     std::pair <Binary_String, Binary_String> pairRequest;
-    pairRequest = ft_parseRequest_T(fd, server, request);
+    chunkedData = readFileChunk_post(fd, server);
+    pairRequest = ft_parseRequest_T(fd, server, chunkedData);
     exitCode = 0;
     if (server->fileTransfers[fd].multp.containHeader == true)
     {
-        readFileChunk_post("TMP", request)
         server->key_value_pair_header(fd, server, pairRequest.first.to_string());
         exitCode = parsePostRequest(server, fd, pairRequest.first.to_string());
         server->fileTransfers[fd].multp.containHeader = false;
@@ -352,6 +256,6 @@ int Server::handlePostRequest(int fd, Server *server, Binary_String request)
     // [soukaina]  after writing all data in the fd i should turn the containHeader to true
     // or i have just to ereas the fd from the fileTransfers
     else
-        writeData(server, request, fd);
+        writeData(server, chunkedData, fd);
     return exitCode;
 }

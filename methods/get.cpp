@@ -171,7 +171,7 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
 
         if (send(fd, buffer, bytesRead, MSG_NOSIGNAL) == -1)
         {
-            close(fd), server->fileTransfers.erase(fd), 0;
+           return (close(fd), server->fileTransfers.erase(fd), 0);
         }
 
         if (Connection != "keep-alive")

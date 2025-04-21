@@ -173,59 +173,42 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 holder[bytes] = '\0';
                 send_buffers[events[i].data.fd] = holder;
-                if (holder.find("POST") != std::string::npos) 
+                /*for (int j = 0; j < bytes; j++)*/
+                /*{*/
+                /*  std::cout << holder[j] << std::ends;*/
+                /*}*/
+                bool isPostRequest = holder.find("POST") != std::string::npos;
+                bool isExistingTransfer = server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end();
+                if (isPostRequest || isExistingTransfer)
                 {
-                    initializeFileTransfers(server, events[i].data.fd, holder);
-                    std::fstream* file = new std::fstream();
-                    file->open("TMP", std::ios::out | std::ios::binary | std::ios::trunc);
-                    server->fileTransfers[events[i].data.fd].file = file;
-                    if (!file->is_open())
-                        std::cerr << "Failed to open file TMP\n";
-                    file->write(holder.c_str(), bytes);
-                    if (file->fail())
+                    std::cout << "post fucking request\n";
+                    if (isPostRequest && !isExistingTransfer)
                     {
-                        std::cerr << "File write failed\n";
+                        std::fstream* file = new std::fstream();
+                        file->open("TMP", std::ios::out | std::ios::binary | std::ios::trunc);
+                        if (!file->is_open())
+                        {
+                            std::cerr << "Failed to open file TMP\n";
+                            delete file;
+                            continue;
+                        }
+                        server->fileTransfers[events[i].data.fd].file = file;
                     }
-                    file->flush();
-                } 
-                else if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()
-                    && server->fileTransfers[events[i].data.fd].multp.flag == true)
-                {
-                    server->fileTransfers[events[i].data.fd].file->write(holder.c_str(), bytes);
-                    if (server->fileTransfers[events[i].data.fd].file->fail()) 
+
+                    if (isExistingTransfer && server->fileTransfers[events[i].data.fd].file)
                     {
-                        std::cerr << "File write failed\n";    
+                        server->fileTransfers[events[i].data.fd].file->write(holder.c_str(), bytes);
+                        if (server->fileTransfers[events[i].data.fd].file->fail()) 
+                        {
+                          std::cerr << "File write failed\n";
+                          server->fileTransfers.erase(events[i].data.fd);
+                          continue;
+                        }
+                        server->fileTransfers[events[i].data.fd].file->flush();
                     }
-                    server->fileTransfers[events[i].data.fd].file->flush();
-                }                
+                }
             }
         }
-                // std::string file_tmp;
-                // std::ofstream file(file_tmp.c_str(), std::ios::binary | std::ios::in | std::ios::beg);
-
-                /*std::pair<Binary_String, Binary_String> pair_whise_request = ft_parseRequest_T(events[i].data.fd, server, holder);*/
-                // server->fileTransfers[events[i].data.fd].mapOnHeader = server->ke
-                /*std::cout << "--------------------------" << std::endl;*/
-                /*std::cout << pair_whise_request.first.c_str() << std::endl;*/
-                /*std::cout << "--------------------------" << std::endl;*/
-                // const char *Tester = holder.c_str();
-                /*    initializeFileTransfers(server, events[i].data.fd, holder);*/
-                /*}*/
-
-                /*if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()*/
-                /*    && server->fileTransfers[events[i].data.fd].multp.flag == true)*/
-                /*{*/
-                /*    server->fileTransfers[events[i].data.fd].multp.file->write(holder.c_str(), std::ios::binary); */
-                // [soukaina] please check this condition
-                /*    if (server->handlePostRequest(events[i].data.fd, server, holder) == -1)*/
-                /*        return EXIT_FAILURE;*/
-                /*}*/
-                /*std::cout << "**********************************************\n";*/
-                /*for (size_t i = 0; i < holder.length(); i++)*/
-                /*{*/
-                /*     std::cout << holder[i];*/
-                /*}*/
-                /*std::cout << "**********************************************\n";*/
         else if (events[i].events & EPOLLOUT)
         {
             if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
@@ -239,17 +222,11 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 continue;
             }
             request = send_buffers[events[i].data.fd].to_string();
-            /*if (request.find("POST") != std::string::npos)*/
-            /*{*/
-            /*    server->fileTransfers[events[i].data.fd].multp.file->open();*/
-            /*    std::string buffer;*/
-            /*    file.read(buffer, 1000);*/
-
-            /*}*/
             
             if (server->fileTransfers[events[i].data.fd].multp.flag == true)
             {
-                server->handlePostRequest(events[i].data.fd, server, holder); 
+                std::cout << "i was here once\n";
+                server->handlePostRequest(events[i].data.fd, server); 
             }
             if (request.find("DELETE") != std::string::npos)
             {
