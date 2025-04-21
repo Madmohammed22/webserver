@@ -120,7 +120,6 @@ void initializeFileTransfers(Server *server, int fd, Binary_String &request)
     state.fileSize = server->getFileSize(state.filePath);
     state.offset = 0;
     state.isComplete = false;
-    state.multp.flag = true;
     server->fileTransfers[fd] = state;
 }
 
@@ -167,6 +166,8 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
                     server->fileTransfers.erase(events[i].data.fd);
+                if (server->fileTransfers[events[i].data.fd].multp.flag == false)
+                    server->fileTransfers[events[i].data.fd].multp.flag = true;
                 continue;
             }
             else
@@ -177,11 +178,13 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 /*{*/
                 /*  std::cout << holder[j] << std::ends;*/
                 /*}*/
-                bool isPostRequest = holder.find("POST") != std::string::npos;
+                bool isPostRequest = holder.to_string().find("POST") != std::string::npos;
+                if (!isPostRequest)
+                  std::cout << "true" << std::endl;
                 bool isExistingTransfer = server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end();
                 if (isPostRequest || isExistingTransfer)
                 {
-                    std::cout << "post fucking request\n";
+                    std::cout << "i am in the post methode\n";
                     if (isPostRequest && !isExistingTransfer)
                     {
                         std::fstream* file = new std::fstream();
@@ -223,7 +226,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             request = send_buffers[events[i].data.fd].to_string();
             
-            if (server->fileTransfers[events[i].data.fd].multp.flag == true)
+            if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end() && server->fileTransfers[events[i].data.fd].multp.flag == true)
             {
                 std::cout << "i was here once\n";
                 server->handlePostRequest(events[i].data.fd, server); 
@@ -234,6 +237,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             else if (request.find("GET") != std::string::npos)
             {
+                std::cout << "i was here\n";
                 server->key_value_pair_header(events[i].data.fd, server, ft_parseRequest_T(events[i].data.fd, server, request).first);
                 server->serve_file_request(events[i].data.fd, server, request, client);
             }
