@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/18 03:11:18 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/20 16:01:40 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/21 16:23:14 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@
 #include <string.h>
 #include <set>
 #include <algorithm>
-
+#include "Binary_String.hpp"
 
 #define ERROR404 404
 #define ERROR405 405
@@ -50,35 +50,13 @@
 
 #define PORT 8080 
 #define MAX_EVENTS 1024
-#define CHUNK_SIZE 17000    
+#define CHUNK_SIZE 1024    
 #define TIMEOUT 4
 #define TIMEOUTMS 30000
 #define PATHC "root/content/"
 #define PATHE "root/error/" 
 #define PATHU "root/UPLOAD"
 #define STATIC "root/static/"
-
-class Client
-{
-    public : Client() {
-        this->tester = 0;
-        this->current_time = time(NULL);
-        this->state = "NULL";
-        this->isComplete = false;
-    };
-    public : Client(int tester, time_t current_time, std::string state, bool isComplete) {
-        this->tester = tester;
-        this->current_time = current_time;
-        this->state = state;
-        this->isComplete = isComplete;
-    };
-    public:
-        int tester;
-        time_t current_time;
-        std::string state;
-        bool isComplete;
-};
-
 
 struct Multipart
 {
@@ -114,7 +92,7 @@ struct FileTransferState {
 };
 
 class Binary_String;
-
+class Client;
 class Server
 {
 public:
@@ -165,7 +143,6 @@ public:
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
-    // std::pair<std::string, std::string> ft_parseRequest(int fd, Server* server, std::string header);
 
     // Transfer-Encoding: chunked
     int handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection);
@@ -173,13 +150,25 @@ public:
     void setnonblocking(int fd);
 };
 
+class Client : public Server
+{
+    public : Client() {
+        this->current_time = time(NULL);
+        this->isComplete = false;
+    };
+    public:
+        time_t current_time;
+        bool isComplete;
+};
+
+
 template <typename T> std::pair<T, T> ft_parseRequest_T(int fd, Server* server,T header){
 
     std::pair<T, T> pair_request;
     try
     {
         pair_request.first = header.substr(0, header.find("\r\n\r\n"));
-        pair_request.second = header.substr(header.find("\r\n\r\n"), header.size()); 
+        pair_request.second = header.substr(header.find("\r\n\r\n"), header.length()); 
     }
     catch(const std::exception& e)
     {
@@ -188,43 +177,6 @@ template <typename T> std::pair<T, T> ft_parseRequest_T(int fd, Server* server,T
     
     return pair_request;
 }
-
-class Binary_String
-{
-    private:
-        std::vector <uint8_t > buffer;
-        static const size_t npos = -1;
-    public:
-        Binary_String(const char* str, size_t n);
-        Binary_String();
-        Binary_String(const Binary_String& other);
-        Binary_String(size_t n);
-        ~Binary_String();
-        size_t find(const char* s, size_t pos = 0) const;
-        size_t find(const std::string& s, size_t pos = 0) const;
-        Binary_String substr(size_t pos, size_t n) const;
-        Binary_String& append(const char* str, size_t subpos, size_t sublen);
-        Binary_String& append(const std::string& str, size_t subpos, size_t sublen);
-        Binary_String& append(const Binary_String& str, size_t subpos, size_t sublen);
-        void clear();
-        std::string to_string() const;
-        const char* c_str() const;
-        size_t size() const;
-        uint8_t operator[](size_t i) const;
-        uint8_t& operator[](size_t i);
-        uint8_t* data();
-        bool empty() const;
-        std::vector <uint8_t >::iterator begin();
-        std::vector <uint8_t >::iterator end();
-        void push_back(uint8_t c);
-        Binary_String operator+(const Binary_String& other) const;
-        Binary_String operator+=(const Binary_String& other);
-        bool operator==(const Binary_String& other) const;
-        bool operator!=(const Binary_String& other) const;
-
-};
-
-std::ostream& operator<<(std::ostream& os, const Binary_String& buffer);
 
 #endif
 

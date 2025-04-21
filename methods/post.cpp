@@ -334,7 +334,7 @@ int Server::handlePostRequest(int fd, Server *server, Binary_String request)
     int exitCode;
     std::pair <Binary_String, Binary_String> pairRequest;
 
-    pairRequest = ft_parseRequest_binary(request);
+    pairRequest = ft_parseRequest_T(fd, server, request);
     exitCode = 0;
     if (server->fileTransfers[fd].multp.containHeader == true)
     {

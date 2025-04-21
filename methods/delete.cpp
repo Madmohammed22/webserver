@@ -55,18 +55,6 @@ int DELETE(std::string request){
     return EXIT_SUCCESS;
 }
 
-// Improved searchOnPath function
-bool searchOnPath(std::vector<std::string>& nodePath, const std::string& filePath) {
-    // Iterate through the nodePath vector
-    std::vector<std::string>::iterator begin = nodePath.begin();
-    while (begin != nodePath.end()) {
-        if (*begin == filePath) {
-            return true;
-        }
-    }
-    return false;
-}
-
 int Server::handle_delete_request(int fd, Server *server, std::string request) {
     std::cout << "-------( REQUEST PARSED )-------\n\n";
     std::cout << request << std::endl;

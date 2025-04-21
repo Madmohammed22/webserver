@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/20 16:01:40 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/21 16:40:13 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,8 +44,8 @@ bool Server::canBeOpen(std::string &filePath)
         return true;
     else
     {
-        // new_path = STATIC + filePath;
-        new_path = PATHC + filePath;
+        new_path = STATIC + filePath;
+        // new_path = PATHC + filePath;
     }
     std::ifstream file(new_path.c_str());
     if (!file.is_open())
@@ -60,11 +60,12 @@ bool sendChunk(int fd, const char *data, size_t size)
     chunkHeader << std::hex << size << "\r\n";
     std::string header = chunkHeader.str();
 
-    send(fd, header.c_str(), header.length(), MSG_NOSIGNAL);
-
-    send(fd, data, size, MSG_NOSIGNAL);
-
-    send(fd, "\r\n", 2, MSG_NOSIGNAL);
+    if (send(fd, header.c_str(), header.length(), MSG_NOSIGNAL) == -1)
+        return false;
+    if (send(fd, data, size, MSG_NOSIGNAL) == -1)
+        return false;
+    if (send(fd, "\r\n", 2, MSG_NOSIGNAL) == -1)
+        return false;
     return true;
 }
 
@@ -142,6 +143,18 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
     std::string contentType = server->getContentType(filePath);
     size_t fileSize = server->getFileSize(filePath);
     
+    FileTransferState &state = server->fileTransfers[fd];
+    if (state.isComplete == true)
+    {
+        time_t current_time = time(NULL);
+        if (current_time - state.last_activity_time > TIMEOUT)
+        {
+            std::cerr << "Client " << fd << " timed out." << "[continueFileTransfer]" << std::ends;
+            return close(fd), server->fileTransfers.erase(fd), 0;
+        }
+        return 0;
+    }
+
     const size_t LARGE_FILE_THRESHOLD = 1024 * 1024;
 
     if (fileSize > LARGE_FILE_THRESHOLD)
@@ -163,7 +176,9 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
         std::string httpResponse = server->httpResponse(contentType, fileSize);
         if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
             return std::cerr << "Failed to send HTTP header." << std::endl, -1;
-
+        FileTransferState state;
+        state.isComplete = false;
+        server->fileTransfers[fd] = state;
         char buffer[fileSize];
         size_t bytesRead = 0;
         if (!readFileChunk(filePath, buffer, 0, fileSize, bytesRead))
@@ -175,13 +190,11 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
         }
 
         if (Connection != "keep-alive")
-        {
             return close(fd), server->fileTransfers.erase(fd), 0;
-        }
         else
         {
-            // server->fileTransfers[fd].isComplete = true;
-            // server->fileTransfers[fd].last_activity_time = time(NULL);
+            state.last_activity_time = time(NULL);
+            state.isComplete = true;
         }
         return 0;
     }
