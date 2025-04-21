@@ -165,8 +165,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             if (bytes == 0)
             {
-                if (server->fileTransfers[events[i].data.fd].multp.file)
-                   server->fileTransfers[events[i].data.fd].multp.file->close();
                 if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
                     server->fileTransfers.erase(events[i].data.fd);
                 continue;
@@ -175,51 +173,33 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 holder[bytes] = '\0';
                 send_buffers[events[i].data.fd] = holder;
-                if (bytes >= holder.size())
+                if (holder.find("POST") != std::string::npos) 
                 {
-                    std::cerr << "Buffer overflow prevented\n";
-                    continue; // or handle error
-                }
-holder[bytes] = '\0';
-
-send_buffers[events[i].data.fd] = holder;
-
-if (holder.find("POST") != std::string::npos) 
-{
-    // 1. Create a dynamically allocated fstream to avoid scope issues
-    auto* file = new std::fstream();
-    file->open("TMP", std::ios::out | std::ios::binary | std::ios::trunc);
-    
-    if (!file->is_open()) {
-        std::cerr << "Failed to open file TMP\n";
-        delete file;
-        continue;
-    }
-
-    // 2. Store in your transfer structure
-    server->fileTransfers[events[i].data.fd].multp.file = file;
-    initializeFileTransfers(server, events[i].data.fd, holder);
-
-    // 3. Write entire buffer at once (more efficient)
-    file->write(holder.c_str(), bytes);
-    if (file->fail()) {
-        std::cerr << "File write failed\n";
-    }
-
-    // 4. Flush to ensure data is written
-    file->flush();
-    
-    server->fileTransfers[events[i].data.fd].multp.flag = true;
-}
-                /*else if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()*/
-                /*    && server->fileTransfers[events[i].data.fd].multp.flag == true)*/
-                /*{*/
-                /*    for (int i = 0; i < bytes; i++)*/
-                /*    {*/
-                        /*std::cout << holder[i] << std::endl;*/
-                /*        server->fileTransfers[events[i].data.fd].multp.file->put(holder[i]);*/
-                /*    }*/
-                /*}                */
+                    initializeFileTransfers(server, events[i].data.fd, holder);
+                    std::fstream* file = new std::fstream();
+                    file->open("TMP", std::ios::out | std::ios::binary | std::ios::trunc);
+                    server->fileTransfers[events[i].data.fd].file = file;
+                    if (!file->is_open())
+                        std::cerr << "Failed to open file TMP\n";
+                    file->write(holder.c_str(), bytes);
+                    if (file->fail())
+                    {
+                        std::cerr << "File write failed\n";
+                    }
+                    file->flush();
+                } 
+                else if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end()
+                    && server->fileTransfers[events[i].data.fd].multp.flag == true)
+                {
+                    server->fileTransfers[events[i].data.fd].file->write(holder.c_str(), bytes);
+                    if (server->fileTransfers[events[i].data.fd].file->fail()) 
+                    {
+                        std::cerr << "File write failed\n";    
+                    }
+                    server->fileTransfers[events[i].data.fd].file->flush();
+                }                
+            }
+        }
                 // std::string file_tmp;
                 // std::ofstream file(file_tmp.c_str(), std::ios::binary | std::ios::in | std::ios::beg);
 
@@ -246,8 +226,6 @@ if (holder.find("POST") != std::string::npos)
                 /*     std::cout << holder[i];*/
                 /*}*/
                 /*std::cout << "**********************************************\n";*/
-            }
-        }
         else if (events[i].events & EPOLLOUT)
         {
             if (server->fileTransfers.find(events[i].data.fd) != server->fileTransfers.end())
@@ -268,6 +246,11 @@ if (holder.find("POST") != std::string::npos)
             /*    file.read(buffer, 1000);*/
 
             /*}*/
+            
+            if (server->fileTransfers[events[i].data.fd].multp.flag == true)
+            {
+                server->handlePostRequest(events[i].data.fd, server, holder); 
+            }
             if (request.find("DELETE") != std::string::npos)
             {
                 server->handle_delete_request(events[i].data.fd, server, request);

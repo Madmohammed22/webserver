@@ -1,9 +1,24 @@
 #include "../server.hpp"
 
 // Read file in chunks with error handling
-bool readFileChunk_post(const std::string &path, char *buffer, size_t offset, size_t chunkSize, size_t &bytesRead)
+
+/*bool readFileChunk_post(const std::string &path, char *buffer, size_t offset, size_t chunkSize, size_t &bytesRead)*/
+/*{*/
+/*    std::ifstream file(path.c_str(), std::ios::binary);*/
+/*    if (!file.is_open())*/
+/*    {*/
+/*        std::cerr << "Failed to open file: " << path << std::endl;*/
+/*        return false;*/
+/*    }*/
+/**/
+/*    file.seekg(offset, std::ios::beg);*/
+/*    file.read(buffer, chunkSize);*/
+/*    bytesRead = file.gcount();*/
+/*    return true;*/
+/*}*/
+
+bool readFileChunk_post(char *buffer, size_t offset, size_t chunkSize)
 {
-    std::ifstream file(path.c_str(), std::ios::binary);
     if (!file.is_open())
     {
         std::cerr << "Failed to open file: " << path << std::endl;
@@ -301,15 +316,6 @@ int Server::parsePostRequest(Server *server, int fd, std::string header)
     size_t boundaryStart;
 
     // [soukaina] here i have to check if the content length is 0 so i can threw an error
-    // no centent check if == 0
-    /*std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";*/
-    /*std::cout << header;*/
-    /*std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";*/
-    // if (server->key_value_pair_header(header, "Content-Length:"). == "")
-    // std::map<std::string, std::string>::iterator it = server->fileTransfers[fd].mapOnHeader.find("Connection:");
-    // if (it != server->fileTransfers[fd].mapOnHeader.end()){
-
-    // }
     if (state.mapOnHeader.find("Content-Length:")->second == "")
         return getSpecificRespond(fd, server, "400.html", server->createBadResponse);
     contentType = state.mapOnHeader.find("Content-Type:")->second;  
@@ -332,11 +338,11 @@ int Server::handlePostRequest(int fd, Server *server, Binary_String request)
 {
     int exitCode;
     std::pair <Binary_String, Binary_String> pairRequest;
-
     pairRequest = ft_parseRequest_T(fd, server, request);
     exitCode = 0;
     if (server->fileTransfers[fd].multp.containHeader == true)
     {
+        readFileChunk_post("TMP", request)
         server->key_value_pair_header(fd, server, pairRequest.first.to_string());
         exitCode = parsePostRequest(server, fd, pairRequest.first.to_string());
         server->fileTransfers[fd].multp.containHeader = false;

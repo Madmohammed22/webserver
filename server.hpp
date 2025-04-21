@@ -81,20 +81,21 @@ class Client
 struct Multipart
 {
     bool flag;
-    std::fstream *file;
     bool containHeader;
-    bool isInHeader;
+    bool isInHeader; 
     std::string partialHeaderBuffer;
     std::string boundary;
     std::vector<std::ofstream*> outFiles;
     int currentFileIndex;
     std::string currentFileName;
     int currentFd;
-    
+
     Multipart() : flag(false), isInHeader(true), currentFileIndex(0){}
 };
+
 // Structure to hold file transfer state
 struct FileTransferState {
+    std::fstream *file;
     time_t last_activity_time;
     std::string filePath;   
     size_t offset;
@@ -109,7 +110,7 @@ struct FileTransferState {
     Multipart multp;
     std::string typeOfConnection;
     std::set<std::string> knownPaths;
-    FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
+    FileTransferState() : offset(0), fileSize(0), isComplete(false), file(NULL) {}
 };
 
 // // Structure to hold file transfer state
