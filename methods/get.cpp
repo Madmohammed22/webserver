@@ -6,7 +6,7 @@
 /*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/09 15:08:56 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/21 16:40:13 by mmad             ###   ########.fr       */
+/*   Updated: 2025/04/21 16:55:45 by mmad             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,6 @@ bool sendFinalChunk(int fd)
 }
 
 
-// Continue sending chunks for an in-progress file transfer
 int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
 {
     if (server->fileTransfers.find(fd) == server->fileTransfers.end())

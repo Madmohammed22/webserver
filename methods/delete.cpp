@@ -13,7 +13,6 @@ void deleteDirectoryContents(const std::string& dir)
     {
         struct dirent* entry;
         while ((entry = readdir(dp)) != NULL) {
-            // Skip the special entries "." and ".."
             if (std::string(entry->d_name) == "." || std::string(entry->d_name) == "..") {
                 continue;
             }
@@ -26,12 +25,10 @@ void deleteDirectoryContents(const std::string& dir)
             }
 
             if (S_ISDIR(entryStat.st_mode)) {
-                // If it's a directory, use recursive removal
                 if (rmdir(entryPath.c_str()) == -1) {
                     std::cerr << "Error: Unable to remove directory " << entryPath << std::endl;
                 }
             } else {
-                // If it's a file, remove it
                 if (unlink(entryPath.c_str()) == -1) {
                     std::cerr << "Error: Unable to remove file " << entryPath << std::endl;
                 }
