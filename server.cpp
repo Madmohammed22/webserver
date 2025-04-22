@@ -100,8 +100,7 @@ void initializeFileTransfers(Server *server, int fd, Binary_String &request)
     server->fileTransfers[fd] = state;
 }
 
-int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev,
-    sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, Binary_String> &send_buffers) throw(std::exception)
+int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, int epollfd, std::map<int, Binary_String> &send_buffers)
 {
     int conn_sock;
     Binary_String holder(CHUNK_SIZE);
@@ -118,7 +117,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
     {
         if (events[i].data.fd == listen_sock)
         {
-            conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
+            conn_sock = accept(listen_sock, NULL, NULL);
             if (conn_sock == -1)
                 return std::cerr << "accept" << std::endl, close(conn_sock), 0;
 
@@ -183,8 +182,6 @@ int main(int argc, char **argv)
     (void)argc, (void)argv;
     Server *server = new Server();
 
-    sockaddr_in clientAddress;
-    socklen_t clientLen = sizeof(clientAddress);
     int listen_sock, epollfd;
     struct epoll_event ev;
 
@@ -210,11 +207,7 @@ int main(int argc, char **argv)
     std::map<int, Binary_String> send_buffers;
     while (true)
     {
-        try
-        {
-            handleClientConnections(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers);
-        }
-        catch (std::exception &e)
+        if (handleClientConnections(server, listen_sock, ev, epollfd, send_buffers) == EXIT_FAILURE)
         {
             break;
         }
