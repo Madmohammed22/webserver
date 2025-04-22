@@ -112,7 +112,7 @@ public:
 
 public:
     // Methods
-    int serve_file_request(int fd, Server *server, std::string request, std::map <int, Client>& client);
+    int serve_file_request(int fd, Server *server, std::string request);
     int handle_delete_request(int fd, Server *server,std::string request);
     int handlePostRequest(int fd, Server *server, Binary_String request);
     

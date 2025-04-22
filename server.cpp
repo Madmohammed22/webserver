@@ -65,41 +65,6 @@ void Server::key_value_pair_header(int fd, Server *server, std::string header)
     server->fileTransfers[fd].mapOnHeader = mapv;
 }
 
-int add_time_out_for_client(int fd, std::map<int, Client> &client)
-{
-    Client state = client[fd];
-    if (state.isComplete == true)
-    {
-        time_t current_time = time(NULL);
-        return close(fd), 0;
-        if (current_time - state.current_time > TIMEOUT)
-        {
-            std::cerr << "Client " << fd << " timed out." << std::ends;
-            state.isComplete = false;
-            state.current_time = time(NULL);
-        }
-        else
-        {
-            std::cout << "ERROR" << std::endl;
-            return close(fd), 0;
-        }
-    }
-    return 0;
-}
-
-void initializeFileTransfers(Server *server, int fd, Binary_String &request)
-{
-    FileTransferState state;
-
-    state.multp.containHeader = true;
-    state.filePath = server->parseSpecificRequest(request.to_string(), server);
-    state.fileSize = server->getFileSize(state.filePath);
-    state.offset = 0;
-    state.isComplete = false;
-    state.multp.flag = true;
-    server->fileTransfers[fd] = state;
-}
-
 int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, int epollfd, std::map<int, Binary_String> &send_buffers)
 {
     int conn_sock;
@@ -112,7 +77,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
     if (nfds == 0)
         return 0;
-    std::map<int, Client> client;
     for (int i = 0; i < nfds; ++i)
     {
         if (events[i].data.fd == listen_sock)
@@ -127,7 +91,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
                 return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
         }
-
         else if (events[i].events & EPOLLIN)
         {
             int fd = events[i].data.fd;
@@ -150,13 +113,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
         else if (events[i].events & EPOLLOUT)
         {
             int fd = events[i].data.fd;
-            if (server->fileTransfers.find(fd) != server->fileTransfers.end())
-            {
-                server->key_value_pair_header(fd, server, ft_parseRequest_T(fd, server, send_buffers[fd].to_string()).first);
-                if (server->continueFileTransfer(fd, server, server->fileTransfers[fd].mapOnHeader.find("Connection:")->second) == -1)
-                    return std::cerr << "Failed to continue file transfer" << std::endl, close(fd), 0;
-                continue;
-            }
             request = send_buffers[fd].to_string();
             if (request.find("DELETE") != std::string::npos)
             {
@@ -164,7 +120,7 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             }
             else if (request.find("GET") != std::string::npos)
             {
-                server->serve_file_request(fd, server, request, client);
+                server->serve_file_request(fd, server, request);
             }
             else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
             {
@@ -219,6 +175,6 @@ int main(int argc, char **argv)
     close(listen_sock);
     if (close(epollfd) == -1)
         return std::cerr << "Failed to close epoll file descriptor" << std::endl, delete server, EXIT_FAILURE;
-    delete server;    
+    delete server;
     return EXIT_SUCCESS;
 }

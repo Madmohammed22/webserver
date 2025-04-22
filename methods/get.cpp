@@ -213,9 +213,15 @@ std::string Server::readFile(const std::string &path)
     return oss.str();
 }
 
-int Server::serve_file_request(int fd, Server *server, std::string request, std::map<int, Client> &client)
+int Server::serve_file_request(int fd, Server *server, std::string request)
 {
-    (void)client;
+    if (server->fileTransfers.find(fd) != server->fileTransfers.end())
+    {
+        server->key_value_pair_header(fd, server, ft_parseRequest_T(fd, server, request).first);
+        if (server->continueFileTransfer(fd, server, server->fileTransfers[fd].mapOnHeader.find("Connection:")->second) == -1)
+            return std::cerr << "Failed to continue file transfer" << std::endl, close(fd), 0;
+        return 0;
+    }
     server->key_value_pair_header(fd, server, ft_parseRequest_T(fd, server, request).first);
     std::string Connection = server->fileTransfers[fd].mapOnHeader.find("Connection:")->second;
     std::string filePath = server->parseSpecificRequest(request, server);
