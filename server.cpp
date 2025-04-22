@@ -52,10 +52,11 @@ void Server::key_value_pair_header(int fd, Server *server, std::string header)
         std::string result;
         if (static_cast<unsigned char>(header.at(i)) == 10)
         {
-            result = header.substr(j, i - j);
+            result = header.substr(j, (i - j - 1));
             if (!result.empty())
             {
-                mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), trim(result.substr(result.find(" "), result.length()))));
+                mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), 
+                trim(result.substr(result.find(" "), result.length()))));
             }
             j = i + 1;
         }
@@ -108,6 +109,9 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 holder[bytes] = '\0';
                 send_buffers[fd] = holder;
+                for (int i = 0; i < bytes; i++){
+                    std::cout << holder[i] << std::ends;
+                }
             }
         }
         else if (events[i].events & EPOLLOUT)
