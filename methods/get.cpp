@@ -193,10 +193,9 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
         else
         {
 
-            std::cout << "*" << server->fileTransfers[fd].mapOnHeader.find("Content-Length:")->second << "*" << std::endl;
-            close(fd), server->fileTransfers.erase(fd);
             state.last_activity_time = time(NULL);
             state.isComplete = true;
+            close(fd), server->fileTransfers.erase(fd);
         }
         return 0;
     }
@@ -226,9 +225,12 @@ int Server::serve_file_request(int fd, Server *server, std::string request)
         return 0;
     }
     server->key_value_pair_header(fd, server, ft_parseRequest_T(fd, server, request).first);
+    if (server->fileTransfers[fd].mapOnHeader.count("Content-Length:") > 0 && server->fileTransfers[fd].mapOnHeader.count("Transfer-Encoding:") > 0){
+        server->fileTransfers[fd].mapOnHeader.erase("Content-Length:");
+    }
+    
     std::string Connection = server->fileTransfers[fd].mapOnHeader.find("Connection:")->second;
-
-    std::string filePath = server->parseSpecificRequest(request, server);
+    std::string filePath = server->parseSpecificRequest(fd, request, server);
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
     {
         return server->handleFileRequest(fd, server, filePath, Connection);

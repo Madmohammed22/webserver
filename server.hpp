@@ -122,7 +122,7 @@ public:
     std::string readFile(const std::string &path);
     int getFileType(std::string path);
     bool canBeOpen(std::string &filePath);
-    std::string parseSpecificRequest(std::string request, Server *server);
+    std::string parseSpecificRequest(int fd, std::string request, Server *server);
     std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
     std::string key_value_pair_header(std::string request, std::string target_key);

@@ -109,9 +109,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 holder[bytes] = '\0';
                 send_buffers[fd] = holder;
-                for (int i = 0; i < bytes; i++){
-                    std::cout << holder[i] << std::ends;
-                }
             }
         }
         else if (events[i].events & EPOLLOUT)

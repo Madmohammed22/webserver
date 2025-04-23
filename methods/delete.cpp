@@ -61,7 +61,7 @@ int Server::handle_delete_request(int fd, Server *server, std::string request) {
     FileTransferState state;
     state.typeOfConnection = server->fileTransfers[fd].mapOnHeader.find("Connection:")->second;
     server->fileTransfers[fd] = state;
-    std::string filePath = server->parseSpecificRequest(request, server);
+    std::string filePath = server->parseSpecificRequest(fd, request, server);
     if (server->canBeOpen(filePath)) {
         if (filePath.at(0) != '/')
             filePath = "/" + filePath;
