@@ -57,6 +57,7 @@
 #define PATHE "root/error/" 
 #define PATHU "root/UPLOAD"
 #define STATIC "root/static/"
+#define TEST "root/test/"
 
 struct Multipart
 {
@@ -72,7 +73,6 @@ struct Multipart
     
     Multipart() : flag(false), isInHeader(true), currentFileIndex(0){}
 };
-// Structure to hold file transfer state
 struct FileTransferState {
     time_t last_activity_time;
     std::string filePath;   
@@ -128,7 +128,7 @@ public:
     std::string key_value_pair_header(std::string request, std::string target_key);
     void key_value_pair_header(int fd,  Server *server, std::string header);
     std::pair<Binary_String, Binary_String> ft_parseRequest_binary(Binary_String header);
-
+    void printfContentHeader(Server *server, int fd);
     // Response headers
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
     std::string createChunkedHttpResponse(std::string contentType);

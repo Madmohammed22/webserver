@@ -123,7 +123,8 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             {
                 server->serve_file_request(fd, server, request);
             }
-            else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
+            else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos 
+            || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
             {
                 server->processMethodNotAllowed(fd, server, request);
             }

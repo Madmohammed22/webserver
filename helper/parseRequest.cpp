@@ -1,9 +1,16 @@
 #include "../server.hpp"
 
+void Server::printfContentHeader(Server *server, int fd){
+    std::map<std::string, std::string>::iterator it = server->fileTransfers[fd].mapOnHeader.begin();
+    while(it != server->fileTransfers[fd].mapOnHeader.end()){
+        std::cout << it->first << " " << it->second << std::endl;
+        it++;
+    }
+}
 std::string Server::parseSpecificRequest(int fd, std::string request, Server *server)
 {
     std::cout << "-------( REQUEST PARSED )-------\n\n";
-    std::cout << ft_parseRequest_T(fd, server, request).first << std::endl;
+    server->printfContentHeader(server, fd);
     std::cout << "\n-------( END OF REQUEST )-------\n\n\n";
 
     std::string filePath = "/index.html";

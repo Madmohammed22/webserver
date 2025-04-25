@@ -159,15 +159,6 @@ std::string Server::deleteHttpResponse(Server* server)
 
 int Server::getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
 {
-    FileTransferState& state  = server->fileTransfers[fd];
-    if (state.isComplete == true){
-        time_t current_time = time(NULL);
-        if (current_time - state.last_activity_time > TIMEOUT){
-            std::cerr << "Client " << fd << " timed out." << "[getSpecificRespond]" << std::ends;
-            return close(fd), server->fileTransfers.erase(fd),0;
-        }
-        return 0;
-    }
     std::string path1 = PATHE;
     std::string path2 = file;
     std::string new_path = path1 + path2;
@@ -189,15 +180,12 @@ int Server::getSpecificRespond(int fd, Server *server, std::string file, std::st
         {
             throw std::runtime_error("Failed to send final CRLF");
         }
-        if (state.typeOfConnection != "keep-alive"){
+        if (server->fileTransfers[fd].mapOnHeader.find("Connection:")->second != "keep-alive"){
             return server->fileTransfers.erase(fd), close(fd), 0;
         }
-        state.isComplete = true;
-        state.last_activity_time = time(NULL);
     }
     catch (const std::exception &e)
     {
-        exit(0);
         std::cerr << e.what() << std::endl;
         return server->fileTransfers.erase(fd), 0;
     }

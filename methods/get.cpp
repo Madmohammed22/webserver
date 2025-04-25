@@ -45,6 +45,7 @@ bool Server::canBeOpen(std::string &filePath)
     else
     {
         new_path = STATIC + filePath;
+        // new_path = TEST + filePath;
         // new_path = PATHC + filePath;
     }
     std::ifstream file(new_path.c_str());
@@ -82,17 +83,6 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
         return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, close(fd), 0;
 
     FileTransferState &state = server->fileTransfers[fd];
-    if (state.isComplete == true)
-    {
-        time_t current_time = time(NULL);
-        if (current_time - state.last_activity_time > TIMEOUT)
-        {
-            std::cerr << "Client " << fd << " timed out." << "[continueFileTransfer]" << std::ends;
-            return close(fd), server->fileTransfers.erase(fd), 0;
-        }
-        return 0;
-    }
-
     char buffer[CHUNK_SIZE];
     size_t remainingBytes = state.fileSize - state.offset;
     size_t bytesToRead;
@@ -105,14 +95,14 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
     {
         if (Connection != "keep-alive")
             return server->fileTransfers.erase(fd), close(fd), 0;
-        return state.isComplete = true, state.last_activity_time = time(NULL), 0;
+        return 0;
     }
 
     if (!sendChunk(fd, buffer, bytesRead))
     {
         if (Connection != "keep-alive")
             return server->fileTransfers.erase(fd), close(fd), 0;
-        return state.isComplete = true, state.last_activity_time = time(NULL), 0;
+        return 0;
     }
 
     state.offset += bytesRead;
@@ -123,15 +113,11 @@ int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
         {
             if (Connection != "keep-alive")
                 return server->fileTransfers.erase(fd), close(fd), 0;
-            state.isComplete = true;
-            state.last_activity_time = time(NULL);
             return 0;
         }
 
         if (Connection != "keep-alive")
             return close(fd), server->fileTransfers.erase(fd), 0;
-        state.isComplete = true;
-        state.last_activity_time = time(NULL);
     }
     return 0;
 }
@@ -141,18 +127,6 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
     
     std::string contentType = server->getContentType(filePath);
     size_t fileSize = server->getFileSize(filePath);
-    
-    FileTransferState &state = server->fileTransfers[fd];
-    if (state.isComplete == true)
-    {
-        time_t current_time = time(NULL);
-        if (current_time - state.last_activity_time > TIMEOUT)
-        {
-            std::cerr << "Client " << fd << " timed out." << "[continueFileTransfer]" << std::ends;
-            return close(fd), server->fileTransfers.erase(fd), 0;
-        }
-        return 0;
-    }
 
     const size_t LARGE_FILE_THRESHOLD = 1024 * 1024;
 
@@ -192,9 +166,6 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
             return close(fd), server->fileTransfers.erase(fd), 0;
         else
         {
-
-            state.last_activity_time = time(NULL);
-            state.isComplete = true;
             close(fd), server->fileTransfers.erase(fd);
         }
         return 0;
@@ -203,9 +174,6 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
 
 std::string Server::readFile(const std::string &path)
 {
-    if (path.empty())
-        return "";
-
     std::ifstream infile(path.c_str(), std::ios::binary);
     if (!infile)
         return std::cerr << "Failed to open file: " << path << std::endl, "";
@@ -228,7 +196,6 @@ int Server::serve_file_request(int fd, Server *server, std::string request)
     if (server->fileTransfers[fd].mapOnHeader.count("Content-Length:") > 0 && server->fileTransfers[fd].mapOnHeader.count("Transfer-Encoding:") > 0){
         server->fileTransfers[fd].mapOnHeader.erase("Content-Length:");
     }
-    
     std::string Connection = server->fileTransfers[fd].mapOnHeader.find("Connection:")->second;
     std::string filePath = server->parseSpecificRequest(fd, request, server);
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
@@ -237,9 +204,6 @@ int Server::serve_file_request(int fd, Server *server, std::string request)
     }
     else
     {
-        FileTransferState state;
-        state.typeOfConnection = Connection;
-        server->fileTransfers[fd] = state;
         return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
     }
     return 0;
