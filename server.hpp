@@ -73,6 +73,7 @@ struct Multipart
     
     Multipart() : flag(false), isInHeader(true), currentFileIndex(0){}
 };
+
 struct FileTransferState {
     time_t last_activity_time;
     std::string filePath;   
@@ -83,12 +84,25 @@ struct FileTransferState {
     bool isCompleteShortFile;
     int socket;
     int saveFd;
+    Binary_String header;
+    int headerFlag;
+    std::ofstream* file;
+    int bytesReceived;
+    Binary_String buffer;
     int flag;
     std::map<std::string, std::string> mapOnHeader;
     Multipart multp;
     std::string typeOfConnection;
     std::set<std::string> knownPaths;
-    FileTransferState() : offset(0), fileSize(0), isComplete(false) {}
+    FileTransferState() : offset(0), fileSize(0), isComplete(false), headerFlag(false), file(NULL){}
+    ~FileTransferState()
+    {
+        if (file)
+        {
+            file->close();
+            delete file;
+        }
+    }
 };
 
 class Binary_String;
@@ -98,7 +112,7 @@ class Server
 public:
     Server();
     Server(const Server& Init);
-    Server& operator=(const Server& Init);
+    Server&operator=(const Server& Init);
     ~Server();
 
 public:

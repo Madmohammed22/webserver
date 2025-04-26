@@ -66,8 +66,30 @@ void Server::key_value_pair_header(int fd, Server *server, std::string header)
     server->fileTransfers[fd].mapOnHeader = mapv;
 }
 
-int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, int epollfd, std::map<int, Binary_String> &send_buffers)
+void headerCheck(FileTransferState &state)
 {
+    size_t header_end = state.buffer.find("\r\n\r\n");
+    if (header_end != std::string::npos)
+    {
+        // extract header
+        state.header = state.buffer.substr(0, header_end + 4);
+        state.headerFlag = true;
+        
+        size_t body_start = header_end + 4;
+        if (body_start < state.buffer.length())
+        {
+            Binary_String body_part = state.buffer.substr(body_start, state.buffer.length());
+            state.file->write(body_part.c_str(), body_part.length());
+            state.bytesReceived += body_part.length();
+        }
+        std::cout << state.header.to_string() << std::endl;
+        // here you have all the header you need to parse it
+        // you're code goes here
+        state.buffer.clear();
+    }
+}
+
+int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, int epollfd, std::map<int, Binary_String> &send_buffers) {
     int conn_sock;
     Binary_String holder(CHUNK_SIZE);
     std::string request;
@@ -78,10 +100,9 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
     if (nfds == 0)
         return 0;
-    for (int i = 0; i < nfds; ++i)
-    {
-        if (events[i].data.fd == listen_sock)
-        {
+        
+    for (int i = 0; i < nfds; ++i) {
+        if (events[i].data.fd == listen_sock) {
             conn_sock = accept(listen_sock, NULL, NULL);
             if (conn_sock == -1)
                 return std::cerr << "accept" << std::endl, close(conn_sock), 0;
@@ -91,25 +112,41 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
             ev.data.fd = conn_sock;
             if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
                 return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
+            // here i initialize the fileTransfers for a new connection
+            server->fileTransfers[conn_sock] = FileTransferState();
+            
+            server->fileTransfers[conn_sock].file = new std::ofstream();
+            server->fileTransfers[conn_sock].file->open("TMP", std::ios::binary);
         }
         else if (events[i].events & EPOLLIN)
         {
             int fd = events[i].data.fd;
-            int bytes = recv(fd, &holder[0], holder.length(), 0);
-
-            if (bytes < 0)
-                return server->fileTransfers.erase(fd), close(fd), 0;
-            if (bytes == 0)
+            FileTransferState &state = server->fileTransfers[fd];
+            size_t bytes = recv(fd, &holder[0], holder.length(), 0);
+            holder[bytes] = '\0';
+            send_buffers[fd] = holder;
+            if (bytes <= 0)
             {
-                if (server->fileTransfers.find(fd) != server->fileTransfers.end())
-                    server->fileTransfers.erase(fd), close(fd);
+                close(fd);
+                server->fileTransfers.erase(fd);
+                send_buffers.erase(fd);
                 continue;
-            }
-            else
+            } 
+            if (!state.headerFlag && !state.isComplete)
             {
-                holder[bytes] = '\0';
-                send_buffers[fd] = holder;
+                state.buffer.append(holder, 0, bytes);
+                headerCheck(state);
             }
+            else if(!state.isComplete) 
+            {
+                // after you set the contentlength to it's value or if not found 0 
+                /*if (request.getContentLength() == bytesReceived)*/
+                    /*state.isComplete = true;*/
+                state.file->write(holder.c_str(), bytes);
+                state.bytesReceived += bytes;
+                    
+            }
+            
         }
         else if (events[i].events & EPOLLOUT)
         {
