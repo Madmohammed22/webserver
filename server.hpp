@@ -83,7 +83,8 @@ struct FileTransferState {
     bool isComplete;
     bool isCompleteShortFile;
     int socket;
-    int saveFd;
+    bool isValidHeader;
+    int fd;
     Binary_String header;
     int headerFlag;
     std::ofstream* file;

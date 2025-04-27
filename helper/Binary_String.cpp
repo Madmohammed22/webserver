@@ -200,7 +200,7 @@ Binary_String& Binary_String::append(const Binary_String& str, size_t subpos, si
 //     //         // std::cerr << "Client " << it->first << " timed out." << std::endl;
 //     //         // close(it->first);
 //     //         // std::map<int, FileTransferState>::iterator tmp = it;
-//     //         // returnTimeoutRequest(tmp->second.saveFd, server);
+//     //         // returnTimeoutRequest(tmp->second.fd, server);
 //     //         // ++it;
 //     //         // close(it->first);
 //     //         // server->fileTransfers.erase(tmp);

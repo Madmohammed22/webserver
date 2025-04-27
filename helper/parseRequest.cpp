@@ -9,9 +9,11 @@ void Server::printfContentHeader(Server *server, int fd){
 }
 std::string Server::parseSpecificRequest(int fd, std::string request, Server *server)
 {
-    std::cout << "-------( REQUEST PARSED )-------\n\n";
-    server->printfContentHeader(server, fd);
-    std::cout << "\n-------( END OF REQUEST )-------\n\n\n";
+    (void)fd;
+    (void)server;
+    // std::cout << "-------( REQUEST PARSED )-------\n\n";
+    // std::cout << request << std::endl;
+    // std::cout << "\n-------( END OF REQUEST )-------\n\n\n";
 
     std::string filePath = "/index.html";
 

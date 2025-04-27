@@ -54,9 +54,9 @@ int DELETE(std::string request){
 
 int Server::handle_delete_request(int fd, Server *server, std::string request) {
     server->key_value_pair_header(fd, server, ft_parseRequest_T(fd, server, request).first);
-    std::cout << "-------( REQUEST PARSED )-------\n\n";
-    server->printfContentHeader(server, fd);
-    std::cout << "-------( END OF REQUEST )-------\n\n\n";
+    // std::cout << "-------( REQUEST PARSED )-------\n\n";
+    // server->printfContentHeader(server, fd);
+    // std::cout << "-------( END OF REQUEST )-------\n\n\n";
 
     std::pair<std::string, std::string> pair_request = ft_parseRequest_T(fd, server,request);
     FileTransferState state;

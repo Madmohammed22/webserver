@@ -85,6 +85,7 @@ void headerCheck(FileTransferState &state)
         std::cout << state.header.to_string() << std::endl;
         // here you have all the header you need to parse it
         // you're code goes here
+        
         state.buffer.clear();
     }
 }
@@ -114,7 +115,6 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                 return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
             // here i initialize the fileTransfers for a new connection
             server->fileTransfers[conn_sock] = FileTransferState();
-            
             server->fileTransfers[conn_sock].file = new std::ofstream();
             server->fileTransfers[conn_sock].file->open("TMP", std::ios::binary);
         }
@@ -144,21 +144,23 @@ int handleClientConnections(Server *server, int listen_sock, struct epoll_event 
                     /*state.isComplete = true;*/
                 state.file->write(holder.c_str(), bytes);
                 state.bytesReceived += bytes;
-                    
             }
             
         }
         else if (events[i].events & EPOLLOUT)
         {
             int fd = events[i].data.fd;
-            request = send_buffers[fd].to_string();
-            if (request.find("DELETE") != std::string::npos)
-            {
-                server->handle_delete_request(fd, server, request);
-            }
-            else if (request.find("GET") != std::string::npos)
+            FileTransferState &state = server->fileTransfers[fd];
+            request = state.header.to_string();
+            // request = send_buffers[fd].to_string();
+            if (request.find("GET") != std::string::npos && state.isComplete) 
             {
                 server->serve_file_request(fd, server, request);
+
+            }
+            else if (request.find("DELETE") != std::string::npos)
+            {
+                server->handle_delete_request(fd, server, request);
             }
             else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos 
             || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)

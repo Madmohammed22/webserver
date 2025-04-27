@@ -44,8 +44,8 @@ bool Server::canBeOpen(std::string &filePath)
         return true;
     else
     {
-        new_path = STATIC + filePath;
-        // new_path = TEST + filePath;
+        // new_path = STATIC + filePath;
+        new_path = TEST + filePath;
         // new_path = PATHC + filePath;
     }
     std::ifstream file(new_path.c_str());
@@ -141,7 +141,7 @@ int Server::handleFileRequest(int fd, Server *server, const std::string &filePat
         state.offset = 0;
         state.isComplete = false;
         server->fileTransfers[fd] = state;
-        state.saveFd = fd;
+        state.fd = fd;
         return server->continueFileTransfer(fd, server, Connection);
     }
     else
@@ -187,17 +187,14 @@ int Server::serve_file_request(int fd, Server *server, std::string request)
 {
     if (server->fileTransfers.find(fd) != server->fileTransfers.end())
     {
-        server->key_value_pair_header(fd, server, ft_parseRequest_T(fd, server, request).first);
-        if (server->continueFileTransfer(fd, server, server->fileTransfers[fd].mapOnHeader.find("Connection:")->second) == -1)
+        if (server->continueFileTransfer(fd, server, "Keep-alive") == -1)
             return std::cerr << "Failed to continue file transfer" << std::endl, close(fd), 0;
+        
         return 0;
     }
-    server->key_value_pair_header(fd, server, ft_parseRequest_T(fd, server, request).first);
-    if (server->fileTransfers[fd].mapOnHeader.count("Content-Length:") > 0 && server->fileTransfers[fd].mapOnHeader.count("Transfer-Encoding:") > 0){
-        server->fileTransfers[fd].mapOnHeader.erase("Content-Length:");
-    }
-    std::string Connection = server->fileTransfers[fd].mapOnHeader.find("Connection:")->second;
+    std::string Connection = "keep-alive";
     std::string filePath = server->parseSpecificRequest(fd, request, server);
+    std::cout << "-->" <<  filePath << std::endl;
     if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
     {
         return server->handleFileRequest(fd, server, filePath, Connection);
