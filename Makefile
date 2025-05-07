@@ -4,9 +4,10 @@ SRC_DIR2 = methods
 
 SRC = main.cpp multiplexer.cpp parser.cpp server.cpp $(SRC_DIR2)/get.cpp $(SRC_DIR2)/post.cpp $(SRC_DIR2)/delete.cpp \
 	$(SRC_DIR1)/getContentType.cpp $(SRC_DIR1)/parseRequest.cpp $(SRC_DIR1)/Binary_String.cpp \
-	$(SRC_DIR1)/establishingServer.cpp \
-	$(SRC_DIR1)/processMethodNotAllowed.cpp \
-	request.cpp
+	$(SRC_DIR1)/establishingServer.cpp\
+	$(SRC_DIR1)/utils.cpp\
+	$(SRC_DIR1)/processMethodNotAllowed.cpp\
+	request.cpp ConfigData.cpp ConfigParsing.cpp\
 
 OBJ = $(SRC:.cpp=.o)
 

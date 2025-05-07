@@ -1,8 +1,19 @@
 #include "./server.hpp"
+#include "./ConfigParsing.hpp"
 
-
-int main()
+int main(int argc, char **argv)
 {
+    if (argc != 2)
+    {
+		std::cerr << "Error\n  Usage : ./webserv <config file>" << std::endl;
+		return EXIT_FAILURE;
+    }
+    ConfigParsing configParser;
+    try{
+        configParser.start(argv[1]);
+    } catch (const std::exception& e) {
+        std::cerr << e.what();
+    }
     Server *server = new Server();
     if (server->startServer() == EXIT_FAILURE)
         return EXIT_FAILURE;
@@ -11,7 +22,6 @@ int main()
     {
         if (server->handleClientConnections() == EXIT_FAILURE)
             break;
-        
     }
 
     delete server;
