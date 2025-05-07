@@ -1,196 +1,107 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   server.cpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: mmad <mmad@student.42.fr>                  +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/03/18 03:11:14 by mmad              #+#    #+#             */
-/*   Updated: 2025/04/21 16:14:23 by mmad             ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "server.hpp"
 
 Server::Server()
 {
     this->pageNotFound = 0;
     this->LARGE_FILE_THRESHOLD = 1024 * 1024;
+    this->listen_sock = 0;
+    this->epollfd = 0;
+    this->ev.events = 0;
 }
 
 Server::Server(const Server &Init)
 {
     this->pageNotFound = Init.pageNotFound;
     this->LARGE_FILE_THRESHOLD = Init.LARGE_FILE_THRESHOLD;
+    this->listen_sock = Init.listen_sock;
+    this->epollfd = Init.epollfd;
+    this->request = Init.request;
+    this->ev = Init.ev;
 }
 
 Server &Server::operator=(const Server &Init)
 {
     if (this == &Init)
+    {
         return *this;
+    }
+    this->pageNotFound = Init.pageNotFound;
+    this->LARGE_FILE_THRESHOLD = Init.LARGE_FILE_THRESHOLD;
+    this->listen_sock = Init.listen_sock;
+    this->epollfd = Init.epollfd;
+    this->request = Init.request;
+    this->ev = Init.ev;
     return *this;
 }
 
 Server::~Server()
 {
+    request.clear();
+    if (close(listen_sock) == -1)
+        std::cerr << "Failed to close listen socket" << std::endl;
+    if (close(epollfd) == -1)
+        std::cerr << "Failed to close epoll file descriptor" << std::endl;
+    if (close(epollfd) == -1)
+        std::cerr << "Failed to close epoll file descriptor" << std::endl;
+    if (close(listen_sock) == -1)
+        std::cerr << "Failed to close listen socket" << std::endl;
+
     std::cout << "[Server] Destructor is called" << std::endl;
 }
 
-std::string trim(std::string str)
+void Server::setnonblocking(int fd)
 {
-    str.erase(str.find_last_not_of(' ') + 1);
-    str.erase(0, str.find_first_not_of(' '));
-    return str;
-}
-
-void Server::key_value_pair_header(int fd, Server *server, std::string header)
-{
-    std::map<std::string, std::string> mapv = server->fileTransfers[fd].mapOnHeader;
-    size_t j = 0;
-    for (size_t i = 0; i < header.length(); i++)
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+        (perror("fcntl"), exit(EXIT_FAILURE));
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
     {
-        std::string result;
-        if (static_cast<unsigned char>(header.at(i)) == 10)
-        {
-            result = header.substr(j, (i - j - 1));
-            if (!result.empty())
-            {
-                mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), 
-                trim(result.substr(result.find(" "), result.length()))));
-            }
-            j = i + 1;
-        }
+        perror("fcntl");
+        exit(EXIT_FAILURE);
     }
-    std::string result = header.substr(j, header.length());
-    mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), trim(result.substr(result.find(" "), result.length()))));
-    server->fileTransfers[fd].mapOnHeader = mapv;
 }
 
-void headerCheck(FileTransferState &state)
+int Server::establishingServer()
 {
-    size_t header_end = state.buffer.find("\r\n\r\n");
-    if (header_end != std::string::npos)
-    {
-        // extract header
-        state.header = state.buffer.substr(0, header_end + 4);
-        state.headerFlag = true;
-        
-        size_t body_start = header_end + 4;
-        if (body_start < state.buffer.length())
-        {
-            Binary_String body_part = state.buffer.substr(body_start, state.buffer.length());
-            state.file->write(body_part.c_str(), body_part.length());
-            state.bytesReceived += body_part.length();
-        }
-        std::cout << state.header.to_string() << std::endl;
-        // here you have all the header you need to parse it
-        // you're code goes here
-        
-        state.buffer.clear();
-    }
+    int serverSocket = 0;
+    serverSocket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, getprotobyname("tcp")->p_proto);
+    if (serverSocket < 0)
+        return std::cerr << "Error opening stream socket." << std::endl, EXIT_FAILURE;
+
+    sockaddr_in serverAddress;
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(PORT);
+    serverAddress.sin_addr.s_addr = INADDR_ANY;
+    int len = sizeof(serverAddress);
+    int a = 1;
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, &a, sizeof(int)) < 0)
+        return perror("setsockopt failed"), EXIT_FAILURE;
+    if (bind(serverSocket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1)
+        return perror("binding stream socket"), EXIT_FAILURE;
+
+    if (getsockname(serverSocket, (struct sockaddr *)&serverAddress, (socklen_t *)&len) == -1)
+        return perror("getting socket name"), EXIT_FAILURE;
+    std::cout << "Socket port " << ntohs(serverAddress.sin_port) << std::endl;
+
+    if (listen(serverSocket, 5) < 0)
+        return perror("listen stream socket"), EXIT_FAILURE;
+    return serverSocket;
 }
 
-int handleClientConnections(Server *server, int listen_sock, struct epoll_event &ev, int epollfd, std::map<int, Binary_String> &send_buffers) {
-    int conn_sock;
-    Binary_String holder(CHUNK_SIZE);
-    std::string request;
-    struct epoll_event events[MAX_EVENTS];
-    int nfds;
-
-    if ((nfds = epoll_wait(epollfd, events, MAX_EVENTS, TIMEOUTMS)) == -1)
-        return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
-    if (nfds == 0)
-        return 0;
-        
-    for (int i = 0; i < nfds; ++i) {
-        if (events[i].data.fd == listen_sock) {
-            conn_sock = accept(listen_sock, NULL, NULL);
-            if (conn_sock == -1)
-                return std::cerr << "accept" << std::endl, close(conn_sock), 0;
-
-            server->setnonblocking(conn_sock);
-            ev.events = EPOLLIN | EPOLLOUT;
-            ev.data.fd = conn_sock;
-            if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
-                return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
-            // here i initialize the fileTransfers for a new connection
-            server->fileTransfers[conn_sock] = FileTransferState();
-            server->fileTransfers[conn_sock].file = new std::ofstream();
-            server->fileTransfers[conn_sock].file->open("TMP", std::ios::binary);
-        }
-        else if (events[i].events & EPOLLIN)
-        {
-            int fd = events[i].data.fd;
-            FileTransferState &state = server->fileTransfers[fd];
-            size_t bytes = recv(fd, &holder[0], holder.length(), 0);
-            holder[bytes] = '\0';
-            send_buffers[fd] = holder;
-            if (bytes <= 0)
-            {
-                close(fd);
-                server->fileTransfers.erase(fd);
-                send_buffers.erase(fd);
-                continue;
-            } 
-            if (!state.headerFlag && !state.isComplete)
-            {
-                state.buffer.append(holder, 0, bytes);
-                headerCheck(state);
-            }
-            else if(!state.isComplete) 
-            {
-                // after you set the contentlength to it's value or if not found 0 
-                /*if (request.getContentLength() == bytesReceived)*/
-                    /*state.isComplete = true;*/
-                state.file->write(holder.c_str(), bytes);
-                state.bytesReceived += bytes;
-            }
-            
-        }
-        else if (events[i].events & EPOLLOUT)
-        {
-            int fd = events[i].data.fd;
-            FileTransferState &state = server->fileTransfers[fd];
-            request = state.header.to_string();
-            // request = send_buffers[fd].to_string();
-            if (request.find("GET") != std::string::npos && state.isComplete) 
-            {
-                server->serve_file_request(fd, server, request);
-
-            }
-            else if (request.find("DELETE") != std::string::npos)
-            {
-                server->handle_delete_request(fd, server, request);
-            }
-            else if (request.find("PUT") != std::string::npos || request.find("PATCH") != std::string::npos 
-            || request.find("HEAD") != std::string::npos || request.find("OPTIONS") != std::string::npos)
-            {
-                server->processMethodNotAllowed(fd, server, request);
-            }
-            if (server->fileTransfers.find(fd) == server->fileTransfers.end())
-                send_buffers.erase(fd);
-        }
-    }
-    return EXIT_SUCCESS;
-}
-
-int main(int argc, char **argv)
+int Server::startServer()
 {
-    (void)argc, (void)argv;
-    Server *server = new Server();
-
     int listen_sock, epollfd;
     struct epoll_event ev;
 
-    if ((listen_sock = server->establishingServer()) == EXIT_FAILURE)
-        return delete server, EXIT_FAILURE;
+    if ((listen_sock = establishingServer()) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
     std::cout << "Server is listening\n"
               << std::endl;
     if ((epollfd = epoll_create1(0)) == -1)
     {
         return std::cout << "Failed to create epoll file descriptor" << std::endl,
-               close(listen_sock), delete server, EXIT_FAILURE;
+               close(listen_sock), EXIT_FAILURE;
     }
 
     ev.events = EPOLLIN | EPOLLOUT;
@@ -198,24 +109,9 @@ int main(int argc, char **argv)
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
     {
         return std::cerr << "Failed to add file descriptor to epoll" << std::endl,
-               close(listen_sock), close(epollfd), delete server, EXIT_FAILURE;
+               close(listen_sock), close(epollfd), EXIT_FAILURE;
     }
-
-    std::map<int, Binary_String> send_buffers;
-    while (true)
-    {
-        if (handleClientConnections(server, listen_sock, ev, epollfd, send_buffers) == EXIT_FAILURE)
-        {
-            break;
-        }
-    }
-
-    for (std::map<int, FileTransferState>::iterator it = server->fileTransfers.begin(); it != server->fileTransfers.end(); ++it)
-        close(it->first);
-    server->fileTransfers.clear();
-    close(listen_sock);
-    if (close(epollfd) == -1)
-        return std::cerr << "Failed to close epoll file descriptor" << std::endl, delete server, EXIT_FAILURE;
-    delete server;
+    this->listen_sock = listen_sock;
+    this->epollfd = epollfd;
     return EXIT_SUCCESS;
 }

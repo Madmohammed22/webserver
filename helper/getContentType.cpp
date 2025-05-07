@@ -32,7 +32,8 @@ std::string Server::getContentType(const std::string &path)
     return "application/octet-stream";
 }
 
-std::string Server::getCurrentTimeInGMT() {
+std::string Server::getCurrentTimeInGMT()
+{
     time_t t = time(0);
     tm *time_struct = gmtime(&t); // Use gmtime to get UTC time
 
@@ -42,13 +43,14 @@ std::string Server::getCurrentTimeInGMT() {
     return date;
 }
 
-int Server::getFileType(std::string path){
+int Server::getFileType(std::string path)
+{
     struct stat s;
-    if( stat(path.c_str(), &s) == 0 )
+    if (stat(path.c_str(), &s) == 0)
     {
-        if( s.st_mode & S_IFDIR ) // dir
+        if (s.st_mode & S_IFDIR) // dir
             return 1;
-        if( s.st_mode & S_IFREG ) // file
+        if (s.st_mode & S_IFREG) // file
             return 2;
     }
     return -1;
@@ -56,11 +58,15 @@ int Server::getFileType(std::string path){
 
 std::string Server::createChunkedHttpResponse(std::string contentType)
 {
-    return "HTTP/1.1 200 OK\r\nContent-Type: " + contentType + "; charset=utf-8" + "\r\nTransfer-Encoding: chunked\r\n\r\n";
+    std::ostringstream oss;
+    oss << "HTTP/1.1 200 OK\r\n"
+        << "Content-Type: " + contentType + "; charset=utf-8" + "\r\n"
+        << "Transfer-Encoding: chunked\r\n\r\n";
+    return oss.str();
 }
 
 std::string Server::httpResponse(std::string contentType, size_t contentLength)
-{   
+{
     std::ostringstream oss;
     oss << "HTTP/1.1 200 OK\r\n"
         << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
@@ -68,7 +74,6 @@ std::string Server::httpResponse(std::string contentType, size_t contentLength)
         << "Content-Length: " << contentLength << "\r\n\r\n";
     return oss.str();
 }
-
 
 std::string Server::createNotFoundResponse(std::string contentType, size_t contentLength)
 {
@@ -81,7 +86,6 @@ std::string Server::createNotFoundResponse(std::string contentType, size_t conte
     return oss.str();
 }
 
-
 std::string Server::createUnsupportedMediaResponse(std::string contentType, size_t contentLength)
 {
     std::ostringstream oss;
@@ -93,7 +97,8 @@ std::string Server::createUnsupportedMediaResponse(std::string contentType, size
     return oss.str();
 }
 
-std::string getCurrentTimeInGMT1() {
+std::string getCurrentTimeInGMT1()
+{
     time_t t = time(0);
     tm *time_struct = gmtime(&t); // Use gmtime to get UTC time
 
@@ -102,7 +107,6 @@ std::string getCurrentTimeInGMT1() {
     std::string date = buffer;
     return date;
 }
-
 
 std::string Server::createBadResponse(std::string contentType, size_t contentLength)
 {
@@ -122,8 +126,8 @@ std::string Server::methodNotAllowedResponse(std::string contentType, size_t con
     oss << "HTTP/1.1 405 Method Not Allowed\r\n"
         << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
         << "Allow: GET, POST, DELETE\r\n\r\n";
-        // << "Content-Length: " << contentLength << "\r\n\r\n";
-        
+    // << "Content-Length: " << contentLength << "\r\n\r\n";
+
     return oss.str();
 }
 
@@ -138,7 +142,6 @@ std::string Server::createTimeoutResponse(std::string contentType, size_t conten
     return oss.str();
 }
 
-
 std::string Server::goneHttpResponse(std::string contentType, size_t contentLength)
 {
     std::ostringstream oss;
@@ -148,14 +151,13 @@ std::string Server::goneHttpResponse(std::string contentType, size_t contentLeng
     return oss.str();
 }
 
-std::string Server::deleteHttpResponse(Server* server)
+std::string Server::deleteHttpResponse(Server *server)
 {
     std::ostringstream oss;
     oss << "HTTP/1.1 204 No Content\r\n"
         << "Last-Modified: " << server->getCurrentTimeInGMT() << "\r\n\r\n";
     return oss.str();
 }
-
 
 int Server::getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
 {
@@ -180,14 +182,15 @@ int Server::getSpecificRespond(int fd, Server *server, std::string file, std::st
         {
             throw std::runtime_error("Failed to send final CRLF");
         }
-        if (server->fileTransfers[fd].mapOnHeader.find("Connection:")->second != "keep-alive"){
-            return server->fileTransfers.erase(fd), close(fd), 0;
-        }
+        if (request[fd].getConnection() == "close")
+            // return close(fd), request.erase(fd);
+        // server->request.erase(fd), close(fd);
+        return 0;
     }
     catch (const std::exception &e)
     {
-        std::cerr << e.what() << std::endl;
-        return server->fileTransfers.erase(fd), 0;
+        // return server->request.erase(fd), 0;
+        return 0;
     }
     return 0;
 }

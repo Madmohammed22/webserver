@@ -11,13 +11,42 @@
 /* ************************************************************************** */
 
 #include "../server.hpp"
+#include "../request.hpp"
+
+void GET::includeBuild(std::string target, std::string &metaData, int pick)
+{
+    std::map<std::string, std::string>::iterator it = request.keys.find(target);
+    if (it != request.keys.end())
+    {
+        if (Server::containsOnlyWhitespace(it->second) == false)
+        {
+            pick == 1 ? metaData = it->first : metaData = it->second;
+        }
+        else
+            metaData = "empty";
+        return;
+    }
+    metaData = "undefined";
+}
+
+void GET::buildFileTransfers()
+{
+    FileTransferState &state = request.state;
+    state.filePath = Server::parseSpecificRequest(request.header);
+    state.offset = 0;
+    state.fileSize = Server::getFileSize(state.filePath);
+    state.isComplete = false;
+    state.mime = Server::getContentType(state.filePath);
+    state.uriLength = state.filePath.length();
+    state.test = 0;
+    state.last_activity_time = time(NULL);
+}
 
 std::ifstream::pos_type Server::getFileSize(const std::string &path)
 {
     std::ifstream file(path.c_str(), std::ios::binary | std::ios::ate);
     if (!file.is_open())
         return 0;
-
     return file.tellg();
 }
 
@@ -25,7 +54,9 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
 {
     std::ifstream file(path.c_str(), std::ios::binary);
     if (!file.is_open())
+    {
         return false;
+    }
 
     file.seekg(offset);
     file.read(buffer, chunkSize);
@@ -43,11 +74,7 @@ bool Server::canBeOpen(std::string &filePath)
     else if (filePath.at(0) != '/' && getFileType("/" + filePath) == 1)
         return true;
     else
-    {
-        // new_path = STATIC + filePath;
         new_path = TEST + filePath;
-        // new_path = PATHC + filePath;
-    }
     std::ifstream file(new_path.c_str());
     if (!file.is_open())
         return std::cerr << "" << std::ends, false;
@@ -76,100 +103,81 @@ bool sendFinalChunk(int fd)
            send(fd, "\r\n", 2, MSG_NOSIGNAL) != -1;
 }
 
-
-int Server::continueFileTransfer(int fd, Server *server, std::string Connection)
+int Server::continueFileTransfer(int fd, std::string filePath)
 {
-    if (server->fileTransfers.find(fd) == server->fileTransfers.end())
-        return std::cerr << "No file transfer in progress for fd: " << fd << std::endl, close(fd), 0;
-
-    FileTransferState &state = server->fileTransfers[fd];
+    canBeOpen(filePath);
     char buffer[CHUNK_SIZE];
-    size_t remainingBytes = state.fileSize - state.offset;
+    size_t remainingBytes = request[fd].state.fileSize - request[fd].state.offset;
     size_t bytesToRead;
-    if (remainingBytes > CHUNK_SIZE)
-        bytesToRead = CHUNK_SIZE;
-    else
-        bytesToRead = remainingBytes;
+    remainingBytes > CHUNK_SIZE ? bytesToRead = CHUNK_SIZE : bytesToRead = remainingBytes;
     size_t bytesRead = 0;
-    if (!readFileChunk(state.filePath, buffer, state.offset, bytesToRead, bytesRead))
+    if (!readFileChunk(filePath, buffer, request[fd].state.offset, bytesToRead, bytesRead))
     {
-        if (Connection != "keep-alive")
-            return server->fileTransfers.erase(fd), close(fd), 0;
-        return 0;
+        return request[fd].getConnection() == "close" ? -1 : 0;
     }
 
     if (!sendChunk(fd, buffer, bytesRead))
     {
-        if (Connection != "keep-alive")
-            return server->fileTransfers.erase(fd), close(fd), 0;
-        return 0;
+        return request[fd].getConnection() == "close" ? -1 : 0;
     }
+    request[fd].state.offset += bytesRead;
 
-    state.offset += bytesRead;
-
-    if (state.offset >= state.fileSize)
+    if (request[fd].state.offset >= request[fd].state.fileSize)
     {
         if (!sendFinalChunk(fd))
         {
-            if (Connection != "keep-alive")
-                return server->fileTransfers.erase(fd), close(fd), 0;
-            return 0;
+            return request[fd].getConnection() == "close" ? -1 : 0;
         }
-
-        if (Connection != "keep-alive")
-            return close(fd), server->fileTransfers.erase(fd), 0;
+        if (request[fd].getConnection() == "close")
+        {
+            return request[fd].state.test = 0, 0;
+        }
+        request[fd].state.test = 0;
     }
     return 0;
 }
 
-int Server::handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection)
+int fd_is_valid(int fd)
 {
-    
-    std::string contentType = server->getContentType(filePath);
-    size_t fileSize = server->getFileSize(filePath);
+    return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
+}
 
+int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection)
+{
+    request[fd].state.filePath = filePath;
+    std::string contentType = request[fd].state.mime;
+    request[fd].state.fileSize = getFileSize(request[fd].state.filePath);
     const size_t LARGE_FILE_THRESHOLD = 1024 * 1024;
 
-    if (fileSize > LARGE_FILE_THRESHOLD)
+    if (request[fd].state.fileSize > LARGE_FILE_THRESHOLD)
     {
-        std::string httpResponse = server->createChunkedHttpResponse(contentType);
-        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-            return std::cerr << "Failed to send chunked HTTP header." << std::endl, -1;
-        FileTransferState state;
-        state.filePath = filePath;
-        state.fileSize = fileSize;
-        state.offset = 0;
-        state.isComplete = false;
-        server->fileTransfers[fd] = state;
-        state.fd = fd;
-        return server->continueFileTransfer(fd, server, Connection);
+        request[fd].state.test = 1;
+        std::string httpRespons = createChunkedHttpResponse(contentType);
+        if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
+        {
+            return std::cerr << "Failed to send chunked HTTP header." << std::endl, 0;
+        }
+        return continueFileTransfer(fd, request[fd].state.filePath);
     }
     else
     {
-        std::string httpResponse = server->httpResponse(contentType, fileSize);
-        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
+        std::string httpRespons = httpResponse(contentType, request[fd].state.fileSize);
+        if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
             return std::cerr << "Failed to send HTTP header." << std::endl, -1;
-        FileTransferState state;
-        state.isComplete = false;
-        server->fileTransfers[fd] = state;
-        char buffer[fileSize];
+        char buffer[request[fd].state.fileSize];
         size_t bytesRead = 0;
-        if (!readFileChunk(filePath, buffer, 0, fileSize, bytesRead))
-            return std::cerr << "Failed to read file: " << filePath << std::endl, 0;
+        if (!readFileChunk(request[fd].state.filePath, buffer, 0, request[fd].state.fileSize, bytesRead))
+            return std::cerr << "Failed to read file: " << request[fd].state.filePath << std::endl, -1;
 
         if (send(fd, buffer, bytesRead, MSG_NOSIGNAL) == -1)
-        {
-            return close(fd), server->fileTransfers.erase(fd), 0;
-        }
+            return -1;
 
-        if (Connection != "keep-alive")
-            return close(fd), server->fileTransfers.erase(fd), 0;
-        else
-        {
-            close(fd), server->fileTransfers.erase(fd);
-        }
+        if (Connection == "close")
+            return close(fd), request.erase(fd), 0;
+        close(fd), request.erase(fd);
         return 0;
     }
+    return 0;
 }
 
 std::string Server::readFile(const std::string &path)
@@ -183,25 +191,24 @@ std::string Server::readFile(const std::string &path)
     return oss.str();
 }
 
-int Server::serve_file_request(int fd, Server *server, std::string request)
+int Server::serve_file_request(int fd)
 {
-    if (server->fileTransfers.find(fd) != server->fileTransfers.end())
+    std::string Connection = request[fd].connection;
+    std::string filePath = request[fd].state.filePath;
+
+    if (request[fd].state.test == 1)
     {
-        if (server->continueFileTransfer(fd, server, "Keep-alive") == -1)
-            return std::cerr << "Failed to continue file transfer" << std::endl, close(fd), 0;
-        
+        if (continueFileTransfer(fd, request[fd].state.filePath) == -1)
+            return std::cerr << "Failed to continue file transfer" << std::endl, 0;
         return 0;
     }
-    std::string Connection = "keep-alive";
-    std::string filePath = server->parseSpecificRequest(fd, request, server);
-    std::cout << "-->" <<  filePath << std::endl;
-    if (server->canBeOpen(filePath) && server->getFileType(filePath) == 2)
+    if (canBeOpen(filePath) && getFileType(filePath) == 2)
     {
-        return server->handleFileRequest(fd, server, filePath, Connection);
+        if (handleFileRequest(fd, filePath, Connection) == -1)
+            return 0;
+        return 0;
     }
     else
-    {
-        return getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
-    }
+        return getSpecificRespond(fd, this, "404.html", createNotFoundResponse);
     return 0;
 }

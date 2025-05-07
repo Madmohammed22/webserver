@@ -13,112 +13,70 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include <time.h>
-#include <bits/types.h>
-#include "server.hpp"
-#include <unistd.h>
-#include <iomanip>  
-#include <filesystem>
-#include <dirent.h>   
-#include <cstring>
-#include <sstream>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <cstdlib>
-#include <map>
-#include <stack>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <poll.h>
-#include <sys/epoll.h>
-#include <fcntl.h>
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <sys/stat.h>  
-#include <errno.h>     
-#include <string.h>
-#include <set>
-#include <algorithm>
-#include "Binary_String.hpp"
+#include "request.hpp"
+#include "globalInclude.hpp"
 
-#define ERROR404 404
-#define ERROR405 405
-#define SUCCESS 200
-
-#define PORT 8080 
-#define MAX_EVENTS 1024
-#define CHUNK_SIZE 1024    
-#define TIMEOUT 4
-#define TIMEOUTMS 30000
-#define PATHC "root/content/"
-#define PATHE "root/error/" 
-#define PATHU "root/UPLOAD"
-#define STATIC "root/static/"
-#define TEST "root/test/"
-
-struct Multipart
+class CONFIG
 {
-    bool flag;
-    bool containHeader;
-    bool isInHeader;
-    std::string partialHeaderBuffer;
-    std::string boundary;
-    std::vector<std::ofstream*> outFiles;
-    int currentFileIndex;
-    std::string currentFileName;
-    int currentFd;
-    
-    Multipart() : flag(false), isInHeader(true), currentFileIndex(0){}
-};
+    int port;
+    int maxevents;
+    int chunksize;
+    int timeout;
+    int timeoutms;
+    std::string pathc;
+    std::string pathe; 
+    std::string pathu; 
+    std::string test; 
 
-struct FileTransferState {
-    time_t last_activity_time;
-    std::string filePath;   
-    size_t offset;
-    size_t endOffset;
-    size_t fileSize;
-    bool isComplete;
-    bool isCompleteShortFile;
-    int socket;
-    bool isValidHeader;
-    int fd;
-    Binary_String header;
-    int headerFlag;
-    std::ofstream* file;
-    int bytesReceived;
-    Binary_String buffer;
-    int flag;
-    std::map<std::string, std::string> mapOnHeader;
-    Multipart multp;
-    std::string typeOfConnection;
-    std::set<std::string> knownPaths;
-    FileTransferState() : offset(0), fileSize(0), isComplete(false), headerFlag(false), file(NULL){}
-    ~FileTransferState()
-    {
-        if (file)
-        {
-            file->close();
-            delete file;
-        }
+
+public :
+    CONFIG(const CONFIG& conf) {
+        this->port = conf.port;
+        this->maxevents = conf.maxevents;
+        this->chunksize = conf.chunksize;
+        this->timeout = conf.timeout;
+        this->timeoutms = conf.timeoutms;
+
+        this->pathc = conf.pathc;
+        this->pathe = conf.pathe;
+        this->pathu = conf.pathu;
+        this->test = conf.test;
     }
+public:
+    void set_port(int port) { this->port = port; };
+    void set_maxevents(int maxevents) { this->maxevents = maxevents; };
+    void set_chunksize(int chunksize) { this->chunksize = chunksize; };
+    void set_timeout(int timeout) { this->timeout = timeout; };
+    void set_timeoutms(int timeoutms) { this->timeoutms = timeoutms; };
+
+public:
+    void set_pathc(std::string pathc) { this->pathc = pathc; };
+    void set_pathe(std::string pathe) { this->pathe = pathe; };
+    void set_pathu(std::string pathu) { this->pathu = pathu; };
+    void set_test(std::string test) { this->test = test; };
 };
 
 class Binary_String;
-class Client;
+class Request;
+
 class Server
 {
+
+public:
+    struct epoll_event ev;
+    int listen_sock;
+    int epollfd;
+
 public:
     Server();
-    Server(const Server& Init);
-    Server&operator=(const Server& Init);
+    Server(const Server &Init);
+    Server &operator=(const Server &Init);
     ~Server();
 
 public:
-    // Map to keep track of file transfers for each client
-    std::map<int, FileTransferState> fileTransfers;
+    // Map to keep track of file in for each client
+    std::map<int, Request> request;
+    std::map<int, struct CONFIG> multiServers;
     int establishingServer();
 
 public:
@@ -126,24 +84,32 @@ public:
     size_t LARGE_FILE_THRESHOLD;
 
 public:
+    int startServer();
+    bool validateHeader(int fd, FileTransferState &state);
+    int handleClientConnections();
     // Methods
     int serve_file_request(int fd, Server *server, std::string request);
-    int handle_delete_request(int fd, Server *server,std::string request);
+    int handle_delete_request(int fd);
     int handlePostRequest(int fd, Server *server, Binary_String request);
-    
+
     // Functions helper
+    bool closeConnection(int fd);
+    static bool containsOnlyWhitespace(const std::string &str);
+    static std::string trim(std::string str);
     int parsePostRequest(Server *server, int fd, std::string header);
-    std::string getContentType(const std::string &path);
+    static std::string getContentType(const std::string &path);
     std::string readFile(const std::string &path);
     int getFileType(std::string path);
     bool canBeOpen(std::string &filePath);
-    std::string parseSpecificRequest(int fd, std::string request, Server *server);
-    std::ifstream::pos_type getFileSize(const std::string &path);
+    static std::string parseSpecificRequest(std::string request);
+    static std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
     std::string key_value_pair_header(std::string request, std::string target_key);
-    void key_value_pair_header(int fd,  Server *server, std::string header);
+    void key_value_pair_header(int fd, std::string header);
     std::pair<Binary_String, Binary_String> ft_parseRequest_binary(Binary_String header);
     void printfContentHeader(Server *server, int fd);
+    static bool searchOnSpecificFile(std::string path, std::string fileTarget);
+
     // Response headers
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
     std::string createChunkedHttpResponse(std::string contentType);
@@ -152,46 +118,38 @@ public:
     int processMethodNotAllowed(int fd, Server *server, std::string request);
     static std::string createUnsupportedMediaResponse(std::string contentType, size_t contentLength);
     static std::string createBadResponse(std::string contentType, size_t contentLength);
-    void writeData(Server* server, Binary_String& chunk, int fd);
+    void writeData(Server *server, Binary_String &chunk, int fd);
     std::string goneHttpResponse(std::string contentType, size_t contentLength);
-    std::string deleteHttpResponse(Server* server);
+    std::string deleteHttpResponse(Server *server);
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
 
     // Transfer-Encoding: chunked
-    int handleFileRequest(int fd, Server *server, const std::string &filePath, std::string Connection);
-    int continueFileTransfer(int fd, Server * server, std::string Connection);
+    int handleFileRequest(int fd, const std::string &filePath, std::string Connection);
+    int continueFileTransfer(int fd, std::string filePath);
     void setnonblocking(int fd);
+    static std::map<std::string, std::string> key_value_pair(std::string header);
+
+    int serve_file_request(int fd);
 };
 
-class Client : public Server
+template <typename T>
+std::pair<T, T> ft_parseRequest_T(int fd, Server *server, T header)
 {
-    public : Client() {
-        this->current_time = time(NULL);
-        this->isComplete = false;
-    };
-    public:
-        time_t current_time;
-        bool isComplete;
-};
-
-
-template <typename T> std::pair<T, T> ft_parseRequest_T(int fd, Server* server,T header){
 
     std::pair<T, T> pair_request;
     try
     {
         pair_request.first = header.substr(0, header.find("\r\n\r\n"));
-        pair_request.second = header.substr(header.find("\r\n\r\n"), header.length()); 
+        pair_request.second = header.substr(header.find("\r\n\r\n"), header.length());
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
         server->getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
     }
-    
+
     return pair_request;
 }
 
 #endif
-

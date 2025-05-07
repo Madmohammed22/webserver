@@ -1,35 +1,7 @@
 #ifndef BINARY_STRING_HPP
 #define BINARY_STRING_HPP
 
-#include <time.h>
-#include <bits/types.h>
-#include "server.hpp"
-#include <unistd.h>
-#include <iomanip>  
-#include <filesystem>
-#include <dirent.h>   
-#include <cstring>
-#include <sstream>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <cstdlib>
-#include <map>
-#include <stack>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <poll.h>
-#include <sys/epoll.h>
-#include <fcntl.h>
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <sys/stat.h>  
-#include <errno.h>     
-#include <string.h>
-#include <set>
-#include <algorithm>
+#include "globalInclude.hpp"
 
 class Binary_String
 {
