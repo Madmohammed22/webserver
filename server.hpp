@@ -13,6 +13,7 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include "ConfigData.hpp"
 #include "request.hpp"
 #include "globalInclude.hpp"
 
@@ -65,6 +66,7 @@ class Server
 public:
     struct epoll_event ev;
     int listen_sock;
+    std::vector <ConfigData> configData;
     int epollfd;
 
 public:

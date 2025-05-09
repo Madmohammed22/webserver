@@ -23,7 +23,7 @@ std::string Server::parseSpecificRequest(std::string request)
     {
         startPos += 5;
         size_t endPos = request.find(" HTTP/", startPos);
-        if (endPos != std::string::npos)
+        if (endPos != std::string::npos) 
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
             if (!requestedPath.empty() && requestedPath != "/")

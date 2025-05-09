@@ -13,8 +13,11 @@ int main(int argc, char **argv)
         configParser.start(argv[1]);
     } catch (const std::exception& e) {
         std::cerr << e.what();
+        return EXIT_FAILURE;
     }
     Server *server = new Server();
+    server->configData = configParser.configData;
+    server->configData[0].printData();
     if (server->startServer() == EXIT_FAILURE)
         return EXIT_FAILURE;
     

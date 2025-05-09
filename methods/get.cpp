@@ -137,11 +137,6 @@ int Server::continueFileTransfer(int fd, std::string filePath)
     return 0;
 }
 
-int fd_is_valid(int fd)
-{
-    return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
-}
-
 int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection)
 {
     request[fd].state.filePath = filePath;
@@ -193,6 +188,7 @@ std::string Server::readFile(const std::string &path)
 
 int Server::serve_file_request(int fd)
 {
+    
     std::string Connection = request[fd].connection;
     std::string filePath = request[fd].state.filePath;
 

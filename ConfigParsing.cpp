@@ -41,7 +41,7 @@ void ConfigParsing::start(std::string configFile)
     for (server_it = configData.begin(); server_it != configData.end(); server_it++)
     {
         server_it->parseConfigData();
-        server_it->printData();
+        // server_it->printData();
     }
 }
  
@@ -85,7 +85,7 @@ void ConfigParsing::parseEachServer()
         }
 
         if (inServerBlock)
-        {
+{
             int currentIndent = countIndent(*it);
             
             if (currentIndent > baseIndent)

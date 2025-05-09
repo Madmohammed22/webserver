@@ -185,4 +185,3 @@ Binary_String& Binary_String::append(const Binary_String& str, size_t subpos, si
         push_back(str[i]);
     return *this;
 }
-

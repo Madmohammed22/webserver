@@ -226,6 +226,8 @@ public:
         }
         return true;
     }
+    std::map<int, int> map;
+    
     HeaderValidator *getNextValidator()
     {
         return NULL;
@@ -243,8 +245,7 @@ public:
     {
         if (builder.getRequest().getMethod() == "GET")
         {
-            return builder.getRequest().getTransferEncoding() != "chunked" ||
-                   builder.getRequest().getTransferEncoding() == "undefined";
+            return builder.getRequest().getTransferEncoding() == "undefined";
         }
         else if (builder.getRequest().getMethod() == "POST")
         {
