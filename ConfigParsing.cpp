@@ -13,35 +13,27 @@ void ConfigParsing::start(std::string configFile)
     if (content.empty())
         throw WebservException("Configuration file : config file is empty");
     removeComments();
-    /*std::vector<std::string>::iterator it;*/
-    /**/
-    /*for(it = content.begin(); it != content.end(); it++)*/
-    /*{*/
-    /*    std::cout<< *it << std::endl;*/
-    /*}*/
-    parseEachServer();
-    
+    parseEachServer();    
     std::vector<ConfigData>::iterator server_it;
+    /*for (server_it = configData.begin(); server_it != configData.end(); server_it++)*/
+    /*{*/
+    /*    std::vector<std::string> serverContent = server_it->getContent();*/
+    /*    std::vector<std::string>::iterator line_it;*/
 
-    for (server_it = configData.begin(); server_it != configData.end(); server_it++)
-    {
-        std::vector<std::string> serverContent = server_it->getContent();
-        std::vector<std::string>::iterator line_it;
-
-        std::cout << "-------------------------------------------------" << std::endl;
-
-        for (line_it = serverContent.begin(); line_it != serverContent.end(); line_it++)
-        {
-            std::string line = *line_it;
-            std::cout << line << std::endl;
-        }    
-        std::cout << "-------------------------------------------------" << std::endl;
-    }
+        /*std::cout << "-------------------------------------------------" << std::endl;*/
+        /**/
+        /*for (line_it = serverContent.begin(); line_it != serverContent.end(); line_it++)*/
+        /*{*/
+        /*    std::string line = *line_it;*/
+        /*    std::cout << line << std::endl;*/
+        /*}    */
+        /*std::cout << "-------------------------------------------------" << std::endl;*/
+    /*}*/
     
     for (server_it = configData.begin(); server_it != configData.end(); server_it++)
     {
         server_it->parseConfigData();
-        // server_it->printData();
+        server_it->printData();
     }
 }
  
@@ -74,7 +66,6 @@ void ConfigParsing::parseEachServer()
     
         if (line.empty())
             continue;
-
         if (line.find("server:") == 0 && !inServerBlock)
         {
             inServerBlock = true;
@@ -83,9 +74,8 @@ void ConfigParsing::parseEachServer()
             currentServer.setContent(line);
             continue;
         }
-
-        if (inServerBlock)
-{
+        else if (inServerBlock)
+        {
             int currentIndent = countIndent(*it);
             
             if (currentIndent > baseIndent)
@@ -101,8 +91,12 @@ void ConfigParsing::parseEachServer()
                     baseIndent = countIndent(*it);
                     currentServer.setContent(line);
                 }
+                else 
+                    throw WebservException("Invalid Config file");
             }
         }
+        else 
+            throw WebservException("Invalid Config file");
     }
 
     if (inServerBlock)
@@ -110,24 +104,6 @@ void ConfigParsing::parseEachServer()
     
     this->configData = serverBlocks;
 }
-
-
-/*void ConfigParsing::parseEachServer()*/
-/*{*/
-/*    // first we're gonna split the content into each server*/
-/*    ConfigData tmp;*/
-/*    std::string tmpContent;*/
-/*    std::vector<std::string>::iterator it;*/
-/**/
-/*    // check for the first keyword , it should be server*/
-/*    if (rtrim(content.front()) != "server:")*/
-/*        throw WebservException("Configuration file : \"server\" keyword not found");*/
-/*    for(it = content.begin(); it != content.end(); it++)*/
-/*    {*/
-/*        tmp.setContent(*it);*/
-/*        std::cout<< *it << std::endl;*/
-/*    }*/
-/*}*/
 
 void ConfigParsing::checkAndReadFile(std::string configFile)
 {

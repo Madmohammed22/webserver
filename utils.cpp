@@ -1,7 +1,31 @@
-#include "ConfigParsing.hpp"
 #include <string>
 #include <cctype>
 #include <sstream>
+
+int	ft_atoi(const char *nptr)
+{
+	int	i;
+	int	res;
+	int	sign;
+
+	i = 0;
+	sign = 1;
+	while ((nptr[i] >= 9 && nptr[i] <= 13) || nptr[i] == 32)
+		i++;
+	if (nptr[i] == '-' || nptr[i] == '+')
+	{
+		if (nptr[i] == '-')
+			sign = -1;
+		i++;
+	}
+	res = 0;
+	while (nptr[i] >= '0' && nptr[i] <= '9')
+	{
+		res = res * 10 + nptr[i] - 48;
+		i++;
+	}
+	return (res * sign);
+}
 
 std::string& rtrim(std::string& str)
 {

@@ -24,20 +24,6 @@ std::string ConfigData::getServerName()
     return _server_name;
 }
 
-std::string ConfigData::getRoot()
-{
-    return _root;
-}
-
-std::vector<std::string> ConfigData::getIndex()
-{
-    return _index;
-}
-
-bool ConfigData::getAutoindex()
-{
-    return _autoindex;
-}
 
 size_t ConfigData::getClientMaxBodySize()
 {
@@ -47,16 +33,6 @@ size_t ConfigData::getClientMaxBodySize()
 std::map<int, std::string> ConfigData::getErrorPages()
 {
     return _error_pages;
-}
-
-std::vector<std::string> ConfigData::getMethods()
-{
-    return _methods;
-}
-
-std::map<std::string, std::string> ConfigData::getCgi()
-{
-    return _cgi;
 }
 
 void ConfigData::setContent(std::string content)
@@ -79,25 +55,6 @@ void ConfigData::setServerName(std::string server_name)
     _server_name = server_name;
 }
 
-void ConfigData::setRoot(std::string root)
-{
-    _root = root;
-}
-
-void ConfigData::setIndex(std::vector<std::string> index)
-{
-    _index = index;
-}
-
-void ConfigData::addIndex(std::string index)
-{
-    _index.push_back(index);
-}
-
-void ConfigData::setAutoindex(bool autoindex)
-{
-    _autoindex = autoindex;
-}
 
 void ConfigData::setClientMaxBodySize(size_t client_max_body_size)
 {
@@ -114,202 +71,238 @@ void ConfigData::addErrorPage(int code, std::string path)
     _error_pages[code] = path;
 }
 
-void ConfigData::setMethods(std::vector<std::string> methods)
-{
-    _methods = methods;
-}
-
-void ConfigData::addMethod(std::string method)
-{
-    _methods.push_back(method);
-}
-
-void ConfigData::setCgi(std::map<std::string, std::string> cgi)
-{
-    _cgi = cgi;
-}
-
-void ConfigData::addCgi(std::string extension, std::string interpreter)
-{
-    _cgi[extension] = interpreter;
-}
 
 void ConfigData::parseConfigData()
 {
-    std::string currentKey;
-    Location* currentLocation = NULL;
-    int currentIndent = 0;
-    
+    int baseIndent = 0;
     std::vector<std::string>::iterator it;
 
+    _port = -1;
     for (it = _content.begin(); it != _content.end(); ++it)
     {
         std::string line = rtrim(*it);
-        if (line.find("server:") == 0)
-        {
+        if (line.find("server:") == 0 || line.empty())
             continue;
-        }
-        if (line.empty()) continue;
+        size_t colonPos = line.find(':');
+        std::string key;
 
-        int indent = countIndent(line);
-        line = line.substr(indent);
+        if(baseIndent == 0)
+            baseIndent = countIndent(line);
+        if (baseIndent != countIndent(line))
+            throw WebservException("Configuration file : wrong indentation");
+        if (colonPos == std::string::npos)
+            throw WebservException("Configuration file : Invalid format");
 
-        if (line.find("locations:") == 0)
+        key = line.substr(0, colonPos);
+        std::string value = trim(line.substr(colonPos + 1));
+        key = trim(key);
+        if (key == "host")
         {
-            continue;
+            if (!_host.empty())
+                throw WebservException("Configuration file : duplicated");
+            _host = value;
         }
-        else if (indent > currentIndent && currentLocation)
+        else if (key == "port")
         {
-            line = trim(line);
-            size_t colonPos = line.find(':');
-            if (colonPos != std::string::npos)
+            // check if post is duplicated and check for the port if is in the range
+            _port = atoi(value.c_str());
+            if (_port > 65536)
+                throw WebservException("Configuration file : unvalid Port number");
+        }
+        else if (key == "server_name")
+        {
+            if (!_server_name.empty())
+                throw WebservException("Configuration file : duplicated");
+            _server_name = value;
+        }
+        else if (key == "client_max_body_size")
+        {
+            parseBodySize(value);
+        }
+        else if (key == "locations")
+        {
+            if (!value.empty())
+                throw WebservException("Configuration file : invalid config file");
+            int baseIndent2 = 0;
+            it++;
+            while (1)
             {
-                std::string key = line.substr(0, colonPos);
-                std::string value = trim(line.substr(colonPos + 1));
-
-                if (key == "methods")
+                if (it == _content.end())
                 {
-                    if (value[0] == '[')
-                    {
-                        value = value.substr(1, value.size() - 2);
-                        std::vector<std::string> methods = split(value, ',');
-                        for (size_t i = 0; i < methods.size(); i++) {
-                            currentLocation->methods.push_back(trim(methods[i], " \"'"));
-                        }
-                    }
-                    else
-                    {
-                        currentLocation->methods.push_back(value);
-                    }
+                    it--;
+                    break ;
                 }
-                else if (key == "root")
+                line = rtrim(*it);
+                if (line.empty())
+                    continue;
+                if (baseIndent >= countIndent(line))
                 {
-                    currentLocation->root = value;
+                    it--;
+                    break ;
                 }
-                else if (key == "index")
+                parseLine(line, key, value, baseIndent2);
+                if (!value.empty())
+                    throw WebservException("Configuration file : invalid config file");
+                int baseIndent3 = 0;
+                it++;   
+                Location currentLocation;
+                currentLocation.path = key;
+                while(1)
                 {
-                    if (value[0] == '[')
-                    {
-                        value = value.substr(1, value.size() - 2);
-                        std::vector<std::string> indexes = split(value, ',');
-                        for (size_t i = 0; i < indexes.size(); i++)
-                            currentLocation->index.push_back(trim(indexes[i], " \"'"));
-                    }
-                    else
-                    {
-                        currentLocation->index.push_back(value);
-                    }
+                    if (it == _content.end())
+                        break ;
+                    line = rtrim(*it);
+                    if (line.empty())
+                        continue;
+                    if (baseIndent2 >= countIndent(line))
+                        break ;
+                    parseLine(line, key, value, baseIndent3);
+                    parseLocation(key, value, currentLocation);
+                    it++;
                 }
-                else if (key == "autoindex")
-                {
-                    currentLocation->autoindex = (value == "on" || value == "true");
-                }
-                else if (key == "cgi")
-                {
-                    size_t cgiColonPos = value.find(':');
-                    if (cgiColonPos != std::string::npos) {
-                        std::string ext = trim(value.substr(0, cgiColonPos));
-                        std::string interpreter = trim(value.substr(cgiColonPos + 1));
-                        currentLocation->cgi[ext] = interpreter;
-                    }
-                }
+                _locations.push_back(currentLocation);
             }
         }
-        else if (indent == currentIndent || currentLocation == NULL)
+        else if (key == "error_page")
         {
-            size_t colonPos = line.find(':');
-            if (colonPos != std::string::npos)
+            if (!value.empty())
+                throw WebservException("Configuration file : invalid config file");
+            int baseIndent2 = 0;
+            it++;
+            while (1)
             {
-                currentKey = line.substr(0, colonPos);
-                std::string value = trim(line.substr(colonPos + 1));
-
-                if (currentKey == "- path")
+                if (it == _content.end())
                 {
-                    std::string path = trim(value, " \"'");
-                    _locations[path] = Location();
-                    _locations[path].path = path;
-                    currentLocation = &_locations[path];
-                    currentIndent = indent;
+                    it--;
+                    break;
                 }
-                else
+                line = rtrim(*it);
+                if (line.empty())
+                    continue;
+                if (baseIndent >= countIndent(line))
                 {
-                    if (currentKey == "host")
-                    {
-                        _host = value;
-                    }
-                    else if (currentKey == "port")
-                    {
-                        _port = atoi(value.c_str());
-                    }
-                    else if (currentKey == "server_name")
-                    {
-                        _server_name = value;
-                    }
-                    else if (currentKey == "root")
-                    {
-                        _root = value;
-                    }
-                    else if (currentKey == "index")
-                    {
-                        if (value[0] == '[')
-                        {
-                            value = value.substr(1, value.size() - 2);
-                            std::vector<std::string> indexes = split(value, ',');
-                            for (size_t i = 0; i < indexes.size(); i++)
-                                _index.push_back(trim(indexes[i], " \"'"));
-                        }
-                        else
-                        {
-                            _index.push_back(value);
-                        }
-                    }
-                    else if (currentKey == "autoindex")
-                    {
-                        _autoindex = (value == "on" || value == "true");
-                    }
-                    else if (currentKey == "client_max_body_size")
-                    {
-                        size_t multiplier = 1;
-                        if (!value.empty())
-                        {
-                            char lastChar = tolower(value[value.size() - 1]);
-                            if (lastChar == 'k')
-                            {
-                                multiplier = 1024;
-                                value = value.substr(0, value.size() - 1);
-                            }
-                            else if (lastChar == 'm')
-                            {
-                                multiplier = 1024 * 1024;
-                                value = value.substr(0, value.size() - 1);
-                            }
-                            _client_max_body_size = atoi(value.c_str()) * multiplier;
-                        }
-                    }
-                    else if (currentKey == "error_page")
-                    {
-                        size_t colonPos = value.find(':');
-                        if (colonPos != std::string::npos)
-                        {
-                            int code = atoi(value.substr(0, colonPos).c_str());
-                            std::string path = trim(value.substr(colonPos + 1));
-                            _error_pages[code] = path;
-                        }
-                    }
-                    else if (currentKey == "cgi")
-                    {
-                        size_t cgiColonPos = value.find(':');
-                        if (cgiColonPos != std::string::npos) {
-                            std::string ext = trim(value.substr(0, cgiColonPos));
-                            std::string interpreter = trim(value.substr(cgiColonPos + 1));
-                            _cgi[ext] = interpreter;
-                        }
-                    }
+                    it--;
+                    break ;
                 }
+                parseLine(line, key, value, baseIndent2);
+                int code = atoi(key.c_str());
+                _error_pages[code] = value;
+                /*parseErrorPage(value);*/
+                it++;
             }
         }
+        else
+            throw WebservException("Configuration file : invalid key");
     }
 }
+
+void    ConfigData::parseLine(std::string line, std::string &key, std::string &value, int &baseIndent)
+{
+
+    size_t colonPos = line.find(':');
+    if (baseIndent == 0)
+        baseIndent = countIndent(line);
+    if (baseIndent != countIndent(line))
+        throw WebservException("Configuration file : wrong indentation");
+    if (colonPos == std::string::npos)
+        throw WebservException("Configuration file : Invalid format");
+
+    key = line.substr(0, colonPos);
+    value = trim(line.substr(colonPos + 1));
+    key = trim(key);
+}
+
+void    ConfigData::parseLocation(std::string key, std::string value, Location &currentLocation)
+{
+    if (key == "methods")
+    {
+        parseArrayValue(value, currentLocation.methods);
+    }
+    else if (key == "root")
+    {
+        if (!currentLocation.root.empty())
+            throw WebservException("Configuration File: duplicated key");
+        currentLocation.root = value;
+    }
+    else if (key == "index")
+    {
+        if (!currentLocation.index.empty())
+            throw WebservException("Configuration File: duplicated key");
+        parseArrayValue(value, currentLocation.index);
+    }
+    else if (key == "autoindex")
+    {
+        currentLocation.autoindex = (value == "on" || value == "true");
+    }
+    else if (key == "cgi")
+    {
+        parseCgiPair(value, currentLocation.cgi);
+    }
+    else if (key == "redirect")
+    {
+        if (!currentLocation.redirect.empty())
+            throw WebservException("Configuration File: duplicated key");
+        currentLocation.redirect = value;
+    }
+    else
+    {
+        throw WebservException("Configuration file : invalid key");
+    }
+}
+
+void ConfigData::parseBodySize(const std::string& value)
+{
+    if (value.empty())
+        return;
+
+    size_t multiplier = 1;
+    std::string sizeValue = value;
+    char lastChar = tolower(value[value.size() - 1]);
+
+    if (lastChar == 'k')
+    {
+        multiplier = 1024;
+        sizeValue = value.substr(0, value.size() - 1);
+    }
+    else if (lastChar == 'm')
+    {
+        multiplier = 1024 * 1024;
+        sizeValue = value.substr(0, value.size() - 1);
+    }
+
+    _client_max_body_size =  atoi(sizeValue.c_str()) * multiplier;
+    /*if (_client_max_body_size < 0)*/
+    /*    throw WebservException("Configuration file : invalid body size");*/
+}
+
+void ConfigData::parseCgiPair(const std::string& value, std::map<std::string, std::string>& target)
+{
+    size_t colonPos = value.find(':');
+    if (colonPos != std::string::npos)
+    {
+        std::string ext = trim(value.substr(0, colonPos));
+        std::string interpreter = trim(value.substr(colonPos + 1));
+        target[ext] = interpreter;
+    }
+}
+
+void ConfigData::parseArrayValue(std::string value, std::vector<std::string>& target)
+{
+    if (value[0] == '[')
+    {
+        value = value.substr(1, value.size() - 2);
+        std::vector<std::string> items = split(value, ',');
+        for (size_t i = 0; i < items.size(); i++)
+        {
+            target.push_back(trim(items[i], " \"'"));
+        }
+    }
+    else
+    {
+        target.push_back(value);
+    }
+}
+
 
 void ConfigData::printData()
 {
@@ -325,29 +318,30 @@ void ConfigData::printData()
     std::cout << std::endl;
 
     std::cout << "Locations:" << std::endl;
-    std::map<std::string, Location>::const_iterator loc_it;
+    std::vector<Location>::const_iterator loc_it;
     for (loc_it = _locations.begin(); loc_it != _locations.end(); ++loc_it)
     {
         std::cout << "-------------------------------------------------\n";
-        std::cout << "  " << loc_it->first << ":" << std::endl;
-        std::cout << "    Root: " << loc_it->second.root << std::endl;
-        
+        std::cout << "  " << loc_it->path << ":" << std::endl;  // Assuming 'path' is the member name instead of 'first'
+        std::cout << "    Root: " << loc_it->root << std::endl;
+    
+        std::cout << "    Redirect: " << loc_it->redirect << std::endl;
         std::cout << "    Index: ";
-        for (size_t i = 0; i < loc_it->second.index.size(); ++i)
-            std::cout << loc_it->second.index[i] << (i != loc_it->second.index.size() - 1 ? ", " : "");
+        for (size_t i = 0; i < loc_it->index.size(); ++i)
+            std::cout << loc_it->index[i] << (i != loc_it->index.size() - 1 ? ", " : "");
         std::cout << std::endl;
 
         std::cout << "    Methods: ";
-        for (size_t i = 0; i < loc_it->second.methods.size(); ++i)
-            std::cout << loc_it->second.methods[i] << (i != loc_it->second.methods.size() - 1 ? ", " : "");
+        for (size_t i = 0; i < loc_it->methods.size(); ++i)
+            std::cout << loc_it->methods[i] << (i != loc_it->methods.size() - 1 ? ", " : "");
         std::cout << std::endl;
 
-        std::cout << "    Autoindex: " << (loc_it->second.autoindex ? "on" : "off") << std::endl;
+        std::cout << "    Autoindex: " << (loc_it->autoindex ? "on" : "off") << std::endl;
 
         std::cout << "    CGI: ";
-        std::map<std::string, std::string>::const_iterator cgi_it;
-        for (cgi_it = loc_it->second.cgi.begin(); cgi_it != loc_it->second.cgi.end(); ++cgi_it)
-            std::cout << cgi_it->first << ":" << cgi_it->second << (cgi_it != --loc_it->second.cgi.end() ? ", " : "");
+        /*std::map<std::string, std::string>::const_iterator cgi_it;*/
+        /*for (cgi_it = loc_it->cgi.begin(); cgi_it != loc_it->cgi.end(); ++cgi_it)*/
+        /*    std::cout << cgi_it->first << ":" << cgi_it->second << (std::next(cgi_it) != loc_it->cgi.end() ? ", " : "");*/
         std::cout << std::endl;
         std::cout << "-------------------------------------------------\n";
     }
