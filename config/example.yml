@@ -22,7 +22,7 @@ server:
         path: "/usr/bin/php"
     
     - path: "/uploads"      # Uploads path
-      redirect: "/new-page"  # URL to redirect to
+      redirect: "/index.html"  # "/new-page" URL to redirect to
       methods: ["GET", "POST", "DELETE"]
       root: "/var/www/uploads"
       upload_enable: true

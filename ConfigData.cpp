@@ -1,8 +1,8 @@
 #include "ConfigData.hpp"
 #include "utils.hpp"
 
-ConfigData::ConfigData(){}
-ConfigData::~ConfigData(){}
+ConfigData::ConfigData() {}
+ConfigData::~ConfigData() {}
 
 std::vector<std::string> ConfigData::getContent()
 {
@@ -23,7 +23,6 @@ std::string ConfigData::getServerName()
 {
     return _server_name;
 }
-
 
 size_t ConfigData::getClientMaxBodySize()
 {
@@ -55,7 +54,6 @@ void ConfigData::setServerName(std::string server_name)
     _server_name = server_name;
 }
 
-
 void ConfigData::setClientMaxBodySize(size_t client_max_body_size)
 {
     _client_max_body_size = client_max_body_size;
@@ -71,6 +69,10 @@ void ConfigData::addErrorPage(int code, std::string path)
     _error_pages[code] = path;
 }
 
+std::vector<Location> ConfigData::getLocations() const
+{
+    return (_locations);
+}
 
 void ConfigData::parseConfigData()
 {
@@ -86,7 +88,7 @@ void ConfigData::parseConfigData()
         size_t colonPos = line.find(':');
         std::string key;
 
-        if(baseIndent == 0)
+        if (baseIndent == 0)
             baseIndent = countIndent(line);
         if (baseIndent != countIndent(line))
             throw WebservException("Configuration file : wrong indentation");
@@ -130,7 +132,7 @@ void ConfigData::parseConfigData()
                 if (it == _content.end())
                 {
                     it--;
-                    break ;
+                    break;
                 }
                 line = rtrim(*it);
                 if (line.empty())
@@ -138,24 +140,24 @@ void ConfigData::parseConfigData()
                 if (baseIndent >= countIndent(line))
                 {
                     it--;
-                    break ;
+                    break;
                 }
                 parseLine(line, key, value, baseIndent2);
                 if (!value.empty())
                     throw WebservException("Configuration file : invalid config file");
                 int baseIndent3 = 0;
-                it++;   
+                it++;
                 Location currentLocation;
                 currentLocation.path = key;
-                while(1)
+                while (1)
                 {
                     if (it == _content.end())
-                        break ;
+                        break;
                     line = rtrim(*it);
                     if (line.empty())
                         continue;
                     if (baseIndent2 >= countIndent(line))
-                        break ;
+                        break;
                     parseLine(line, key, value, baseIndent3);
                     parseLocation(key, value, currentLocation);
                     it++;
@@ -182,7 +184,7 @@ void ConfigData::parseConfigData()
                 if (baseIndent >= countIndent(line))
                 {
                     it--;
-                    break ;
+                    break;
                 }
                 parseLine(line, key, value, baseIndent2);
                 int code = atoi(key.c_str());
@@ -196,7 +198,7 @@ void ConfigData::parseConfigData()
     }
 }
 
-void    ConfigData::parseLine(std::string line, std::string &key, std::string &value, int &baseIndent)
+void ConfigData::parseLine(std::string line, std::string &key, std::string &value, int &baseIndent)
 {
 
     size_t colonPos = line.find(':');
@@ -212,7 +214,7 @@ void    ConfigData::parseLine(std::string line, std::string &key, std::string &v
     key = trim(key);
 }
 
-void    ConfigData::parseLocation(std::string key, std::string value, Location &currentLocation)
+void ConfigData::parseLocation(std::string key, std::string value, Location &currentLocation)
 {
     if (key == "methods")
     {
@@ -250,7 +252,7 @@ void    ConfigData::parseLocation(std::string key, std::string value, Location &
     }
 }
 
-void ConfigData::parseBodySize(const std::string& value)
+void ConfigData::parseBodySize(const std::string &value)
 {
     if (value.empty())
         return;
@@ -269,13 +271,12 @@ void ConfigData::parseBodySize(const std::string& value)
         multiplier = 1024 * 1024;
         sizeValue = value.substr(0, value.size() - 1);
     }
-
-    _client_max_body_size =  atoi(sizeValue.c_str()) * multiplier;
+    _client_max_body_size = atoi(sizeValue.c_str()) * multiplier;
     /*if (_client_max_body_size < 0)*/
     /*    throw WebservException("Configuration file : invalid body size");*/
 }
 
-void ConfigData::parseCgiPair(const std::string& value, std::map<std::string, std::string>& target)
+void ConfigData::parseCgiPair(const std::string &value, std::map<std::string, std::string> &target)
 {
     size_t colonPos = value.find(':');
     if (colonPos != std::string::npos)
@@ -286,7 +287,7 @@ void ConfigData::parseCgiPair(const std::string& value, std::map<std::string, st
     }
 }
 
-void ConfigData::parseArrayValue(std::string value, std::vector<std::string>& target)
+void ConfigData::parseArrayValue(std::string value, std::vector<std::string> &target)
 {
     if (value[0] == '[')
     {
@@ -302,7 +303,6 @@ void ConfigData::parseArrayValue(std::string value, std::vector<std::string>& ta
         target.push_back(value);
     }
 }
-
 
 void ConfigData::printData()
 {
@@ -322,9 +322,9 @@ void ConfigData::printData()
     for (loc_it = _locations.begin(); loc_it != _locations.end(); ++loc_it)
     {
         std::cout << "-------------------------------------------------\n";
-        std::cout << "  " << loc_it->path << ":" << std::endl;  // Assuming 'path' is the member name instead of 'first'
+        std::cout << "  " << loc_it->path << ":" << std::endl; // Assuming 'path' is the member name instead of 'first'
         std::cout << "    Root: " << loc_it->root << std::endl;
-    
+
         std::cout << "    Redirect: " << loc_it->redirect << std::endl;
         std::cout << "    Index: ";
         for (size_t i = 0; i < loc_it->index.size(); ++i)

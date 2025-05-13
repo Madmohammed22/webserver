@@ -43,7 +43,7 @@ public:
     ~ConfigData();
     
     std::vector<std::string> getContent();
-    std::map<std::string, Location> getLocations() const;
+    std::vector<Location> getLocations() const;
     void addLocation(const std::string& path, const Location& location);
     std::string getHost();
     int getPort();

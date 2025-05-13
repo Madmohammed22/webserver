@@ -89,7 +89,7 @@ int DELETE(std::string request)
 int Server::handle_delete_request(int fd)
 {
     std::string filePath = request[fd].state.filePath;
-    if (canBeOpen(filePath))
+    if (canBeOpen(filePath, configData[0]))
     {
         if (filePath.at(0) != '/')
             filePath = "/" + filePath;

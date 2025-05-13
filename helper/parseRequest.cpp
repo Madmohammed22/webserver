@@ -1,5 +1,9 @@
 #include "../server.hpp"
 
+// void reWrite(std::string &filePath, ConfigData configData){
+//     if (filePath == "/")
+//         filePath =  configData.get
+// }
 void Server::printfContentHeader(Server *server, int fd)
 {
     std::map<std::string, std::string>::iterator it = server->request[fd].state.mapOnHeader.begin();
@@ -13,7 +17,7 @@ void Server::printfContentHeader(Server *server, int fd)
 std::string Server::parseSpecificRequest(std::string request)
 {
     std::string filePath;
-    filePath = "/index.html";
+    // filePath = "/index.html";
     // if (searchOnSpecificFile(PATHC, "index.html") == true)
     // else
     //     filePath = "undefined";
@@ -21,12 +25,12 @@ std::string Server::parseSpecificRequest(std::string request)
     size_t startPos = request.find("GET /");
     if (startPos != std::string::npos)
     {
-        startPos += 5;
+        startPos += 4;
         size_t endPos = request.find(" HTTP/", startPos);
         if (endPos != std::string::npos) 
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
-            if (!requestedPath.empty() && requestedPath != "/")
+            if (!requestedPath.empty())
             {
                 filePath = requestedPath;
             }
@@ -38,12 +42,12 @@ std::string Server::parseSpecificRequest(std::string request)
     startPos = request.find("DELETE /");
     if (startPos != std::string::npos)
     {
-        startPos += 8;
+        startPos += 7;
         size_t endPos = request.find(" HTTP/", startPos);
         if (endPos != std::string::npos)
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
-            if (!requestedPath.empty() && requestedPath != "/")
+            if (!requestedPath.empty())
             {
                 filePath = requestedPath;
             }

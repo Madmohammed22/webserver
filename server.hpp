@@ -90,11 +90,12 @@ public:
     bool validateHeader(int fd, FileTransferState &state);
     int handleClientConnections();
     // Methods
-    int serve_file_request(int fd, Server *server, std::string request);
+    int serve_file_request(int fd, ConfigData configIndex);
     int handle_delete_request(int fd);
     int handlePostRequest(int fd, Server *server, Binary_String request);
 
     // Functions helper
+    void reWrite(std::string &filePath, ConfigData configData);
     bool closeConnection(int fd);
     static bool containsOnlyWhitespace(const std::string &str);
     static std::string trim(std::string str);
@@ -102,7 +103,7 @@ public:
     static std::string getContentType(const std::string &path);
     std::string readFile(const std::string &path);
     int getFileType(std::string path);
-    bool canBeOpen(std::string &filePath);
+    bool canBeOpen(std::string &filePath, ConfigData configIndex);
     static std::string parseSpecificRequest(std::string request);
     static std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
@@ -111,6 +112,7 @@ public:
     std::pair<Binary_String, Binary_String> ft_parseRequest_binary(Binary_String header);
     void printfContentHeader(Server *server, int fd);
     static bool searchOnSpecificFile(std::string path, std::string fileTarget);
+    // std::string movedPermanently(std::string contentType, size_t contentLength);
 
     // Response headers
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
@@ -128,12 +130,14 @@ public:
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
 
     // Transfer-Encoding: chunked
-    int handleFileRequest(int fd, const std::string &filePath, std::string Connection);
-    int continueFileTransfer(int fd, std::string filePath);
+    int handleFileRequest(int fd, const std::string &filePath, std::string Connection, ConfigData configIndex);
+    int continueFileTransfer(int fd, std::string filePath, ConfigData configIndex);
     void setnonblocking(int fd);
     static std::map<std::string, std::string> key_value_pair(std::string header);
 
-    int serve_file_request(int fd);
+    public:
+        std::string MovedPermanently(std::string contentType, std::string location);
+
 };
 
 template <typename T>

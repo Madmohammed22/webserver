@@ -159,6 +159,15 @@ std::string Server::deleteHttpResponse(Server *server)
     return oss.str();
 }
 
+std::string Server::MovedPermanently(std::string contentType, std::string location)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 301 Moved Permanently\r\n"
+        << "Location: " << location << "\r\n"
+        << "content-type: " << contentType << "\r\n\r\n";
+    return oss.str();
+}
+
 int Server::getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
 {
     std::string path1 = PATHE;
@@ -184,8 +193,8 @@ int Server::getSpecificRespond(int fd, Server *server, std::string file, std::st
         }
         if (request[fd].getConnection() == "close")
             // return close(fd), request.erase(fd);
-        // server->request.erase(fd), close(fd);
-        return 0;
+            // server->request.erase(fd), close(fd);
+            return 0;
     }
     catch (const std::exception &e)
     {

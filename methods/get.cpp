@@ -65,6 +65,7 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
     return true;
 }
 
+/*
 bool Server::canBeOpen(std::string &filePath)
 {
 
@@ -78,6 +79,26 @@ bool Server::canBeOpen(std::string &filePath)
     std::ifstream file(new_path.c_str());
     if (!file.is_open())
         return std::cerr << "" << std::ends, false;
+    filePath = new_path;
+    return true;
+}
+ */
+
+bool Server::canBeOpen(std::string &filePath, ConfigData configIndex)
+{
+
+    std::string new_path;
+    bool check = filePath == "/" && !configIndex.getLocations()[0].redirect.empty();
+    if (check)
+    {
+        new_path = configIndex.getLocations()[0].root + configIndex.getLocations()[0].redirect;
+    }
+    else if (filePath != "/" && configIndex.getLocations()[0].redirect.empty()){
+        new_path = configIndex.getLocations()[0].root + "/" + configIndex.getLocations()[0].index[0];        
+    }
+    std::ifstream file(new_path.c_str());
+    if (!file.is_open())
+        return false;
     filePath = new_path;
     return true;
 }
@@ -103,9 +124,9 @@ bool sendFinalChunk(int fd)
            send(fd, "\r\n", 2, MSG_NOSIGNAL) != -1;
 }
 
-int Server::continueFileTransfer(int fd, std::string filePath)
+int Server::continueFileTransfer(int fd, std::string filePath, ConfigData configIndex)
 {
-    canBeOpen(filePath);
+    canBeOpen(filePath, configIndex);
     char buffer[CHUNK_SIZE];
     size_t remainingBytes = request[fd].state.fileSize - request[fd].state.offset;
     size_t bytesToRead;
@@ -137,7 +158,7 @@ int Server::continueFileTransfer(int fd, std::string filePath)
     return 0;
 }
 
-int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection)
+int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection, ConfigData configIndex)
 {
     request[fd].state.filePath = filePath;
     std::string contentType = request[fd].state.mime;
@@ -152,11 +173,21 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
         {
             return std::cerr << "Failed to send chunked HTTP header." << std::endl, 0;
         }
-        return continueFileTransfer(fd, request[fd].state.filePath);
+        return continueFileTransfer(fd, request[fd].state.filePath, configIndex);
     }
     else
     {
-        std::string httpRespons = httpResponse(contentType, request[fd].state.fileSize);
+        std::string httpRespons;
+        if (!configIndex.getLocations()[0].redirect.empty()){
+            std::cout << "[" << request[fd].state.filePath << "]" << std::endl;
+            std::string location_ = "http://" + configIndex.getHost() + configIndex.getLocations()[0].redirect;
+            httpRespons = MovedPermanently(Server::getContentType(location_), location_);
+        }
+        else{
+            std::cout << "(" << filePath << ")" << std::endl;
+            std::string location_ = configIndex.getLocations()[0].index[0];            
+            httpRespons = httpResponse(contentType, request[fd].state.fileSize);
+        }
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
             return std::cerr << "Failed to send HTTP header." << std::endl, -1;
         char buffer[request[fd].state.fileSize];
@@ -186,25 +217,25 @@ std::string Server::readFile(const std::string &path)
     return oss.str();
 }
 
-int Server::serve_file_request(int fd)
+int Server::serve_file_request(int fd, ConfigData configIndex)
 {
-    
     std::string Connection = request[fd].connection;
     std::string filePath = request[fd].state.filePath;
-
     if (request[fd].state.test == 1)
     {
-        if (continueFileTransfer(fd, request[fd].state.filePath) == -1)
+        if (continueFileTransfer(fd, request[fd].state.filePath, configIndex) == -1)
             return std::cerr << "Failed to continue file transfer" << std::endl, 0;
         return 0;
     }
-    if (canBeOpen(filePath) && getFileType(filePath) == 2)
+    if (canBeOpen(filePath, configIndex) && getFileType(filePath) == 2)
     {
-        if (handleFileRequest(fd, filePath, Connection) == -1)
+        if (handleFileRequest(fd, filePath, Connection, configIndex) == -1)
             return 0;
         return 0;
     }
-    else
+    else{
+        exit(0);
         return getSpecificRespond(fd, this, "404.html", createNotFoundResponse);
+    }
     return 0;
 }

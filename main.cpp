@@ -17,7 +17,6 @@ int main(int argc, char **argv)
     }
     Server *server = new Server();
     server->configData = configParser.configData;
-    server->configData[0].printData();
     if (server->startServer() == EXIT_FAILURE)
         return EXIT_FAILURE;
     

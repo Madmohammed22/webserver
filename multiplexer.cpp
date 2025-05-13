@@ -76,7 +76,7 @@ int Server::handleClientConnections()
             if (request[fd].state.isComplete)
             {
                 if (request[fd].getMethod() == "GET")
-                    serve_file_request(fd);
+                    serve_file_request(fd, configData[0]);
                 else if (request[fd].getMethod() == "DELETE")
                     handle_delete_request(fd);
             }

@@ -82,12 +82,12 @@ bool Server::validateHeader(int fd, FileTransferState &state)
             std::cout << "-------( REQUEST PARSED )-------\n\n";
             std::cout << request[fd].header << std::endl;
             std::cout << "-------( END OF REQUEST )-------\n\n\n";
-            request[fd].Data();
+            // request[fd].Data();
         }
         else if (state.header.find("DELETE") != std::string::npos)
         {
             DELETE delete_;
-            
+
             std::cout << request[fd].header << "]" << std::endl;
             if (header_parser(delete_, request[fd], state.header.to_string(), tmpMap) == false)
             {
