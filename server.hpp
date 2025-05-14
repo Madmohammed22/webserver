@@ -78,7 +78,10 @@ public:
 public:
     // Map to keep track of file in for each client
     std::map<int, Request> request;
-    std::map<int, struct CONFIG> multiServers;
+    std::map<int, ConfigData> multiServers;
+    std::map<int, int> clientToServer;
+    std::vector<int> sockets;
+
     int establishingServer();
 
 public:
@@ -86,6 +89,9 @@ public:
     size_t LARGE_FILE_THRESHOLD;
 
 public:
+    int establishingMultiServer(ConfigData configData);
+    int handleClientConnectionsForMultipleServers();
+    int startMultipleServers(ConfigData configData);
     int startServer();
     bool validateHeader(int fd, FileTransferState &state);
     int handleClientConnections();

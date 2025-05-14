@@ -234,7 +234,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
         return 0;
     }
     else{
-        exit(0);
         return getSpecificRespond(fd, this, "404.html", createNotFoundResponse);
     }
     return 0;
