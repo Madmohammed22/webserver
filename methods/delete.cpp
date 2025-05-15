@@ -86,8 +86,10 @@ int DELETE(std::string request)
     return unlink(filename) == -1 ? EXIT_FAILURE : EXIT_SUCCESS;   
 }
 
-int Server::handle_delete_request(int fd)
+int Server::handle_delete_request(int fd, ConfigData configIndex)
 {
+    (void)configIndex;
+    
     std::string filePath = request[fd].state.filePath;
     if (canBeOpen(filePath, configData[0]))
     {

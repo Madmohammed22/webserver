@@ -81,6 +81,7 @@ public:
     std::map<int, ConfigData> multiServers;
     std::map<int, int> clientToServer;
     std::vector<int> sockets;
+    struct epoll_event events[MAX_EVENTS];
 
     int establishingServer();
 
@@ -89,6 +90,9 @@ public:
     size_t LARGE_FILE_THRESHOLD;
 
 public:
+    void handleNewConnection(int fd);
+    void handleClientData(int fd);
+    void handleClientOutput(int fd);
     int establishingMultiServer(ConfigData configData);
     int handleClientConnectionsForMultipleServers();
     int startMultipleServers(ConfigData configData);
@@ -97,7 +101,7 @@ public:
     int handleClientConnections();
     // Methods
     int serve_file_request(int fd, ConfigData configIndex);
-    int handle_delete_request(int fd);
+    int handle_delete_request(int fd, ConfigData configIndex);
     int handlePostRequest(int fd, Server *server, Binary_String request);
 
     // Functions helper

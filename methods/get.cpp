@@ -86,20 +86,20 @@ bool Server::canBeOpen(std::string &filePath)
 
 bool Server::canBeOpen(std::string &filePath, ConfigData configIndex)
 {
-
-    std::string new_path;
-    bool check = filePath == "/" && !configIndex.getLocations()[0].redirect.empty();
-    if (check)
-    {
-        new_path = configIndex.getLocations()[0].root + configIndex.getLocations()[0].redirect;
-    }
-    else if (filePath != "/" && configIndex.getLocations()[0].redirect.empty()){
-        new_path = configIndex.getLocations()[0].root + "/" + configIndex.getLocations()[0].index[0];        
-    }
-    std::ifstream file(new_path.c_str());
+    (void)configIndex;
+    // std::string new_path;
+    // bool check = filePath == "/" && !configIndex.getLocations()[0].redirect.empty();
+    // if (check)
+    // {
+    //     new_path = configIndex.getLocations()[0].root + configIndex.getLocations()[0].redirect;
+    // }
+    // else if (filePath != "/" && configIndex.getLocations()[0].redirect.empty()){
+    //     new_path = configIndex.getLocations()[0].root + "/" + configIndex.getLocations()[0].index[0];        
+    // }
+    std::ifstream file(filePath.c_str());
     if (!file.is_open())
         return false;
-    filePath = new_path;
+    // filePath = new_path;
     return true;
 }
 
@@ -161,8 +161,9 @@ int Server::continueFileTransfer(int fd, std::string filePath, ConfigData config
 int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection, ConfigData configIndex)
 {
     request[fd].state.filePath = filePath;
-    std::string contentType = request[fd].state.mime;
-    request[fd].state.fileSize = getFileSize(request[fd].state.filePath);
+    std::cout << "File path: " << request[fd].state.filePath << std::endl;
+    std::string contentType = Server::getContentType(filePath);
+    request[fd].state.fileSize = getFileSize(filePath);
     const size_t LARGE_FILE_THRESHOLD = 1024 * 1024;
 
     if (request[fd].state.fileSize > LARGE_FILE_THRESHOLD)
@@ -177,31 +178,25 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
     }
     else
     {
-        std::string httpRespons;
-        if (!configIndex.getLocations()[0].redirect.empty()){
-            std::cout << "[" << request[fd].state.filePath << "]" << std::endl;
-            std::string location_ = "http://" + configIndex.getHost() + configIndex.getLocations()[0].redirect;
-            httpRespons = MovedPermanently(Server::getContentType(location_), location_);
-        }
-        else{
-            std::cout << "(" << filePath << ")" << std::endl;
-            std::string location_ = configIndex.getLocations()[0].index[0];            
-            httpRespons = httpResponse(contentType, request[fd].state.fileSize);
-        }
+        std::string httpRespons = httpResponse(contentType, request[fd].state.fileSize);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
-            return std::cerr << "Failed to send HTTP header." << std::endl, -1;
-        char buffer[request[fd].state.fileSize];
-        size_t bytesRead = 0;
-        if (!readFileChunk(request[fd].state.filePath, buffer, 0, request[fd].state.fileSize, bytesRead))
-            return std::cerr << "Failed to read file: " << request[fd].state.filePath << std::endl, -1;
-
-        if (send(fd, buffer, bytesRead, MSG_NOSIGNAL) == -1)
-            return -1;
-
+        {
+            return std::cerr << "Failed to send HTTP header." << std::endl, 0;
+        }
+        if (send(fd, readFile(filePath).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL) == -1)
+        {
+            return std::cerr << "Failed to send file content." << std::endl, 0;
+        }
+        if (send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL) == -1)
+        {
+            return std::cerr << "Failed to send final CRLF." << std::endl, 0;
+        }
         if (Connection == "close")
+        {
             return close(fd), request.erase(fd), 0;
-        close(fd), request.erase(fd);
-        return 0;
+        }
+        request[fd].state.test = 0;
+        request[fd].state.isComplete = true;
     }
     return 0;
 }
@@ -219,8 +214,9 @@ std::string Server::readFile(const std::string &path)
 
 int Server::serve_file_request(int fd, ConfigData configIndex)
 {
+    (void)configIndex;
     std::string Connection = request[fd].connection;
-    std::string filePath = request[fd].state.filePath;
+    std::string filePath = configIndex.getLocations()[0].root + "/" +configIndex.getLocations()[0].index[0];
     if (request[fd].state.test == 1)
     {
         if (continueFileTransfer(fd, request[fd].state.filePath, configIndex) == -1)
@@ -229,12 +225,14 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     }
     if (canBeOpen(filePath, configIndex) && getFileType(filePath) == 2)
     {
+        // std::cout << "File path: " << filePath << std::endl;
+        return getSpecificRespond(fd, this, "405.html", createNotFoundResponse);
         if (handleFileRequest(fd, filePath, Connection, configIndex) == -1)
             return 0;
         return 0;
     }
     else{
-        return getSpecificRespond(fd, this, "404.html", createNotFoundResponse);
+        return getSpecificRespond(fd, this, "405.html", createNotFoundResponse);
     }
     return 0;
 }
