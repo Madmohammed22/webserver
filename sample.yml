@@ -1,92 +1,36 @@
 server:
-  host: localhost
-  port: 8080
+  port: 9000
+  host: 10.0.2.15
+
   server_name: example.com
   client_max_body_size: 1m
-
   
   error_page:
-     404: /error/404.html
+     400: root/error/400.html
+     404: root/error/404.html
+     405: root/error/405.html
+     408: root/error/408.html
+     410: root/error/410.html
+     415: root/error/415.html
   locations:
-    /:
+    /: 
       redirect: /index.html
       root: /var/www/html
       index: index.html
-      autoindex: off
-  
-    /api:
-      redirect: /main.html
-      root: /var/www/api
-      methods: [get, post]
       autoindex: on
+      methods: [delete, post, get]
 
-    /cgi-bin:
+    /op/: 
+      redirect: /index.html
+      root: /var/www/html
+      index: index.html, index.html
+      autoindex: on
+      methods: [post, delete, get]
+
+    /cgi-bin/:
       root: /var/www/cgi-bin
       methods: [get, post]
       cgi: .py:/usr/bin/python3
 
-    /upload:
-      # redirect: /new_page
-      methods: [post]
-
-server:
-  host: localhost
-  port: 9090
-  server_name: example.com
-  client_max_body_size: 1m
-
-  
-  error_page:
-     404: /error/404.html
-  locations:
-    /:
-      redirect: /index.html
-      root: /var/www/html
-      index: index.html
-      autoindex: off
-  
-    /api:
-      redirect: /main.html
-      root: /var/www/api
-      methods: [get, post]
-      autoindex: on
-
-    /cgi-bin:
-      root: /var/www/cgi-bin
-      methods: [get, post]
-      cgi: .py:/usr/bin/python3
-
-    /upload:
-      # redirect: /new_page
-      methods: [post]
-
-server:
-  host: localhost
-  port: 4040
-  server_name: example.com
-  client_max_body_size: 1m
-
-  
-  error_page:
-     404: /error/404.html
-  locations:
-    /:
-      redirect: /index.html
-      root: /var/www/html
-      index: index.html
-      autoindex: off
-  
-    /api:
-      redirect: /main.html
-      root: /var/www/api
-      methods: [get, post]
-      autoindex: on
-
-    /cgi-bin:
-      root: /var/www/cgi-bin
-      methods: [get, post]
-      cgi: .py:/usr/bin/python3
-
-    /upload:
-      # redirect: /new_page
-      methods: [post]
+    /upload/:
+      methods: [post, delete, get]

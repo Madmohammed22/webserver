@@ -43,6 +43,7 @@ public:
     FileTransferState state;
     std::string header;
     std::map<std::string, std::string> keys;
+    int flag;
 
 public:
     Request() {}
@@ -223,6 +224,8 @@ public:
             {
                 return false;
             }
+            if (builder.getRequest().keys.find(method)->second.find("HTTP/1.1") == std::string::npos)
+                return false;
         }
         return true;
     }
@@ -343,7 +346,7 @@ public:
 public:
     bool validate(RequstBuilder &builder)
     {
-        bool check = builder.getRequest().getConnection() == "close" || builder.getRequest().getConnection() == "keep-alive" || builder.getRequest().getConnection() == "undefined";
+        bool check = builder.getRequest().getConnection() == "close" || builder.getRequest().getConnection() == "keep-alive" || builder.getRequest().getConnection() == "undefined" || !builder.getRequest().getConnection().empty();
 
         return check;
     }
@@ -375,8 +378,11 @@ public:
     };
 
 public:
-    bool buildRequest_valid(RequstBuilder &requstBuilder)
+    std::pair<bool, int> buildRequest_valid(RequstBuilder &requstBuilder)
     {
+        std::pair<bool, int> return_pair;
+        return_pair.first = true;
+        return_pair.second = 0;
         ContentLengthValidator contentLengthValidator;
         TransferEncodingValidator transferEncodingValidator;
         ConnectionValidator connectionValidator;
@@ -394,11 +400,14 @@ public:
         {
             if (!(*it)->validate(requstBuilder))
             {
+                
                 std::cout << "Request is invalid." << std::endl;
-                return false;
+                return_pair.first = false;
+                return_pair.second = -1;
+                return return_pair;
             }
         }
-        return true;
+        return return_pair;
     }
 };
 

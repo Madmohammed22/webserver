@@ -5,7 +5,8 @@ void DELETE::includeBuild(std::string target, std::string &metaData, int pick)
     std::map<std::string, std::string>::iterator it = request.keys.find(target);
     if (it != request.keys.end())
     {
-        if (Server::containsOnlyWhitespace(it->second) == false){
+        if (Server::containsOnlyWhitespace(it->second) == false)
+        {
             if (pick == 1)
                 metaData = it->first;
             else
@@ -83,30 +84,30 @@ void deleteDirectoryContents(const std::string &dir)
 int DELETE(std::string request)
 {
     const char *filename = request.c_str();
-    return unlink(filename) == -1 ? EXIT_FAILURE : EXIT_SUCCESS;   
+    return unlink(filename) == -1 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 int Server::handle_delete_request(int fd, ConfigData configIndex)
 {
-    (void)configIndex;
-    
+
     std::string filePath = request[fd].state.filePath;
-    if (canBeOpen(filePath, configData[0]))
+    Location location = getExactLocationBasedOnUrl(filePath, configIndex);
+    if (canBeOpen(fd, filePath, location))
     {
         if (filePath.at(0) != '/')
-            filePath = "/" + filePath;
-        if (getFileType(filePath) == 1)
+        filePath = "/" + filePath;
+        if (getFileType(filePath) == 1){      
             deleteDirectoryContents(filePath.c_str());
-
-        if (DELETE(filePath) == -1)
-            return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << filePath << std::endl, 0;
-        std::string httpResponse = deleteHttpResponse(this);
-        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-        {
-            std::cerr << "Failed to send HTTP header." << std::endl;
-            return request.erase(fd), close(fd), 0;
         }
+        
+        if (DELETE(filePath) == -1){
+            
+            return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << filePath << std::endl, 0;
+        }
+        std::string httpResponse = deleteResponse(this);
+        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
+            return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
         return request.erase(fd), close(fd), 0;
     }
-    return getSpecificRespond(fd, this, "404.html", createNotFoundResponse);
+    return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
 }

@@ -17,11 +17,6 @@ void Server::printfContentHeader(Server *server, int fd)
 std::string Server::parseSpecificRequest(std::string request)
 {
     std::string filePath;
-    // filePath = "/index.html";
-    // if (searchOnSpecificFile(PATHC, "index.html") == true)
-    // else
-    //     filePath = "undefined";
-    // Handle GET requests
     size_t startPos = request.find("GET /");
     if (startPos != std::string::npos)
     {
@@ -153,4 +148,13 @@ bool Server::searchOnSpecificFile(std::string path, std::string fileTarget)
     }
     closedir(dir);
     return false;
+}
+
+Location getLocation_adder1(std::string targetLocation, ConfigData configIndex){
+    for(size_t i = 0; i < configIndex.getLocations().size(); i++){
+        if (targetLocation == configIndex.getLocations()[i].path){
+            configIndex.getLocations()[i];
+        }
+    }
+    return configIndex.getLocations()[0];
 }

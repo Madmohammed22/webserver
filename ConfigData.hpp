@@ -26,6 +26,8 @@ public:
 
 class ConfigData
 {
+
+
 private:
     std::vector<Location> _locations;
     std::vector<std::string> _content;

@@ -10,9 +10,8 @@ bool header_parser(T method, Request &request, std::string header, std::map<std:
     Request methaData(header, tmpMap);
     method = T(methaData);
     build.buildRequest(method);
-    if (!build.buildRequest_valid(method))
+    if (!build.buildRequest_valid(method).first)
     {
-        // request.exit_from_what = "410";
         return false;
     }
     methaData = method.getRequest();
@@ -29,13 +28,12 @@ bool header_parser(T method, Request &request, std::string header, std::map<std:
     return true;
 }
 
-bool Server::validateHeader(int fd, FileTransferState &state)
+bool Server::validateHeader(int fd, FileTransferState &state, ConfigData serverConfig)
 {
     std::map<std::string, std::string> tmpMap;
     size_t header_end = state.buffer.find("\r\n\r\n");
     if (header_end != std::string::npos)
     {
-        // extract header
         state.header = state.buffer.substr(0, header_end + 4);
         state.headerFlag = true;
         size_t body_start = header_end + 4;
@@ -49,11 +47,11 @@ bool Server::validateHeader(int fd, FileTransferState &state)
         }
         try
         {
-            tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header.to_string()).first);
+            
+            tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header.to_string(), serverConfig).first);
         }
         catch (const std::exception &e)
         {
-            std::runtime_error("BadHeader");
             return false;
         }
 
@@ -61,13 +59,7 @@ bool Server::validateHeader(int fd, FileTransferState &state)
         {
             GET get;
             if (header_parser(get, request[fd], state.header.to_string(), tmpMap) == false)
-            {
-                std::cout << "Invalid Header" << std::endl;
                 return false;
-            }
-            std::cout << "-------( REQUEST PARSED )-------\n\n";
-            std::cout << request[fd].header << std::endl;
-            std::cout << "-------( END OF REQUEST )-------\n\n\n";
             request[fd].state.isComplete = true;
         }
         else if (state.header.find("POST") != std::string::npos)
@@ -76,32 +68,23 @@ bool Server::validateHeader(int fd, FileTransferState &state)
 
             if (header_parser(post, request[fd], state.header.to_string(), tmpMap) == false)
             {
-                std::cout << "Invalid Header" << std::endl;
                 return false;
             }
             std::cout << "-------( REQUEST PARSED )-------\n\n";
             std::cout << request[fd].header << std::endl;
             std::cout << "-------( END OF REQUEST )-------\n\n\n";
-            // request[fd].Data();
         }
         else if (state.header.find("DELETE") != std::string::npos)
         {
             DELETE delete_;
 
-            std::cout << request[fd].header << "]" << std::endl;
             if (header_parser(delete_, request[fd], state.header.to_string(), tmpMap) == false)
-            {
-                std::cout << "Invalid Header" << std::endl;
                 return false;
-            }
-            std::cout << "-------( REQUEST PARSED )-------\n\n";
-            std::cout << request[fd].header << std::endl;
-            std::cout << "-------( END OF REQUEST )-------\n\n\n";
             request[fd].state.isComplete = true;
         }
         else if (state.header.find("PUT") != std::string::npos || state.header.find("PATCH") != std::string::npos || state.header.find("HEAD") != std::string::npos || state.header.find("OPTIONS") != std::string::npos)
         {
-            return getSpecificRespond(fd, this, "405.html", methodNotAllowedResponse), true;
+            return getSpecificRespond(fd, serverConfig.getErrorPages().find(405)->second, methodNotAllowedResponse), true;
         }
         state.buffer.clear();
     }

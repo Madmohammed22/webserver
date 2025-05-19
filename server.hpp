@@ -17,6 +17,12 @@
 #include "request.hpp"
 #include "globalInclude.hpp"
 
+typedef struct s_listen
+{
+    int port;
+    std::string host;
+} t_listen;
+
 class CONFIG
 {
     int port;
@@ -25,13 +31,13 @@ class CONFIG
     int timeout;
     int timeoutms;
     std::string pathc;
-    std::string pathe; 
-    std::string pathu; 
-    std::string test; 
+    std::string pathe;
+    std::string pathu;
+    std::string test;
 
-
-public :
-    CONFIG(const CONFIG& conf) {
+public:
+    CONFIG(const CONFIG &conf)
+    {
         this->port = conf.port;
         this->maxevents = conf.maxevents;
         this->chunksize = conf.chunksize;
@@ -43,6 +49,7 @@ public :
         this->pathu = conf.pathu;
         this->test = conf.test;
     }
+
 public:
     void set_port(int port) { this->port = port; };
     void set_maxevents(int maxevents) { this->maxevents = maxevents; };
@@ -66,7 +73,7 @@ class Server
 public:
     struct epoll_event ev;
     int listen_sock;
-    std::vector <ConfigData> configData;
+    std::vector<ConfigData> configData;
     int epollfd;
 
 public:
@@ -76,9 +83,12 @@ public:
     ~Server();
 
 public:
+    int flag;
+
     // Map to keep track of file in for each client
     std::map<int, Request> request;
-    std::map<int, ConfigData> multiServers;
+    std::vector<s_listen> listenVec;
+    std::map<int, t_listen> multiServers;
     std::map<int, int> clientToServer;
     std::vector<int> sockets;
     struct epoll_event events[MAX_EVENTS];
@@ -90,14 +100,17 @@ public:
     size_t LARGE_FILE_THRESHOLD;
 
 public:
+    void getListenPairs();
+    ConfigData getConfigForRequest(t_listen listen, std::string host);
+    std::string returnFilePath(std::string &path, ConfigData configIndex);
     void handleNewConnection(int fd);
     void handleClientData(int fd);
     void handleClientOutput(int fd);
-    int establishingMultiServer(ConfigData configData);
+    int establishingMultiServer(t_listen configData);
     int handleClientConnectionsForMultipleServers();
-    int startMultipleServers(ConfigData configData);
+    int startMultipleServers(t_listen configData);
     int startServer();
-    bool validateHeader(int fd, FileTransferState &state);
+    bool validateHeader(int fd, FileTransferState &state, ConfigData serverConfig);
     int handleClientConnections();
     // Methods
     int serve_file_request(int fd, ConfigData configIndex);
@@ -105,15 +118,18 @@ public:
     int handlePostRequest(int fd, Server *server, Binary_String request);
 
     // Functions helper
+    Location getExactLocationBasedOnUrl(std::string target, ConfigData configIndex);
+    bool checkAvailability(int fd, Location location);
     void reWrite(std::string &filePath, ConfigData configData);
     bool closeConnection(int fd);
     static bool containsOnlyWhitespace(const std::string &str);
     static std::string trim(std::string str);
     int parsePostRequest(Server *server, int fd, std::string header);
     static std::string getContentType(const std::string &path);
-    std::string readFile(const std::string &path);
+    std::string readFile(std::string path);
     int getFileType(std::string path);
-    bool canBeOpen(std::string &filePath, ConfigData configIndex);
+    static Location getLocation_adder1(std::string targetLocation, ConfigData configIndex);
+    bool canBeOpen(int fd, std::string &filePath, Location location);
     static std::string parseSpecificRequest(std::string request);
     static std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
@@ -127,31 +143,29 @@ public:
     // Response headers
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
     std::string createChunkedHttpResponse(std::string contentType);
-    std::string httpResponse(std::string contentType, size_t contentLength);
+    static std::string httpResponse(std::string contentType, size_t contentLength);
     static std::string methodNotAllowedResponse(std::string contentType, size_t contentLength);
     int processMethodNotAllowed(int fd, Server *server, std::string request);
     static std::string createUnsupportedMediaResponse(std::string contentType, size_t contentLength);
-    static std::string createBadResponse(std::string contentType, size_t contentLength);
-    void writeData(Server *server, Binary_String &chunk, int fd);
+    static std::string createBadRequest(std::string contentType, size_t contentLength);
     std::string goneHttpResponse(std::string contentType, size_t contentLength);
-    std::string deleteHttpResponse(Server *server);
+    std::string deleteResponse(Server *server);
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
-    int getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t));
+    int getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t));
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
 
     // Transfer-Encoding: chunked
-    int handleFileRequest(int fd, const std::string &filePath, std::string Connection, ConfigData configIndex);
-    int continueFileTransfer(int fd, std::string filePath, ConfigData configIndex);
+    int handleFileRequest(int fd, const std::string &filePath, std::string Connection, Location configIndex);
+    int continueFileTransfer(int fd, std::string filePath, Location configIndex);
     void setnonblocking(int fd);
     static std::map<std::string, std::string> key_value_pair(std::string header);
 
-    public:
-        std::string MovedPermanently(std::string contentType, std::string location);
-
+public:
+    std::string MovedPermanently(std::string contentType, std::string location);
 };
 
 template <typename T>
-std::pair<T, T> ft_parseRequest_T(int fd, Server *server, T header)
+std::pair<T, T> ft_parseRequest_T(int fd, Server* server, T header, ConfigData serverConfig)
 {
 
     std::pair<T, T> pair_request;
@@ -162,7 +176,7 @@ std::pair<T, T> ft_parseRequest_T(int fd, Server *server, T header)
     }
     catch (const std::exception &e)
     {
-        server->getSpecificRespond(fd, server, "404.html", server->createNotFoundResponse);
+        server->getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, server->createBadRequest);
     }
 
     return pair_request;

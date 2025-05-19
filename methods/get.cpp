@@ -65,42 +65,35 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
     return true;
 }
 
-/*
-bool Server::canBeOpen(std::string &filePath)
-{
-
-    std::string new_path;
-    if (filePath.at(0) != '/' && getFileType("/" + filePath) == 2)
-        new_path = "/" + filePath;
-    else if (filePath.at(0) != '/' && getFileType("/" + filePath) == 1)
-        return true;
-    else
-        new_path = TEST + filePath;
-    std::ifstream file(new_path.c_str());
-    if (!file.is_open())
-        return std::cerr << "" << std::ends, false;
-    filePath = new_path;
-    return true;
-}
- */
-
-bool Server::canBeOpen(std::string &filePath, ConfigData configIndex)
-{
-    (void)configIndex;
-    // std::string new_path;
-    // bool check = filePath == "/" && !configIndex.getLocations()[0].redirect.empty();
-    // if (check)
-    // {
-    //     new_path = configIndex.getLocations()[0].root + configIndex.getLocations()[0].redirect;
-    // }
-    // else if (filePath != "/" && configIndex.getLocations()[0].redirect.empty()){
-    //     new_path = configIndex.getLocations()[0].root + "/" + configIndex.getLocations()[0].index[0];        
-    // }
+bool check(std::string filePath){
     std::ifstream file(filePath.c_str());
     if (!file.is_open())
         return false;
-    // filePath = new_path;
     return true;
+}
+bool Server::canBeOpen(int fd, std::string &filePath, Location location)
+{
+    if (filePath == location.path)
+    {
+        if (location.redirect.size() > 0)
+        {
+            request[fd].flag = 1;
+            filePath = location.root + location.redirect;
+            return check(filePath);
+        }
+        else if (location.index.size() > 0){
+            filePath = location.root + "/" + location.index[0];
+            return check(filePath) && location.autoindex;
+        }
+    }
+    else
+    {
+        std::cout << "[" << location.path << ", " << filePath << "]" << std::endl;
+        // if (location.path == filePath)
+        filePath = location.root + filePath;
+    }
+
+    return check(filePath);
 }
 
 bool sendChunk(int fd, const char *data, size_t size)
@@ -124,9 +117,10 @@ bool sendFinalChunk(int fd)
            send(fd, "\r\n", 2, MSG_NOSIGNAL) != -1;
 }
 
-int Server::continueFileTransfer(int fd, std::string filePath, ConfigData configIndex)
+int Server::continueFileTransfer(int fd, std::string filePath, Location configIndex)
 {
-    canBeOpen(filePath, configIndex);
+    (void)configIndex;
+    // canBeOpen(filePath, configIndex);
     char buffer[CHUNK_SIZE];
     size_t remainingBytes = request[fd].state.fileSize - request[fd].state.offset;
     size_t bytesToRead;
@@ -158,16 +152,16 @@ int Server::continueFileTransfer(int fd, std::string filePath, ConfigData config
     return 0;
 }
 
-int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection, ConfigData configIndex)
+int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection, Location configIndex)
 {
     request[fd].state.filePath = filePath;
-    std::cout << "File path: " << request[fd].state.filePath << std::endl;
     std::string contentType = Server::getContentType(filePath);
     request[fd].state.fileSize = getFileSize(filePath);
     const size_t LARGE_FILE_THRESHOLD = 1024 * 1024;
 
     if (request[fd].state.fileSize > LARGE_FILE_THRESHOLD)
     {
+
         request[fd].state.test = 1;
         std::string httpRespons = createChunkedHttpResponse(contentType);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
@@ -178,30 +172,28 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
     }
     else
     {
-        std::string httpRespons = httpResponse(contentType, request[fd].state.fileSize);
+        std::string httpRespons;
+        if (configIndex.redirect.size() > 0 && request[fd].flag == 1)
+        {
+            request[fd].flag = 0;
+            httpRespons = MovedPermanently(contentType, configIndex.redirect);
+        }
+        else
+            httpRespons = httpResponse(contentType, request[fd].state.fileSize);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
-        {
-            return std::cerr << "Failed to send HTTP header." << std::endl, 0;
-        }
+            return std::cerr << "Failed to send HTTP header." << std::endl, -1;
         if (send(fd, readFile(filePath).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL) == -1)
-        {
-            return std::cerr << "Failed to send file content." << std::endl, 0;
-        }
+            return std::cerr << "Failed to send file content." << std::endl, -1;
         if (send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL) == -1)
-        {
-            return std::cerr << "Failed to send final CRLF." << std::endl, 0;
-        }
-        if (Connection == "close")
-        {
-            return close(fd), request.erase(fd), 0;
-        }
-        request[fd].state.test = 0;
-        request[fd].state.isComplete = true;
+            return std::cerr << "Failed to send final CRLF." << std::endl, -1;
+        if (Connection == "close" || Connection.empty())
+            return request[fd].state.isComplete = true,  close(fd), request.erase(fd), 0;
+        return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
     }
     return 0;
 }
 
-std::string Server::readFile(const std::string &path)
+std::string Server::readFile(std::string path)
 {
     std::ifstream infile(path.c_str(), std::ios::binary);
     if (!infile)
@@ -212,27 +204,50 @@ std::string Server::readFile(const std::string &path)
     return oss.str();
 }
 
+Location Server::getExactLocationBasedOnUrl(std::string target, ConfigData configIndex)
+{
+    for (size_t i = 0; i < configIndex.getLocations().size(); i++)
+    {
+        if (target == configIndex.getLocations()[i].path)
+        {
+            return configIndex.getLocations()[i];
+        }
+    }
+    return configIndex.getLocations()[0];
+}
+
+bool Server::checkAvailability(int fd, Location location){
+    for (size_t i = 0; i < location.methods.size(); i++){
+        std::transform(location.methods[i].begin(), location.methods[i].end(), location.methods[i].begin(), ::toupper);
+        if (location.methods[i] == request[fd].getMethod())
+            return true;
+    }
+    return false;
+}
+
 int Server::serve_file_request(int fd, ConfigData configIndex)
 {
-    (void)configIndex;
     std::string Connection = request[fd].connection;
-    std::string filePath = configIndex.getLocations()[0].root + "/" +configIndex.getLocations()[0].index[0];
+    std::string filePath = request[fd].state.filePath;
+    Location location = getExactLocationBasedOnUrl(filePath, configIndex);
+    if (checkAvailability(fd,location) == false)
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse);
+        
     if (request[fd].state.test == 1)
     {
-        if (continueFileTransfer(fd, request[fd].state.filePath, configIndex) == -1)
+        if (continueFileTransfer(fd, filePath, location) == -1)
             return std::cerr << "Failed to continue file transfer" << std::endl, 0;
         return 0;
     }
-    if (canBeOpen(filePath, configIndex) && getFileType(filePath) == 2)
+    if (canBeOpen(fd, filePath, location))
     {
-        // std::cout << "File path: " << filePath << std::endl;
-        return getSpecificRespond(fd, this, "405.html", createNotFoundResponse);
-        if (handleFileRequest(fd, filePath, Connection, configIndex) == -1)
-            return 0;
+        if (handleFileRequest(fd, filePath, Connection, location) == -1)
+            return close(fd), request.erase(fd), 0;
         return 0;
     }
-    else{
-        return getSpecificRespond(fd, this, "405.html", createNotFoundResponse);
+    else
+    {
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
     }
     return 0;
 }

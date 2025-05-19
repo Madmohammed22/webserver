@@ -56,12 +56,18 @@ int Server::getFileType(std::string path)
     return -1;
 }
 
+// std::string Server::createChunkedHttpResponse(std::string contentType)
+// {
+
+// }
+
 std::string Server::createChunkedHttpResponse(std::string contentType)
 {
     std::ostringstream oss;
     oss << "HTTP/1.1 200 OK\r\n"
-        << "Content-Type: " + contentType + "; charset=utf-8" + "\r\n"
-        << "Transfer-Encoding: chunked\r\n\r\n";
+        << "Transfer-Encoding: chunked\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT() << "\r\n\r\n";
     return oss.str();
 }
 
@@ -108,7 +114,7 @@ std::string getCurrentTimeInGMT1()
     return date;
 }
 
-std::string Server::createBadResponse(std::string contentType, size_t contentLength)
+std::string Server::createBadRequest(std::string contentType, size_t contentLength)
 {
     std::ostringstream oss;
     oss << "HTTP/1.1 400 Bad Request\r\n"
@@ -151,7 +157,7 @@ std::string Server::goneHttpResponse(std::string contentType, size_t contentLeng
     return oss.str();
 }
 
-std::string Server::deleteHttpResponse(Server *server)
+std::string Server::deleteResponse(Server *server)
 {
     std::ostringstream oss;
     oss << "HTTP/1.1 204 No Content\r\n"
@@ -168,38 +174,33 @@ std::string Server::MovedPermanently(std::string contentType, std::string locati
     return oss.str();
 }
 
-int Server::getSpecificRespond(int fd, Server *server, std::string file, std::string (*f)(std::string, size_t))
+int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t))
 {
-    std::string path1 = PATHE;
-    std::string path2 = file;
-    std::string new_path = path1 + path2;
-    std::string content = server->readFile(new_path);
-    std::string httpResponse = f(server->getContentType(new_path), content.length());
+    std::string content = readFile(file);
+    std::string httpResponse = f(getContentType(file), content.length());
     try
     {
         if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-        {
             throw std::runtime_error("Failed to send error response header");
-        }
 
         if (send(fd, content.c_str(), content.length(), MSG_NOSIGNAL) == -1)
-        {
             throw std::runtime_error("Failed to send error content");
-        }
 
         if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
-        {
             throw std::runtime_error("Failed to send final CRLF");
-        }
         if (request[fd].getConnection() == "close")
-            // return close(fd), request.erase(fd);
-            // server->request.erase(fd), close(fd);
-            return 0;
+            return request.erase(fd), close(fd), 0;
+        else
+        {
+            request[fd].state.isComplete = true;
+            close(fd);
+            request.erase(fd);
+        }
+        return 0;
     }
     catch (const std::exception &e)
     {
-        // return server->request.erase(fd), 0;
-        return 0;
+        return close(fd), request.erase(fd), 0;
     }
     return 0;
 }

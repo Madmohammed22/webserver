@@ -61,44 +61,51 @@ void Server::setnonblocking(int fd)
     }
 }
 
-int Server::establishingMultiServer(ConfigData configData) {
+int Server::establishingMultiServer(t_listen listen_)
+{
     int serverSocket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, getprotobyname("tcp")->p_proto);
-    if (serverSocket < 0) {
+    if (serverSocket < 0)
+    {
         perror("Error opening stream socket");
         return EXIT_FAILURE;
     }
 
     sockaddr_in serverAddress;
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_port = htons(configData.getPort());
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
+    serverAddress.sin_port = htons(listen_.port);
+    serverAddress.sin_addr.s_addr = inet_addr(listen_.host.c_str()); ;
 
     int a = 1;
-    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, &a, sizeof(int)) < 0) {
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, &a, sizeof(int)) < 0)
+    {
         perror("setsockopt failed");
         close(serverSocket);
         return EXIT_FAILURE;
     }
 
-    if (bind(serverSocket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1) {
+    if (bind(serverSocket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1)
+    {
         perror("binding stream socket");
         close(serverSocket);
         return EXIT_FAILURE;
     }
 
-    if (listen(serverSocket, 5) < 0) {
+    if (listen(serverSocket, 5) < 0)
+    {
         perror("listen stream socket");
         close(serverSocket);
         return EXIT_FAILURE;
     }
 
-    std::cout << "Server started on port " << configData.getPort() << std::endl;
+    std::cout << "Server started on port " << listen_.port << std::endl;
     return serverSocket;
 }
 
-int Server::startMultipleServers(ConfigData configData) {
-    int listen_sock = establishingMultiServer(configData);
-    if (listen_sock == EXIT_FAILURE) {
+int Server::startMultipleServers(t_listen listen)
+{
+    int listen_sock = establishingMultiServer(listen);
+    if (listen_sock == EXIT_FAILURE)
+    {
         return EXIT_FAILURE;
     }
 
@@ -106,14 +113,63 @@ int Server::startMultipleServers(ConfigData configData) {
     ev.events = EPOLLIN | EPOLLOUT;
     ev.data.fd = listen_sock;
 
-    if (epoll_ctl(this->epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
+    if (epoll_ctl(this->epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
+    {
         perror("Failed to add file descriptor to epoll");
         close(listen_sock);
         return EXIT_FAILURE;
     }
 
-    this->multiServers[listen_sock] = configData;
+    this->multiServers[listen_sock] = listen;
     this->sockets.push_back(listen_sock);
 
     return EXIT_SUCCESS;
+}
+
+void Server::getListenPairs()
+{
+    std::vector<ConfigData>::iterator it;
+    t_listen newListen;
+
+    for (it = configData.begin(); it != configData.end(); ++it)
+    {
+        newListen.host = it->getHost();
+        newListen.port = it->getPort();
+        std::vector<t_listen>::iterator itListen;
+        for (itListen = listenVec.begin(); itListen != listenVec.end(); itListen++)
+        {
+            if (it->getHost() == itListen->host && it->getPort() == itListen->port)
+                break;
+        }
+        if (itListen == listenVec.end())
+            listenVec.push_back(newListen);
+    }
+
+    std::vector<t_listen>::iterator itListen;
+    for (itListen = listenVec.begin(); itListen != listenVec.end(); itListen++)
+    {
+        std::cout << " the host " << itListen->host << " the port " << itListen->port << std::endl;
+    }
+}
+
+ConfigData Server::getConfigForRequest(t_listen listen, std::string serverName)
+{
+    std::vector<ConfigData> configList;
+    std::vector<ConfigData>::iterator it;
+
+    for (it = configData.begin(); it != configData.end(); ++it)
+    {
+        if (it->getHost() == listen.host && it->getPort() == listen.port)
+            configList.push_back(*it);
+    }
+
+    if (serverName.empty())
+        return configList[0];
+
+    for (it = configList.begin(); it != configList.end(); ++it)
+    {
+        if (strcasecmp(it->getServerName().c_str(), serverName.c_str()) == 0)
+            return *it;
+    }
+    return configList[0];
 }

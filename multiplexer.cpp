@@ -49,8 +49,13 @@ void Server::handleClientData(int fd)
 
     if (!state.headerFlag && !state.isComplete)
     {
+        int serverSocket = clientToServer[fd];
+        ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], request[fd].getHost());
         state.buffer.append(holder, 0, bytes);
-        validateHeader(fd, state);
+        if (validateHeader(fd, state, serverConfig) == false){
+            getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, createBadRequest);
+        }
+        
     }
     else if (!state.isComplete)
     {
@@ -70,12 +75,19 @@ void Server::handleClientOutput(int fd)
     if (request[fd].state.isComplete)
     {
         int serverSocket = clientToServer[fd];
-        ConfigData &serverConfig = multiServers[serverSocket];
-
-        if (request[fd].getMethod() == "GET")
+        ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], request[fd].getHost());
+        if (request[fd].getMethod() == "GET"){
+            std::cout << "-------( REQUEST PARSED )-------\n\n";
+            std::cout << request[fd].header << std::endl;
+            std::cout << "-------( END OF REQUEST )-------\n\n\n";
             serve_file_request(fd, serverConfig);
-        else if (request[fd].getMethod() == "DELETE")
+        }
+        else if (request[fd].getMethod() == "DELETE"){
+            std::cout << "-------( REQUEST PARSED )-------\n\n";
+            std::cout << request[fd].header << std::endl;
+            std::cout << "-------( END OF REQUEST )-------\n\n\n";
             handle_delete_request(fd, serverConfig);
+        }
     }
 }
 
