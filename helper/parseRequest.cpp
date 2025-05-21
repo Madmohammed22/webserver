@@ -25,10 +25,10 @@ std::string url_decode(const std::string &value) {
             encoded.read(hex, 2);
             hex[2] = '\0';
             int char_code;
-            sscanf(hex, "%2x", &char_code); // Convert hex to int
+            sscanf(hex, "%2x", &char_code); 
             decoded << static_cast<char>(char_code);
         } else if (c == '+') {
-            decoded << ' '; // Convert '+' to space
+            decoded << ' '; 
         } else {
             decoded << c;
         }
