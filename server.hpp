@@ -16,6 +16,9 @@
 #include "ConfigData.hpp"
 #include "request.hpp"
 #include "globalInclude.hpp"
+using namespace std;
+
+// #include <curl/curl.h>
 
 typedef struct s_listen
 {
@@ -118,7 +121,9 @@ public:
     int handlePostRequest(int fd, Server *server, Binary_String request);
 
     // Functions helper
-    Location getExactLocationBasedOnUrl(std::string target, ConfigData configIndex);
+    static void addSlashBasedOnMethod(std::string &target, std::string method);
+    static std::string Forbidden(std::string contentType, size_t contentLength);
+    std::pair<Location, bool> getExactLocationBasedOnUrl(std::string target, ConfigData configIndex, void (*f)(std::string &fTarget, std::string method));
     bool checkAvailability(int fd, Location location);
     void reWrite(std::string &filePath, ConfigData configData);
     bool closeConnection(int fd);

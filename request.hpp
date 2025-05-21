@@ -399,8 +399,7 @@ public:
         for (std::vector<HeaderValidator *>::iterator it = validators.begin(); it != validators.end(); ++it)
         {
             if (!(*it)->validate(requstBuilder))
-            {
-                
+            {   
                 std::cout << "Request is invalid." << std::endl;
                 return_pair.first = false;
                 return_pair.second = -1;

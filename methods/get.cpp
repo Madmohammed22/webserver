@@ -65,14 +65,27 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
     return true;
 }
 
-bool check(std::string filePath){
+bool check(std::string filePath)
+{
     std::ifstream file(filePath.c_str());
+    std::cout << "[" << filePath << "]" << std::endl;
     if (!file.is_open())
         return false;
     return true;
 }
+
+bool matchPath(std::string filePath, Location location)
+{
+    if (filePath == "/")
+        return false;
+
+    if (filePath == location.path)
+        return true;
+    return false;
+}
 bool Server::canBeOpen(int fd, std::string &filePath, Location location)
 {
+
     if (filePath == location.path)
     {
         if (location.redirect.size() > 0)
@@ -81,15 +94,19 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location)
             filePath = location.root + location.redirect;
             return check(filePath);
         }
-        else if (location.index.size() > 0){
+        else if (location.index.size() > 0)
+        {
             filePath = location.root + "/" + location.index[0];
+            return check(filePath) && location.autoindex;
+        }
+        else
+        {
+            filePath = location.root + "/";
             return check(filePath) && location.autoindex;
         }
     }
     else
     {
-        std::cout << "[" << location.path << ", " << filePath << "]" << std::endl;
-        // if (location.path == filePath)
         filePath = location.root + filePath;
     }
 
@@ -120,7 +137,6 @@ bool sendFinalChunk(int fd)
 int Server::continueFileTransfer(int fd, std::string filePath, Location configIndex)
 {
     (void)configIndex;
-    // canBeOpen(filePath, configIndex);
     char buffer[CHUNK_SIZE];
     size_t remainingBytes = request[fd].state.fileSize - request[fd].state.offset;
     size_t bytesToRead;
@@ -187,7 +203,7 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
         if (send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL) == -1)
             return std::cerr << "Failed to send final CRLF." << std::endl, -1;
         if (Connection == "close" || Connection.empty())
-            return request[fd].state.isComplete = true,  close(fd), request.erase(fd), 0;
+            return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
         return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
     }
     return 0;
@@ -204,20 +220,81 @@ std::string Server::readFile(std::string path)
     return oss.str();
 }
 
-Location Server::getExactLocationBasedOnUrl(std::string target, ConfigData configIndex)
+std::pair<Location, bool> findRoot(ConfigData configIndex, std::string path)
 {
+    std::pair<Location, bool> pair_location(configIndex.getLocations()[0], false);
+    for (size_t i = 0; i < configIndex.getLocations().size(); i++)
+    {
+        if (path == "/")
+            if (path == configIndex.getLocations()[i].path)
+            {
+                pair_location.first = configIndex.getLocations()[i];
+                pair_location.second = true;
+                return pair_location;
+            }
+    }
+    return pair_location;
+}
+
+std::string returnNewPath(std::string path)
+{
+    size_t pos = 0;
+
+    pos = path.rfind('/', path.size() - 2);
+
+    return path.substr(0, pos + 1);
+}
+Location returnDefault(ConfigData configIndex)
+{
+    for (size_t i = 0; i < configIndex.getLocations().size(); i++)
+    {
+        if ("/" == configIndex.getLocations()[i].path)
+            return configIndex.getLocations()[i];
+    }
+    return configIndex.getLocations()[0];
+}
+std::pair<Location, bool> getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex)
+{
+    std::pair<Location, bool> pair_location(returnDefault(configIndex), false);
+    if (target == "/")
+        return pair_location;
     for (size_t i = 0; i < configIndex.getLocations().size(); i++)
     {
         if (target == configIndex.getLocations()[i].path)
         {
-            return configIndex.getLocations()[i];
+            pair_location.first = configIndex.getLocations()[i];
+            pair_location.second = true;
+            return pair_location;
         }
     }
-    return configIndex.getLocations()[0];
+    return getExactLocationBasedOnUrlContainer(returnNewPath(target), configIndex);
 }
 
-bool Server::checkAvailability(int fd, Location location){
-    for (size_t i = 0; i < location.methods.size(); i++){
+void Server::addSlashBasedOnMethod(std::string &target, std::string method)
+{
+    if (method == "DELETE")
+    {
+        if (target.at(target.size() - 1) != '/')
+            target = target + "/";
+    }
+}
+
+std::pair<Location, bool> Server::getExactLocationBasedOnUrl(std::string target, ConfigData configIndex, void (*f)(std::string &fTarget, std::string method))
+{
+
+    if (target == "/")
+        return findRoot(configIndex, target);
+
+    if (target.at(target.size() - 1) != '/')
+        target = target + "/";
+    f(target, "DELETEs");
+    return getExactLocationBasedOnUrlContainer(target, configIndex);
+}
+
+bool Server::checkAvailability(int fd, Location location)
+{
+    for (size_t i = 0; i < location.methods.size(); i++)
+    {
         std::transform(location.methods[i].begin(), location.methods[i].end(), location.methods[i].begin(), ::toupper);
         if (location.methods[i] == request[fd].getMethod())
             return true;
@@ -229,10 +306,13 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
     std::string filePath = request[fd].state.filePath;
-    Location location = getExactLocationBasedOnUrl(filePath, configIndex);
-    if (checkAvailability(fd,location) == false)
+
+    Location location = getExactLocationBasedOnUrl(filePath, configIndex, addSlashBasedOnMethod).first;
+    // Location location = configIndex.getLocations()[0];
+
+    if (checkAvailability(fd, location) == false)
         return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse);
-        
+
     if (request[fd].state.test == 1)
     {
         if (continueFileTransfer(fd, filePath, location) == -1)

@@ -14,10 +14,33 @@ void Server::printfContentHeader(Server *server, int fd)
     }
 }
 
+std::string url_decode(const std::string &value) {
+    std::ostringstream decoded;
+    std::istringstream encoded(value);
+    char c;
+
+    while (encoded >> c) {
+        if (c == '%') {
+            char hex[3];
+            encoded.read(hex, 2);
+            hex[2] = '\0';
+            int char_code;
+            sscanf(hex, "%2x", &char_code); // Convert hex to int
+            decoded << static_cast<char>(char_code);
+        } else if (c == '+') {
+            decoded << ' '; // Convert '+' to space
+        } else {
+            decoded << c;
+        }
+    }
+
+    return decoded.str();
+}
+
 std::string Server::parseSpecificRequest(std::string request)
 {
     std::string filePath;
-    size_t startPos = request.find("GET /");
+    size_t startPos = request.find("GET ");
     if (startPos != std::string::npos)
     {
         startPos += 4;
@@ -25,6 +48,7 @@ std::string Server::parseSpecificRequest(std::string request)
         if (endPos != std::string::npos) 
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
+            requestedPath = url_decode(requestedPath);
             if (!requestedPath.empty())
             {
                 filePath = requestedPath;
@@ -32,6 +56,7 @@ std::string Server::parseSpecificRequest(std::string request)
         }
         return filePath;
     }
+
 
     // Handle DELETE requests
     startPos = request.find("DELETE /");
@@ -42,6 +67,7 @@ std::string Server::parseSpecificRequest(std::string request)
         if (endPos != std::string::npos)
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
+            requestedPath = url_decode(requestedPath);
             if (!requestedPath.empty())
             {
                 filePath = requestedPath;
@@ -59,6 +85,7 @@ std::string Server::parseSpecificRequest(std::string request)
         if (endPos != std::string::npos)
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
+            requestedPath = url_decode(requestedPath);
             if (!requestedPath.empty() && requestedPath == "/")
             {
                 filePath = PATHC;
