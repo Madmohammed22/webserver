@@ -134,6 +134,16 @@ std::string Server::createBadRequest(std::string contentType, size_t contentLeng
 
     return oss.str();
 }
+// 410 Gone
+std::string Server::goneHttpResponse(std::string contentType, size_t contentLength)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 410 Gone\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT1() << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+    return oss.str();
+}
 
 std::string Server::methodNotAllowedResponse(std::string contentType, size_t contentLength)
 {
@@ -155,15 +165,6 @@ std::string Server::createTimeoutResponse(std::string contentType, size_t conten
         << "Last-Modified: " << getCurrentTimeInGMT() << "\r\n"
         << "Content-Length: " << contentLength << "\r\n\r\n";
 
-    return oss.str();
-}
-
-std::string Server::goneHttpResponse(std::string contentType, size_t contentLength)
-{
-    std::ostringstream oss;
-    oss << "HTTP/1.1 410 Gone\r\n"
-        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
-        << "Content-Length: " << contentLength << "\r\n\r\n";
     return oss.str();
 }
 
@@ -199,7 +200,8 @@ int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::s
         if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
             throw std::runtime_error("Failed to send final CRLF");
         if (request[fd].getConnection() == "close")
-            return request.erase(fd), close(fd), 0;
+            return 0;
+            // return request.erase(fd), close(fd), 0;
         else
         {
             request[fd].state.isComplete = true;
@@ -210,7 +212,7 @@ int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::s
     }
     catch (const std::exception &e)
     {
-        return close(fd), request.erase(fd), 0;
+        return 0;
     }
     return 0;
 }

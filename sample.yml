@@ -43,6 +43,7 @@ server:
   client_max_body_size: 1m
   
   error_page:
+     403: root/error/403.html
      400: root/error/400.html
      404: root/error/404.html
      405: root/error/405.html
@@ -51,14 +52,14 @@ server:
      415: root/error/415.html
   locations:
     /: 
-      redirect: /index.html
+      # redirect: /index.html
       root: /var/www/html
-      index: [index.html, main.html]
+      index: [index.htmls, main.html]
       autoindex: on
       methods: [delete, get]
 
     /media/:
-      # redirect: /index.html
+      redirect: /index.html
       root: /var/www/html
       index: main.html
       autoindex: on
@@ -80,4 +81,4 @@ server:
       root : /var/www/upload
       index : test.txt
       autoindex: on
-      methods: [post, delete, get]
+      methods: [delete, get]

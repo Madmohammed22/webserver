@@ -29,5 +29,7 @@ void POST::buildFileTransfers()
     state.uriLength = state.filePath.length();
     state.test = 0;
     state.headerFlag = true;
+    // state.logFile[""] = "";
+
 }
 

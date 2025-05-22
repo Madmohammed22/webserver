@@ -153,7 +153,7 @@ public:
     int processMethodNotAllowed(int fd, Server *server, std::string request);
     static std::string createUnsupportedMediaResponse(std::string contentType, size_t contentLength);
     static std::string createBadRequest(std::string contentType, size_t contentLength);
-    std::string goneHttpResponse(std::string contentType, size_t contentLength);
+    static std::string goneHttpResponse(std::string contentType, size_t contentLength);
     std::string deleteResponse(Server *server);
     std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     int getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t));

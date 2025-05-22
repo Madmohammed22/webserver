@@ -40,6 +40,7 @@ void GET::buildFileTransfers()
     state.uriLength = state.filePath.length();
     state.test = 0;
     state.last_activity_time = time(NULL);
+
 }
 
 std::ifstream::pos_type Server::getFileSize(const std::string &path)
@@ -68,7 +69,6 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
 bool check(std::string filePath)
 {
     std::ifstream file(filePath.c_str());
-    std::cout << "[" << filePath << "]" << std::endl;
     if (!file.is_open())
         return false;
     return true;
@@ -83,9 +83,16 @@ bool matchPath(std::string filePath, Location location)
         return true;
     return false;
 }
+
+std::string fetchIndex(std::string root, std::vector<std::string> indexFile){
+    for (size_t i =0; i < indexFile.size(); i++){
+        if (check(root + indexFile[i]) == true)
+            return indexFile[i];
+    }
+    return "";
+}
 bool Server::canBeOpen(int fd, std::string &filePath, Location location)
 {
-
     if (filePath == location.path)
     {
         if (location.redirect.size() > 0)
@@ -96,7 +103,8 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location)
         }
         else if (location.index.size() > 0)
         {
-            filePath = location.root + "/" + location.index[0];
+            filePath = location.root + "/" + fetchIndex(location.root + "/", location.index);
+            std::cout << "[" << filePath << "]" << std::endl;
             return check(filePath) && location.autoindex;
         }
         else
@@ -211,10 +219,11 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
 
 std::string Server::readFile(std::string path)
 {
+    
     std::ifstream infile(path.c_str(), std::ios::binary);
     if (!infile)
-        return std::cerr << "Failed to open file: " << path << std::endl, "";
-
+        return std::cerr << "Failed to open file:: " << path << std::endl, "";
+    
     std::ostringstream oss;
     oss << infile.rdbuf();
     return oss.str();
@@ -308,8 +317,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     std::string filePath = request[fd].state.filePath;
 
     Location location = getExactLocationBasedOnUrl(filePath, configIndex, addSlashBasedOnMethod).first;
-    // Location location = configIndex.getLocations()[0];
-
     if (checkAvailability(fd, location) == false)
         return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse);
 
