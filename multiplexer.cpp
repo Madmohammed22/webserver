@@ -27,7 +27,6 @@ void Server::handleNewConnection(int fd)
     request[conn_sock].state = FileTransferState();
     request[conn_sock].state.file = new std::ofstream();
     request[conn_sock].state.file->open("TMP", std::ios::binary);
-    request[conn_sock].state.file->close();
 }
 
 void Server::handleClientData(int fd)
@@ -87,6 +86,13 @@ void Server::handleClientOutput(int fd)
             std::cout << request[fd].header << std::endl;
             std::cout << "-------( END OF REQUEST )-------\n\n\n";
             handle_delete_request(fd, serverConfig);
+        }
+        else if (request[fd].getMethod() == "POST")
+        {
+            //[soukaina] here i should check for the post if an error responce is sent
+            if (request[fd].state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig) != 0)
+                request[fd].state.PostHeaderIsValid = true;
+            handlePostRequest(fd);
         }
     }
 }

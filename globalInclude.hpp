@@ -58,12 +58,13 @@ struct Multipart
     bool isInHeader;
     std::string partialHeaderBuffer;
     std::string boundary;
+    int readPosition;
     std::vector<std::ofstream*> outFiles;
     int currentFileIndex;
     std::string currentFileName;
     int currentFd;
-    
-    Multipart() : flag(false), isInHeader(true), currentFileIndex(0){}
+    std::ifstream *file;
+    Multipart() : flag(false), isInHeader(true), readPosition(0), currentFileIndex(0){}
 };
 
 #endif

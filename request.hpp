@@ -11,6 +11,7 @@ struct FileTransferState
     size_t offset;
     size_t fileSize;
     bool isComplete;
+    bool PostHeaderIsValid;
     bool isCompleteServingFile;
     size_t endOffset;
     std::string mime;
@@ -33,7 +34,7 @@ struct FileTransferState
     struct Multipart multp;
     std::set<std::string> knownPaths;
 
-    FileTransferState() : offset(0), fileSize(0), isComplete(false), headerFlag(0), bytesReceived(0) {}
+    FileTransferState() : offset(0), fileSize(0), isComplete(false),PostHeaderIsValid(false) ,headerFlag(0), bytesReceived(0) {}
     ~FileTransferState() {}
 };
 
@@ -42,13 +43,14 @@ class Request
 public:
     FileTransferState state;
     std::string header;
+    struct Multipart multp;
     std::map<std::string, std::string> keys;
     int flag;
 
 public:
-    Request() {}
+    Request(): multp() {}
     Request(std::string h, std::map<std::string, std::string> k)
-    {
+    : multp(){
         this->header = h;
         this->keys = k;
     }

@@ -32,6 +32,8 @@ bool Server::validateHeader(int fd, FileTransferState &state, ConfigData serverC
 {
     std::map<std::string, std::string> tmpMap;
     size_t header_end = state.buffer.find("\r\n\r\n");
+    static size_t backup;
+
     if (header_end != std::string::npos)
     {
         state.header = state.buffer.substr(0, header_end + 4);
@@ -41,9 +43,8 @@ bool Server::validateHeader(int fd, FileTransferState &state, ConfigData serverC
         {
 
             Binary_String body_part = state.buffer.substr(body_start, state.buffer.length());
-            state.bytesReceived += body_part.length();
+            backup += body_part.length();
             state.file->write(body_part.c_str(), body_part.length());
-            state.bytesReceived += body_part.length();
         }
         try
         {
@@ -88,5 +89,6 @@ bool Server::validateHeader(int fd, FileTransferState &state, ConfigData serverC
         }
         state.buffer.clear();
     }
+    state.bytesReceived = backup;
     return true;
 }

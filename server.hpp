@@ -118,7 +118,15 @@ public:
     // Methods
     int serve_file_request(int fd, ConfigData configIndex);
     int handle_delete_request(int fd, ConfigData configIndex);
-    int handlePostRequest(int fd, Server *server, Binary_String request);
+
+
+    // Post method
+    
+    void handlePostRequest(int fd);
+    Binary_String readFileChunk_post(int fd);
+    void createFileName(std::string line, int fd);
+    void writeData(Binary_String& chunk, int fd);
+    int parsePostRequest(int fd, ConfigData& configIndex);
 
     // Functions helper
     static void addSlashBasedOnMethod(std::string &target, std::string method);
