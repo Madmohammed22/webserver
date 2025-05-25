@@ -129,6 +129,7 @@ public:
     int parsePostRequest(int fd, ConfigData& configIndex);
 
     // Functions helper
+    int t_stat(std::string path, Location location);
     static void addSlashBasedOnMethod(std::string &target, std::string method);
     static std::string Forbidden(std::string contentType, size_t contentLength);
     std::pair<Location, bool> getExactLocationBasedOnUrl(std::string target, ConfigData configIndex, void (*f)(std::string &fTarget, std::string method));

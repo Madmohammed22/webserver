@@ -1,5 +1,5 @@
 server:
-  port: 9000
+  port: 7000
   host: 10.0.2.15
 
   server_name: example.com
@@ -39,7 +39,7 @@ server:
   port: 7000
   host: 10.0.2.15
 
-  server_name: example.com
+  server_name: mmad.com
   client_max_body_size: 1m
   
   error_page:
@@ -54,7 +54,7 @@ server:
     /: 
       # redirect: /index.html
       root: /var/www/html
-      index: [index.htmls, main.html]
+      index: [index.html, main.html]
       autoindex: on
       methods: [delete, get]
 
@@ -81,4 +81,4 @@ server:
       root : /var/www/upload
       index : test.txt
       autoindex: on
-      methods: [delete, get]
+      methods: [delete, get, post]

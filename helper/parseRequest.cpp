@@ -14,27 +14,46 @@ void Server::printfContentHeader(Server *server, int fd)
     }
 }
 
-std::string url_decode(const std::string &value) {
+std::string url_decode(const std::string &value)
+{
     std::ostringstream decoded;
     std::istringstream encoded(value);
     char c;
 
-    while (encoded >> c) {
-        if (c == '%') {
+    while (encoded >> c)
+    {
+        if (c == '%')
+        {
             char hex[3];
             encoded.read(hex, 2);
             hex[2] = '\0';
             int char_code;
-            sscanf(hex, "%2x", &char_code); 
+            sscanf(hex, "%2x", &char_code);
             decoded << static_cast<char>(char_code);
-        } else if (c == '+') {
-            decoded << ' '; 
-        } else {
+        }
+        else if (c == '+')
+        {
+            decoded << ' ';
+        }
+        else
+        {
             decoded << c;
         }
     }
 
     return decoded.str();
+}
+std::string redundantSlash(std::string url)
+{
+    std::string new_url;
+    for (size_t i = 0; i < url.size(); i++)
+    {
+        new_url += url[i];
+        for (size_t j = i; url[j] == '/'; j++)
+        i = j;
+    }
+    
+    return new_url;
 }
 
 std::string Server::parseSpecificRequest(std::string request)
@@ -45,10 +64,10 @@ std::string Server::parseSpecificRequest(std::string request)
     {
         startPos += 4;
         size_t endPos = request.find(" HTTP/", startPos);
-        if (endPos != std::string::npos) 
+        if (endPos != std::string::npos)
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
-            requestedPath = url_decode(requestedPath);
+            requestedPath = url_decode(redundantSlash(requestedPath));
             if (!requestedPath.empty())
             {
                 filePath = requestedPath;
@@ -56,7 +75,6 @@ std::string Server::parseSpecificRequest(std::string request)
         }
         return filePath;
     }
-
 
     // Handle DELETE requests
     startPos = request.find("DELETE /");
@@ -67,7 +85,7 @@ std::string Server::parseSpecificRequest(std::string request)
         if (endPos != std::string::npos)
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
-            requestedPath = url_decode(requestedPath);
+            requestedPath = url_decode(redundantSlash(requestedPath));
             if (!requestedPath.empty())
             {
                 filePath = requestedPath;
@@ -85,7 +103,7 @@ std::string Server::parseSpecificRequest(std::string request)
         if (endPos != std::string::npos)
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
-            requestedPath = url_decode(requestedPath);
+            requestedPath = url_decode(redundantSlash(requestedPath));
             if (!requestedPath.empty() && requestedPath == "/")
             {
                 filePath = PATHC;
@@ -177,9 +195,12 @@ bool Server::searchOnSpecificFile(std::string path, std::string fileTarget)
     return false;
 }
 
-Location getLocation_adder1(std::string targetLocation, ConfigData configIndex){
-    for(size_t i = 0; i < configIndex.getLocations().size(); i++){
-        if (targetLocation == configIndex.getLocations()[i].path){
+Location getLocation_adder1(std::string targetLocation, ConfigData configIndex)
+{
+    for (size_t i = 0; i < configIndex.getLocations().size(); i++)
+    {
+        if (targetLocation == configIndex.getLocations()[i].path)
+        {
             configIndex.getLocations()[i];
         }
     }

@@ -40,7 +40,6 @@ void GET::buildFileTransfers()
     state.uriLength = state.filePath.length();
     state.test = 0;
     state.last_activity_time = time(NULL);
-
 }
 
 std::ifstream::pos_type Server::getFileSize(const std::string &path)
@@ -84,8 +83,10 @@ bool matchPath(std::string filePath, Location location)
     return false;
 }
 
-std::string fetchIndex(std::string root, std::vector<std::string> indexFile){
-    for (size_t i =0; i < indexFile.size(); i++){
+std::string fetchIndex(std::string root, std::vector<std::string> indexFile)
+{
+    for (size_t i = 0; i < indexFile.size(); i++)
+    {
         if (check(root + indexFile[i]) == true)
             return indexFile[i];
     }
@@ -93,6 +94,13 @@ std::string fetchIndex(std::string root, std::vector<std::string> indexFile){
 }
 bool Server::canBeOpen(int fd, std::string &filePath, Location location)
 {
+    // if (t_stat(filePath, location) == 1 && filePath.rfind("/") != std::string::npos)
+    // {
+    //     std::string httpRespons = MovedPermanently(contentType, path + "/");
+    //     if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
+    //         return std::cerr << "Failed to send HTTP header." << std::endl, false;
+    // }
+
     if (filePath == location.path)
     {
         if (location.redirect.size() > 0)
@@ -104,7 +112,6 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location)
         else if (location.index.size() > 0)
         {
             filePath = location.root + "/" + fetchIndex(location.root + "/", location.index);
-            std::cout << "[" << filePath << "]" << std::endl;
             return check(filePath) && location.autoindex;
         }
         else
@@ -189,9 +196,7 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
         request[fd].state.test = 1;
         std::string httpRespons = createChunkedHttpResponse(contentType);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
-        {
             return std::cerr << "Failed to send chunked HTTP header." << std::endl, 0;
-        }
         return continueFileTransfer(fd, request[fd].state.filePath, configIndex);
     }
     else
@@ -219,11 +224,11 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
 
 std::string Server::readFile(std::string path)
 {
-    
+
     std::ifstream infile(path.c_str(), std::ios::binary);
     if (!infile)
         return std::cerr << "Failed to open file:: " << path << std::endl, "";
-    
+
     std::ostringstream oss;
     oss << infile.rdbuf();
     return oss.str();
@@ -290,7 +295,6 @@ void Server::addSlashBasedOnMethod(std::string &target, std::string method)
 
 std::pair<Location, bool> Server::getExactLocationBasedOnUrl(std::string target, ConfigData configIndex, void (*f)(std::string &fTarget, std::string method))
 {
-
     if (target == "/")
         return findRoot(configIndex, target);
 
@@ -311,12 +315,35 @@ bool Server::checkAvailability(int fd, Location location)
     return false;
 }
 
+int Server::t_stat(std::string path, Location location)
+{
+    std::cout << "location: " << location.root << std::endl;
+    std::cout << "path: " << path << std::endl;
+    std::string new_path = location.root + path;
+    std::cout << "new_path: " << new_path << std::endl;
+    struct stat s;
+    if (stat(new_path.c_str(), &s) == 0)
+    {
+        if (s.st_mode & S_IFDIR) // dir
+            return 1;
+        if (s.st_mode & S_IFREG) // file
+            return 2;
+    }
+    return -1;
+}
+
 int Server::serve_file_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
     std::string filePath = request[fd].state.filePath;
-
     Location location = getExactLocationBasedOnUrl(filePath, configIndex, addSlashBasedOnMethod).first;
+    std::cout << "url: " << filePath << std::endl;
+    char maxurl[MAXURI + 1];
+    char *realPaths = realpath((location.path + filePath).c_str(), maxurl);
+    if (realPaths)
+        std::cout << "realpath:[" << realPaths << std::endl;
+    else
+        std::cout << "NULL" << std::endl;
     if (checkAvailability(fd, location) == false)
         return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse);
 
