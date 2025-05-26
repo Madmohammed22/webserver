@@ -174,6 +174,7 @@ std::string Server::listDirectory(const std::string &dir_path, const std::string
         return "";
     os << inFile.rdbuf();
     inFile.close();
+    unlink(nameFile.c_str());
     return os.str();
 }
 
