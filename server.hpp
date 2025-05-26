@@ -129,6 +129,7 @@ public:
     int parsePostRequest(int fd, ConfigData& configIndex);
 
     // Functions helper
+    std::string listDirectory(const std::string &dir_path, const std::string &fileName, std::string& mime);
     int t_stat(std::string path, Location location);
     static void addSlashBasedOnMethod(std::string &target, std::string method);
     static std::string Forbidden(std::string contentType, size_t contentLength);
@@ -143,7 +144,7 @@ public:
     std::string readFile(std::string path);
     int getFileType(std::string path);
     static Location getLocation_adder1(std::string targetLocation, ConfigData configIndex);
-    bool canBeOpen(int fd, std::string &filePath, Location location);
+    bool canBeOpen(int fd, std::string &filePath, Location location, size_t &checkState);
     static std::string parseSpecificRequest(std::string request);
     static std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();

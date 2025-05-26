@@ -129,14 +129,15 @@ bool is_directory_empty(const char *dir_path)
 #include <string>
 #include <dirent.h>
 
-void listDirectory(const std::string &dir_path, const std::string &fileName)
+std::string Server::listDirectory(const std::string &dir_path, const std::string &fileName, std::string &mime)
 {
-    std::string nameFile = fileName;
+    std::string nameFile = "file.html";
+    mime = getContentType(nameFile);
     std::ofstream outFile(nameFile.c_str());
     if (!outFile.is_open())
     {
-        std::cerr << "Failed to open file: " << fileName << std::endl;
-        return;
+        std::cerr << "Failed to open file:: " << fileName << std::endl;
+        return "";
     }
 
     outFile << "<!DOCTYPE html>\n"
@@ -145,20 +146,20 @@ void listDirectory(const std::string &dir_path, const std::string &fileName)
             << "    <title>Directory Listing</title>\n"
             << "</head>\n"
             << "<body>\n"
-            << "    <h1>Index of " << dir_path << "</h1>\n"
+            << "    <h1>Index of " << fileName << "</h1>\n"
             << "    <hr>\n"
             << "    <pre>\n";
     DIR *dp = opendir(dir_path.c_str());
     if (dp == NULL)
     {
         std::cerr << "Error: Unable to open directory " << dir_path << std::endl;
-        return;
+        return "";
     }
     struct dirent *entry;
 
     while ((entry = readdir(dp)) != NULL)
     {
-        outFile << "        <a href=\"" << entry->d_name << "\">" << entry->d_name << "</a>\n";
+        outFile << "     <a href=\"" << entry->d_name << "\">" << entry->d_name << "</a>\n";
     }
 
     closedir(dp);
@@ -166,9 +167,14 @@ void listDirectory(const std::string &dir_path, const std::string &fileName)
             << "    <hr>\n"
             << "</body>\n"
             << "</html>\n";
-
     outFile.close();
-    return;
+    std::ostringstream os;
+    std::ifstream inFile(nameFile.c_str(), std::ios::binary);
+    if (!inFile)
+        return "";
+    os << inFile.rdbuf();
+    inFile.close();
+    return os.str();
 }
 
 bool searchOnFile(std::string dir_name, std::string file_name)
@@ -209,7 +215,7 @@ bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
     }
     return true;
 }
-bool Server::canBeOpen(int fd, std::string &filePath, Location location)
+bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t &checkState)
 {
 
     if (filePath == location.path)
@@ -223,21 +229,20 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location)
         else if (location.index.size() > 0 && validateSearch(location.index, location.root + filePath) == true)
         {
             filePath = location.root + "/" + fetchIndex(location.root + "/", location.index);
-            std::cout << "[" << filePath << "]" << std::endl;
             return check(filePath);
         }
         else
         {
             filePath = location.root + filePath;
-            // std::cout << "[" << filePath << "]" << std::endl;
-            // // std::cout << listDirectory(filePath) << std::endl;
-            // exit(3);
-            return check(filePath) && location.autoindex;
+            checkState = !location.autoindex ? 403 : 201;
+            return checkState == 403 ? false : true;
         }
     }
     else
     {
         filePath = location.root + filePath;
+        checkState = (check(filePath) == true) ? 200 : 404;
+        return (checkState == 200) ? true : false;
     }
 
     return check(filePath);
@@ -473,8 +478,20 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
             return std::cerr << "Failed to continue file transfer" << std::endl, 0;
         return 0;
     }
-    if (canBeOpen(fd, filePath, location))
+    size_t checkState;
+    if (canBeOpen(fd, filePath, location, checkState))
     {
+        if (checkState == 201)
+        {
+            std::string mime;
+            size_t fileSize = listDirectory(filePath, request[fd].state.filePath, mime).size();
+            std::string httpRespons = httpResponse(mime, fileSize);
+            int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
+            faild = send(fd, listDirectory(filePath, request[fd].state.filePath, mime).c_str(), fileSize, MSG_NOSIGNAL);
+            if (faild == -1)
+                return close(fd), request.erase(fd), checkState = 0, 0;
+            return close(fd), checkState = 0, 0;
+        }
         return (handleFileRequest(fd, filePath, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
         // if (handleFileRequest(fd, filePath, Connection, location) == -1)
         //     return close(fd), request.erase(fd), 0;
@@ -482,7 +499,10 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     }
     else
     {
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+        size_t tmp = checkState;
+        checkState = 0;
+        return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse)
+                            : getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
     }
     return 0;
 }

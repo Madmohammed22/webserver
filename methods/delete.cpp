@@ -108,8 +108,9 @@ int Server::handle_delete_request(int fd, ConfigData configIndex)
 
     std::string filePath = request[fd].state.filePath;
     Location location = getExactLocationBasedOnUrl(filePath, configIndex, addSlashBasedOnMethod).first;
-    std::cout << "url :" << filePath << ", location: " << location.path << std::endl; 
-    if (canBeOpen(fd, location.path, location))
+    std::cout << "url :" << filePath << ", location: " << location.path << std::endl;
+    size_t checkState; 
+    if (canBeOpen(fd, location.path, location, checkState))
     {
 
         if (getFileType(location.path) == 1)
