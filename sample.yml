@@ -1,5 +1,5 @@
 server:
-  port: 7000
+  port: 8000
   host: 10.0.2.15
 
   server_name: example.com
@@ -59,9 +59,9 @@ server:
       methods: [delete, get]
 
     /media/:
-      redirect: /index.html
+      # redirect: /index.html
       root: /var/www/html
-      index: main.html
+      index: main.txt
       autoindex: on
       methods: [post, delete, get]
 

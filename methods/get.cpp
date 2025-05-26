@@ -92,14 +92,125 @@ std::string fetchIndex(std::string root, std::vector<std::string> indexFile)
     }
     return "";
 }
+
+bool is_directory_empty(const char *dir_path)
+{
+    std::cout << "dir: " << dir_path << std::endl;
+    DIR *dir = opendir(dir_path);
+    if (dir == NULL)
+    {
+        if (errno == ENOENT)
+        {
+            std::cerr << "Error: Directory not found: " << dir_path << std::endl;
+        }
+        else
+        {
+            std::cerr << "Error opening directory: " << dir_path << std::endl;
+        }
+        return false;
+    }
+
+    struct dirent *entry;
+    bool is_empty = true;
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+        {
+            is_empty = false;
+            break;
+        }
+    }
+    closedir(dir);
+    return is_empty;
+}
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <dirent.h>
+
+void listDirectory(const std::string &dir_path, const std::string &fileName)
+{
+    std::string nameFile = fileName;
+    std::ofstream outFile(nameFile.c_str());
+    if (!outFile.is_open())
+    {
+        std::cerr << "Failed to open file: " << fileName << std::endl;
+        return;
+    }
+
+    outFile << "<!DOCTYPE html>\n"
+            << "<html>\n"
+            << "<head>\n"
+            << "    <title>Directory Listing</title>\n"
+            << "</head>\n"
+            << "<body>\n"
+            << "    <h1>Index of " << dir_path << "</h1>\n"
+            << "    <hr>\n"
+            << "    <pre>\n";
+    DIR *dp = opendir(dir_path.c_str());
+    if (dp == NULL)
+    {
+        std::cerr << "Error: Unable to open directory " << dir_path << std::endl;
+        return;
+    }
+    struct dirent *entry;
+
+    while ((entry = readdir(dp)) != NULL)
+    {
+        outFile << "        <a href=\"" << entry->d_name << "\">" << entry->d_name << "</a>\n";
+    }
+
+    closedir(dp);
+    outFile << "    </pre>\n"
+            << "    <hr>\n"
+            << "</body>\n"
+            << "</html>\n";
+
+    outFile.close();
+    return;
+}
+
+bool searchOnFile(std::string dir_name, std::string file_name)
+{
+    DIR *dir;
+    struct dirent *ent;
+
+    if ((dir = opendir(dir_name.c_str())) != NULL)
+    {
+        while ((ent = readdir(dir)) != NULL)
+        {
+            if (ent->d_type == DT_REG && file_name == ent->d_name)
+            {
+                closedir(dir);
+                return true;
+            }
+        }
+        closedir(dir);
+        return false;
+    }
+    else
+    {
+        return false;
+    }
+    return false;
+}
+
+bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
+{
+
+    for (size_t i = 0; i < indexFile.size(); i++)
+    {
+        if (searchOnFile(dir_name, indexFile[i]) == false)
+        {
+
+            return false;
+        }
+    }
+    return true;
+}
 bool Server::canBeOpen(int fd, std::string &filePath, Location location)
 {
-    // if (t_stat(filePath, location) == 1 && filePath.rfind("/") != std::string::npos)
-    // {
-    //     std::string httpRespons = MovedPermanently(contentType, path + "/");
-    //     if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
-    //         return std::cerr << "Failed to send HTTP header." << std::endl, false;
-    // }
 
     if (filePath == location.path)
     {
@@ -109,14 +220,18 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location)
             filePath = location.root + location.redirect;
             return check(filePath);
         }
-        else if (location.index.size() > 0)
+        else if (location.index.size() > 0 && validateSearch(location.index, location.root + filePath) == true)
         {
             filePath = location.root + "/" + fetchIndex(location.root + "/", location.index);
-            return check(filePath) && location.autoindex;
+            std::cout << "[" << filePath << "]" << std::endl;
+            return check(filePath);
         }
         else
         {
-            filePath = location.root + "/";
+            filePath = location.root + filePath;
+            // std::cout << "[" << filePath << "]" << std::endl;
+            // // std::cout << listDirectory(filePath) << std::endl;
+            // exit(3);
             return check(filePath) && location.autoindex;
         }
     }
@@ -133,14 +248,11 @@ bool sendChunk(int fd, const char *data, size_t size)
     std::ostringstream chunkHeader;
     chunkHeader << std::hex << size << "\r\n";
     std::string header = chunkHeader.str();
-
-    if (send(fd, header.c_str(), header.length(), MSG_NOSIGNAL) == -1)
-        return false;
-    if (send(fd, data, size, MSG_NOSIGNAL) == -1)
-        return false;
-    if (send(fd, "\r\n", 2, MSG_NOSIGNAL) == -1)
-        return false;
-    return true;
+    int faild;
+    faild = send(fd, header.c_str(), header.length(), MSG_NOSIGNAL);
+    faild = send(fd, data, size, MSG_NOSIGNAL);
+    faild = send(fd, "\r\n", 2, MSG_NOSIGNAL);
+    return (faild == -1) ? false : true;
 }
 
 bool sendFinalChunk(int fd)
@@ -209,12 +321,11 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
         }
         else
             httpRespons = httpResponse(contentType, request[fd].state.fileSize);
-        if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
-            return std::cerr << "Failed to send HTTP header." << std::endl, -1;
-        if (send(fd, readFile(filePath).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL) == -1)
-            return std::cerr << "Failed to send file content." << std::endl, -1;
-        if (send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL) == -1)
-            return std::cerr << "Failed to send final CRLF." << std::endl, -1;
+        int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
+        faild = send(fd, readFile(filePath).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL);
+        faild = send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL);
+        if (faild == -1)
+            return close(fd), request.erase(fd), 0;
         if (Connection == "close" || Connection.empty())
             return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
         return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
@@ -295,6 +406,7 @@ void Server::addSlashBasedOnMethod(std::string &target, std::string method)
 
 std::pair<Location, bool> Server::getExactLocationBasedOnUrl(std::string target, ConfigData configIndex, void (*f)(std::string &fTarget, std::string method))
 {
+    // return (target == "/") ? findRoot(configIndex, target) : (void)0;
     if (target == "/")
         return findRoot(configIndex, target);
 
@@ -317,33 +429,41 @@ bool Server::checkAvailability(int fd, Location location)
 
 int Server::t_stat(std::string path, Location location)
 {
-    std::cout << "location: " << location.root << std::endl;
-    std::cout << "path: " << path << std::endl;
     std::string new_path = location.root + path;
-    std::cout << "new_path: " << new_path << std::endl;
     struct stat s;
     if (stat(new_path.c_str(), &s) == 0)
     {
-        if (s.st_mode & S_IFDIR) // dir
-            return 1;
-        if (s.st_mode & S_IFREG) // file
-            return 2;
+        return (s.st_mode & S_IFDIR) ? 1 : s.st_mode & S_IFREG ? 2
+                                                               : -1;
+        // if (s.st_mode & S_IFDIR) // dir
+        //     return 1;
+        // if (s.st_mode & S_IFREG) // file
+        //     return 2;
     }
     return -1;
 }
 
+/*
+char maxurl[MAXURI + 1];
+    char *realPaths = realpath((location.path + filePath).c_str(), maxurl);
+    if (realPaths)
+        std::cout << "realpath:[" << realPaths << "]" << std::endl;
+    else
+        std::cout << "NULL" << std::endl;
+ */
 int Server::serve_file_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
     std::string filePath = request[fd].state.filePath;
     Location location = getExactLocationBasedOnUrl(filePath, configIndex, addSlashBasedOnMethod).first;
-    std::cout << "url: " << filePath << std::endl;
-    char maxurl[MAXURI + 1];
-    char *realPaths = realpath((location.path + filePath).c_str(), maxurl);
-    if (realPaths)
-        std::cout << "realpath:[" << realPaths << std::endl;
-    else
-        std::cout << "NULL" << std::endl;
+    if (t_stat(filePath, location) == 1 && filePath.at(filePath.size() - 1) != '/')
+    {
+        std::string httpRespons = MovedPermanently(getContentType(filePath), location.path);
+        if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
+            return std::cerr << "Failed to send HTTP header." << std::endl, false;
+        return 0;
+    }
+
     if (checkAvailability(fd, location) == false)
         return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse);
 
@@ -355,9 +475,10 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     }
     if (canBeOpen(fd, filePath, location))
     {
-        if (handleFileRequest(fd, filePath, Connection, location) == -1)
-            return close(fd), request.erase(fd), 0;
-        return 0;
+        return (handleFileRequest(fd, filePath, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
+        // if (handleFileRequest(fd, filePath, Connection, location) == -1)
+        //     return close(fd), request.erase(fd), 0;
+        // return 0;
     }
     else
     {
