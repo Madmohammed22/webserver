@@ -56,11 +56,6 @@ int Server::getFileType(std::string path)
     return -1;
 }
 
-// std::string Server::createChunkedHttpResponse(std::string contentType)
-// {
-
-// }
-
 std::string Server::createChunkedHttpResponse(std::string contentType)
 {
     std::ostringstream oss;
@@ -183,6 +178,55 @@ std::string Server::MovedPermanently(std::string contentType, std::string locati
         << "Location: " << location << "\r\n"
         << "content-type: " << contentType << "\r\n\r\n";
     return oss.str();
+}
+
+std::string Server::listDirectory(const std::string &dir_path, const std::string &fileName, std::string &mime)
+{
+    std::string nameFile = "file.html";
+    mime = getContentType(nameFile);
+    std::ofstream outFile(nameFile.c_str());
+    if (!outFile.is_open())
+    {
+        std::cerr << "Failed to open file:: " << fileName << std::endl;
+        return "";
+    }
+
+    outFile << "<!DOCTYPE html>\n"
+            << "<html>\n"
+            << "<head>\n"
+            << "    <title>Directory Listing</title>\n"
+            << "</head>\n"
+            << "<body>\n"
+            << "    <h1>Index of " << fileName << "</h1>\n"
+            << "    <hr>\n"
+            << "    <pre>\n";
+    DIR *dp = opendir(dir_path.c_str());
+    if (dp == NULL)
+    {
+        std::cerr << "Error: Unable to open directory " << dir_path << std::endl;
+        return "";
+    }
+    struct dirent *entry;
+
+    while ((entry = readdir(dp)) != NULL)
+    {
+        outFile << "     <a href=\"" << entry->d_name << "\">" << entry->d_name << "</a>\n";
+    }
+
+    closedir(dp);
+    outFile << "    </pre>\n"
+            << "    <hr>\n"
+            << "</body>\n"
+            << "</html>\n";
+    outFile.close();
+    std::ostringstream os;
+    std::ifstream inFile(nameFile.c_str(), std::ios::binary);
+    if (!inFile)
+        return "";
+    os << inFile.rdbuf();
+    inFile.close();
+    unlink(nameFile.c_str());
+    return os.str();
 }
 
 int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t))

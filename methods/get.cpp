@@ -68,8 +68,9 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
 bool check(std::string filePath)
 {
     std::ifstream file(filePath.c_str());
-    if (!file.is_open())
+    if (!file.is_open()){
         return false;
+    }
     return true;
 }
 
@@ -124,60 +125,6 @@ bool is_directory_empty(const char *dir_path)
     return is_empty;
 }
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <dirent.h>
-
-std::string Server::listDirectory(const std::string &dir_path, const std::string &fileName, std::string &mime)
-{
-    std::string nameFile = "file.html";
-    mime = getContentType(nameFile);
-    std::ofstream outFile(nameFile.c_str());
-    if (!outFile.is_open())
-    {
-        std::cerr << "Failed to open file:: " << fileName << std::endl;
-        return "";
-    }
-
-    outFile << "<!DOCTYPE html>\n"
-            << "<html>\n"
-            << "<head>\n"
-            << "    <title>Directory Listing</title>\n"
-            << "</head>\n"
-            << "<body>\n"
-            << "    <h1>Index of " << fileName << "</h1>\n"
-            << "    <hr>\n"
-            << "    <pre>\n";
-    DIR *dp = opendir(dir_path.c_str());
-    if (dp == NULL)
-    {
-        std::cerr << "Error: Unable to open directory " << dir_path << std::endl;
-        return "";
-    }
-    struct dirent *entry;
-
-    while ((entry = readdir(dp)) != NULL)
-    {
-        outFile << "     <a href=\"" << entry->d_name << "\">" << entry->d_name << "</a>\n";
-    }
-
-    closedir(dp);
-    outFile << "    </pre>\n"
-            << "    <hr>\n"
-            << "</body>\n"
-            << "</html>\n";
-    outFile.close();
-    std::ostringstream os;
-    std::ifstream inFile(nameFile.c_str(), std::ios::binary);
-    if (!inFile)
-        return "";
-    os << inFile.rdbuf();
-    inFile.close();
-    unlink(nameFile.c_str());
-    return os.str();
-}
-
 bool searchOnFile(std::string dir_name, std::string file_name)
 {
     DIR *dir;
@@ -225,6 +172,7 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t 
         {
             request[fd].flag = 1;
             filePath = location.root + location.redirect;
+            checkState = 301;
             return check(filePath);
         }
         else if (location.index.size() > 0 && validateSearch(location.index, location.root + filePath) == true)
@@ -427,8 +375,9 @@ bool Server::checkAvailability(int fd, Location location)
     for (size_t i = 0; i < location.methods.size(); i++)
     {
         std::transform(location.methods[i].begin(), location.methods[i].end(), location.methods[i].begin(), ::toupper);
-        if (location.methods[i] == request[fd].getMethod())
+        if (location.methods[i] == request[fd].getMethod()){
             return true;
+        }
     }
     return false;
 }
@@ -441,10 +390,6 @@ int Server::t_stat(std::string path, Location location)
     {
         return (s.st_mode & S_IFDIR) ? 1 : s.st_mode & S_IFREG ? 2
                                                                : -1;
-        // if (s.st_mode & S_IFDIR) // dir
-        //     return 1;
-        // if (s.st_mode & S_IFREG) // file
-        //     return 2;
     }
     return -1;
 }
@@ -469,7 +414,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
             return std::cerr << "Failed to send HTTP header." << std::endl, false;
         return 0;
     }
-
     if (checkAvailability(fd, location) == false)
         return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse);
 
@@ -494,9 +438,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
             return close(fd), checkState = 0, 0;
         }
         return (handleFileRequest(fd, filePath, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
-        // if (handleFileRequest(fd, filePath, Connection, location) == -1)
-        //     return close(fd), request.erase(fd), 0;
-        // return 0;
     }
     else
     {

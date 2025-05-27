@@ -129,6 +129,7 @@ public:
     int parsePostRequest(int fd, ConfigData& configIndex);
 
     // Functions helper
+    int handle_delete_request___(int fd, ConfigData configIndex);
     std::string listDirectory(const std::string &dir_path, const std::string &fileName, std::string& mime);
     int t_stat(std::string path, Location location);
     static void addSlashBasedOnMethod(std::string &target, std::string method);

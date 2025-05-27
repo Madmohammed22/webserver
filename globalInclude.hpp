@@ -32,6 +32,8 @@
 #include <string.h>
 #include <set>
 #include <algorithm>
+#include <dirent.h>
+
 #include "Binary_String.hpp"
 
 #define ERROR404 404
