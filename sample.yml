@@ -59,11 +59,11 @@ server:
       methods: [delete, get]
 
     /media/:
-      redirect: /index.html
+      # redirect: /index.html
       # root: /var/www/html
       root: /home/mmad
-      index: main.txt
-      autoindex: on
+      index: index.html
+      autoindex: off
       methods: [delete, get]
 
     /media/images/:

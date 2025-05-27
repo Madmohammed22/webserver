@@ -46,9 +46,7 @@ void deleteDirectoryContents(const std::string &dir)
         while ((entry = readdir(dp)) != NULL)
         {
             if (std::string(entry->d_name) == "." || std::string(entry->d_name) == "..")
-            {
                 continue;
-            }
 
             struct stat entryStat;
             std::string entryPath = dir + "/" + entry->d_name;
@@ -61,16 +59,12 @@ void deleteDirectoryContents(const std::string &dir)
             if (S_ISDIR(entryStat.st_mode))
             {
                 if (rmdir(entryPath.c_str()) == -1)
-                {
                     std::cerr << "Error: Unable to remove directory " << entryPath << std::endl;
-                }
             }
             else
             {
                 if (unlink(entryPath.c_str()) == -1)
-                {
                     std::cerr << "Error: Unable to remove file " << entryPath << std::endl;
-                }
             }
         }
     }
@@ -87,7 +81,6 @@ int DELETE(std::string request)
 {
     const char *filename = request.c_str();
 
-    std::cout << "DELETE: " << filename << std::endl;
     return unlink(filename) == -1 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
@@ -134,42 +127,52 @@ int Server::handle_delete_request___(int fd, ConfigData configIndex)
     }
     return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
 }
+
+int Server::deleteTargetUrl(int fd, std::string filePath, ConfigData configIndex, Location location, int state)
+{
+
+    if (access(filePath.c_str(), R_OK | W_OK) == -1)
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
+    if (state == 1)
+    {
+        deleteDirectoryContents(location.root + location.path);
+    }
+    else if (state == 2)
+    {
+        if (DELETE(filePath.c_str()) == -1)
+            return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << filePath << std::endl, 0;
+    }
+    std::string httpResponse = deleteResponse(this);
+    if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
+        return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
+    return close(fd), request.erase(fd), 0;
+}
 int Server::handle_delete_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
     std::string filePath = request[fd].state.filePath;
     Location location = getExactLocationBasedOnUrl(filePath, configIndex, addSlashBasedOnMethod).first;
-    int state = getFileType(location.root +  filePath);
+    int state = getFileType(location.root + filePath);
     state == 1 && filePath.at(filePath.size() - 1) != '/' ? filePath = location.path : filePath;
     size_t checkState = 0;
     if (canBeOpen(fd, filePath, location, checkState))
     {
-        std::cout << "filepath: " << filePath << std::endl;
-        if (access(filePath.c_str(), R_OK | W_OK) == -1)
-            return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
-        if (state == 1){
-            std::cout << location.root + location.path << std::endl;
-            deleteDirectoryContents(location.root + location.path);
-        }
-        else if (state == 2)
-        {
-            if (DELETE(filePath.c_str()) == -1)
-                return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << filePath << std::endl, 0;
-            
-        }
-
-        std::string httpResponse = deleteResponse(this);
-        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-            return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
-        return close(fd), request.erase(fd), 0;
+        return checkState = 0, deleteTargetUrl(fd, filePath, configIndex, location, state);
     }
-    else{
-        if (checkState == 301 ){
-            filePath = location.redirect;
-            
-            std::cout << filePath << std::endl;
+    else
+    {
+        if (checkState == 301)
+        {
+            filePath = redundantSlash(location.root + location.path + location.redirect);
+            if (check(filePath) == false)
+                return checkState = 0, getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+            if (access(filePath.c_str(), R_OK | W_OK) == -1)
+            {
+                return checkState = 0, getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
+            }
+            return checkState = 0, deleteTargetUrl(fd, filePath, configIndex, location, getFileType(filePath));
         }
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+        return checkState = 0, getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
     }
 
     close(fd);

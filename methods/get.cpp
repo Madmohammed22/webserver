@@ -65,7 +65,7 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
     return true;
 }
 
-bool check(std::string filePath)
+bool Server::check(std::string filePath)
 {
     std::ifstream file(filePath.c_str());
     if (!file.is_open()){
@@ -84,7 +84,7 @@ bool matchPath(std::string filePath, Location location)
     return false;
 }
 
-std::string fetchIndex(std::string root, std::vector<std::string> indexFile)
+std::string Server::fetchIndex(std::string root, std::vector<std::string> indexFile)
 {
     for (size_t i = 0; i < indexFile.size(); i++)
     {
@@ -201,9 +201,9 @@ bool sendChunk(int fd, const char *data, size_t size)
 {
     std::ostringstream chunkHeader;
     chunkHeader << std::hex << size << "\r\n";
-    std::string header = chunkHeader.str();
+    std::string data_size = chunkHeader.str();
     int faild;
-    faild = send(fd, header.c_str(), header.length(), MSG_NOSIGNAL);
+    faild = send(fd, data_size.c_str(), data_size.length(), MSG_NOSIGNAL);
     faild = send(fd, data, size, MSG_NOSIGNAL);
     faild = send(fd, "\r\n", 2, MSG_NOSIGNAL);
     return (faild == -1) ? false : true;
@@ -258,7 +258,6 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
 
     if (request[fd].state.fileSize > LARGE_FILE_THRESHOLD)
     {
-
         request[fd].state.test = 1;
         std::string httpRespons = createChunkedHttpResponse(contentType);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
