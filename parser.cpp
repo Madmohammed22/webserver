@@ -9,8 +9,8 @@ bool header_parser(T method, Request &request, std::string header, std::map<std:
     std::ofstream *file = request.state.file;
     Request methaData(header, tmpMap);
     method = T(methaData);
-    build.buildRequest(method); // 
-    if (!build.buildRequest_valid(method).first)
+    build.requestBuilder(method);
+    if (!build.chainOfResponsibility(method).first)
     {
         return false;
     }

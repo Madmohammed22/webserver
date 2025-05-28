@@ -2,7 +2,7 @@
 #include "server.hpp"
 #include "request.hpp"
 
-void Build::buildRequest(RequstBuilder &requstBuilder)
+void Build::requestBuilder(RequstBuilder &requstBuilder)
 {
     requstBuilder.buildConnection();
     requstBuilder.buildMethod();
@@ -14,7 +14,7 @@ void Build::buildRequest(RequstBuilder &requstBuilder)
     requstBuilder.buildHost();
 }
 
-std::pair<bool, int> Build::buildRequest_valid(RequstBuilder &requstBuilder)
+std::pair<bool, int> Build::chainOfResponsibility(RequstBuilder &requstBuilder)
 {
     std::pair<bool, int> return_pair;
     return_pair.first = true;

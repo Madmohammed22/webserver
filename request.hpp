@@ -235,8 +235,8 @@ public:
     ~Build() {}
 
 public:
-    void buildRequest(RequstBuilder &requstBuilder);
-    std::pair<bool, int> buildRequest_valid(RequstBuilder &requstBuilder);
+    void requestBuilder(RequstBuilder &requstBuilder);
+    std::pair<bool, int> chainOfResponsibility(RequstBuilder &requstBuilder);
 };
 
 #endif
