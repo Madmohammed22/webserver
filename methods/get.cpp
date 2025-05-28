@@ -171,13 +171,13 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t 
         if (location.redirect.size() > 0)
         {
             request[fd].flag = 1;
-            filePath = location.root + location.redirect;
+            filePath = redundantSlash(location.root + location.path + location.redirect);
             checkState = 301;
             return check(filePath);
         }
         else if (location.index.size() > 0 && validateSearch(location.index, location.root + filePath) == true)
         {
-            filePath = location.root + "/" + fetchIndex(location.root + "/", location.index);
+            filePath = redundantSlash(location.root + location.path + fetchIndex(location.root + "/", location.index));
             return check(filePath);
         }
         else
@@ -215,9 +215,9 @@ bool sendFinalChunk(int fd)
            send(fd, "\r\n", 2, MSG_NOSIGNAL) != -1;
 }
 
-int Server::continueFileTransfer(int fd, std::string filePath, Location configIndex)
+int Server::continueFileTransfer(int fd, std::string filePath, Location location)
 {
-    (void)configIndex;
+    (void)location;
     char buffer[CHUNK_SIZE];
     size_t remainingBytes = request[fd].state.fileSize - request[fd].state.offset;
     size_t bytesToRead;
@@ -249,7 +249,7 @@ int Server::continueFileTransfer(int fd, std::string filePath, Location configIn
     return 0;
 }
 
-int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection, Location configIndex)
+int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection, Location location)
 {
     request[fd].state.filePath = filePath;
     std::string contentType = Server::getContentType(filePath);
@@ -262,15 +262,16 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
         std::string httpRespons = createChunkedHttpResponse(contentType);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
             return std::cerr << "Failed to send chunked HTTP header." << std::endl, 0;
-        return continueFileTransfer(fd, request[fd].state.filePath, configIndex);
+        return continueFileTransfer(fd, request[fd].state.filePath, location);
     }
     else
     {
+
         std::string httpRespons;
-        if (configIndex.redirect.size() > 0 && request[fd].flag == 1)
+        if (location.redirect.size() > 0 && request[fd].flag == 1)
         {
             request[fd].flag = 0;
-            httpRespons = MovedPermanently(contentType, configIndex.redirect);
+            httpRespons = MovedPermanently(contentType, redundantSlash(location.path + location.redirect));
         }
         else
             httpRespons = httpResponse(contentType, request[fd].state.fileSize);

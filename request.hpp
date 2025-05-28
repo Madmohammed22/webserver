@@ -34,7 +34,7 @@ struct FileTransferState
     struct Multipart multp;
     std::set<std::string> knownPaths;
 
-    FileTransferState() : offset(0), fileSize(0), isComplete(false),PostHeaderIsValid(false) ,headerFlag(0), bytesReceived(0) {}
+    FileTransferState() : offset(0), fileSize(0), isComplete(false), PostHeaderIsValid(false), headerFlag(0), bytesReceived(0) {}
     ~FileTransferState() {}
 };
 
@@ -48,9 +48,10 @@ public:
     int flag;
 
 public:
-    Request(): multp() {}
+    Request() : multp() {}
     Request(std::string h, std::map<std::string, std::string> k)
-    : multp(){
+        : multp()
+    {
         this->header = h;
         this->keys = k;
     }
@@ -83,34 +84,6 @@ public:
     std::string getConnection() { return connection; }
     std::string getTransferEncoding() { return transferEncoding; }
     std::string getContentLength() { return contentLength; }
-
-public:
-    void Data()
-    {
-        std::cout << "---------------------------------------\n"
-                  << std::endl;
-        std::cout << "-------(Start : Meta data) --------" << std::endl;
-        std::cout << "method: [" << method << "]" << std::endl;
-        std::cout << "connection: [" << connection << "]" << std::endl;
-        std::cout << "ContentType: [" << ContentType << "]" << std::endl;
-        std::cout << "transferEncoding : [" << transferEncoding << "]" << std::endl;
-        std::cout << "contentLength : [" << contentLength << "]" << std::endl;
-        std::cout << "host : [" << host << "]" << std::endl;
-        std::cout << "accept : [" << accept << "]" << std::endl;
-        std::cout << "-------(End : Meta data) --------\n"
-                  << std::endl;
-        std::cout << "-------(Start : FileTransferState) --------" << std::endl;
-        std::cout << "state.filePath: [" << state.filePath << "]" << std::endl;
-        std::cout << "state.offset: [" << state.offset << "]" << std::endl;
-        std::cout << "state.fileSize: [" << state.fileSize << "]" << std::endl;
-        std::cout << "state.isComplete: [" << state.isComplete << "]" << std::endl;
-        std::cout << "mime: [" << state.mime << "]" << std::endl;
-        std::cout << "uriLength: [" << state.uriLength << "]" << std::endl;
-        std::cout << "-------(End : FileTransferState) --------\n"
-                  << std::endl;
-        std::cout << "---------------------------------------\n"
-                  << std::endl;
-    }
 
 public:
     ~Request() {}
@@ -215,28 +188,8 @@ class FileTransferValidator : public HeaderValidator
 public:
     FileTransferValidator() {}
     ~FileTransferValidator() {}
-
-public:
-    bool validate(RequstBuilder &builder)
-    {
-        std::string method = builder.getRequest().getMethod();
-        if (method == "GET" || method == "POST" || method == "DELETE")
-        {
-            if (builder.getRequest().state.uriLength > MAXURI)
-            {
-                return false;
-            }
-            if (builder.getRequest().keys.find(method)->second.find("HTTP/1.1") == std::string::npos)
-                return false;
-        }
-        return true;
-    }
-    std::map<int, int> map;
-    
-    HeaderValidator *getNextValidator()
-    {
-        return NULL;
-    }
+    bool validate(RequstBuilder &builder);
+    HeaderValidator *getNextValidator() { return NULL; }
 };
 
 class TransferEncodingValidator : public HeaderValidator
@@ -244,29 +197,8 @@ class TransferEncodingValidator : public HeaderValidator
 public:
     TransferEncodingValidator() {}
     ~TransferEncodingValidator() {}
-
-public:
-    bool validate(RequstBuilder &builder)
-    {
-        if (builder.getRequest().getMethod() == "GET")
-        {
-            return builder.getRequest().getTransferEncoding() == "undefined";
-        }
-        else if (builder.getRequest().getMethod() == "POST")
-        {
-            return builder.getRequest().getTransferEncoding() == "undefined";
-        }
-        else if (builder.getRequest().getMethod() == "DELETE")
-        {
-            return builder.getRequest().getTransferEncoding() == "undefined";
-        }
-        return true;
-    }
-
-    HeaderValidator *getNextValidator()
-    {
-        return new FileTransferValidator();
-    }
+    bool validate(RequstBuilder &builder);
+    HeaderValidator *getNextValidator() { return new FileTransferValidator(); }
 };
 
 class ContentTypeValidator : public HeaderValidator
@@ -274,69 +206,16 @@ class ContentTypeValidator : public HeaderValidator
 public:
     ContentTypeValidator() {}
     ~ContentTypeValidator() {}
-
-public:
-    bool validate(RequstBuilder &builder)
-    {
-        if (builder.getRequest().getMethod() == "GET")
-        {
-            return builder.getRequest().getContentType() == "undefined";
-        }
-        else if (builder.getRequest().getMethod() == "POST")
-        {
-            return builder.getRequest().getContentType().find("multipart/form-data") != std::string::npos;
-        }
-        else if (builder.getRequest().getMethod() == "DELETE")
-        {
-            return builder.getRequest().getContentType() == "undefined";
-        }
-        return true;
-    }
-
-    HeaderValidator *getNextValidator()
-    {
-        return new TransferEncodingValidator();
-    }
+    bool validate(RequstBuilder &builder);
+    HeaderValidator *getNextValidator() { return new TransferEncodingValidator(); }
 };
 class ContentLengthValidator : public HeaderValidator
 {
 public:
     ContentLengthValidator() {}
     ~ContentLengthValidator() {}
-
-public:
-    bool validate(RequstBuilder &builder)
-    {
-        if (builder.getRequest().getMethod() == "GET")
-        {
-            return builder.getRequest().getContentLength() == "undefined";
-        }
-        else if (builder.getRequest().getMethod() == "POST")
-        {
-            if (builder.getRequest().getContentLength().empty() || builder.getRequest().getContentLength() == "undefined")
-            {
-                return false;
-            }
-            bool check = true;
-            std::string str = builder.getRequest().getContentLength();
-            for (size_t i = 0; i < str.length(); i++)
-            {
-                if (!isdigit(str.at(i)))
-                    check = false;
-            }
-            return check;
-        }
-        else if (builder.getRequest().getMethod() == "DELETE")
-        {
-            return builder.getRequest().getContentLength() == "undefined";
-        }
-        return false;
-    }
-
-    HeaderValidator *getNextValidator()
-    {
-        return new ContentTypeValidator();
-    }
+    bool validate(RequstBuilder &builder);
+    HeaderValidator *getNextValidator() { return new ContentTypeValidator(); }
 };
 
 class ConnectionValidator : public HeaderValidator
@@ -344,19 +223,8 @@ class ConnectionValidator : public HeaderValidator
 public:
     ConnectionValidator() {}
     ~ConnectionValidator() {}
-
-public:
-    bool validate(RequstBuilder &builder)
-    {
-        bool check = builder.getRequest().getConnection() == "close" || builder.getRequest().getConnection() == "keep-alive" || builder.getRequest().getConnection() == "undefined" || !builder.getRequest().getConnection().empty();
-
-        return check;
-    }
-
-    HeaderValidator *getNextValidator()
-    {
-        return new ContentLengthValidator();
-    }
+    bool validate(RequstBuilder &builder);
+    HeaderValidator *getNextValidator() { return new ContentLengthValidator(); }
 };
 
 class Build
@@ -367,49 +235,8 @@ public:
     ~Build() {}
 
 public:
-    void buildRequest(RequstBuilder &requstBuilder)
-    {
-        requstBuilder.buildConnection();
-        requstBuilder.buildMethod();
-        requstBuilder.buildFileTransfers();
-        requstBuilder.buildTransferEncoding();
-        requstBuilder.buildContentLength();
-        requstBuilder.buildContentType();
-        requstBuilder.buildAccept();
-        requstBuilder.buildHost();
-    };
-
-public:
-    std::pair<bool, int> buildRequest_valid(RequstBuilder &requstBuilder)
-    {
-        std::pair<bool, int> return_pair;
-        return_pair.first = true;
-        return_pair.second = 0;
-        ContentLengthValidator contentLengthValidator;
-        TransferEncodingValidator transferEncodingValidator;
-        ConnectionValidator connectionValidator;
-        FileTransferValidator fileTransferValidator;
-        ContentTypeValidator contentTypeValidator;
-
-        std::vector<HeaderValidator *> validators;
-        validators.push_back(&fileTransferValidator);
-        validators.push_back(&connectionValidator);
-        validators.push_back(&transferEncodingValidator);
-        validators.push_back(&contentLengthValidator);
-        validators.push_back(&contentTypeValidator);
-
-        for (std::vector<HeaderValidator *>::iterator it = validators.begin(); it != validators.end(); ++it)
-        {
-            if (!(*it)->validate(requstBuilder))
-            {   
-                std::cout << "Request is invalid." << std::endl;
-                return_pair.first = false;
-                return_pair.second = -1;
-                return return_pair;
-            }
-        }
-        return return_pair;
-    }
+    void buildRequest(RequstBuilder &requstBuilder);
+    std::pair<bool, int> buildRequest_valid(RequstBuilder &requstBuilder);
 };
 
 #endif

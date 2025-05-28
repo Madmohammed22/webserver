@@ -52,18 +52,18 @@ server:
      415: root/error/415.html
   locations:
     /: 
-      # redirect: /index.html
+      redirect: /index.html
       root: /var/www/html
       index: [index.html, main.html]
       autoindex: on
       methods: [delete, get]
 
     /media/:
-      # redirect: /index.html
-      # root: /var/www/html
-      root: /home/mmad
+      redirect: /sss.html
+      root: /var/www/html
+      # root: /home/mmad
       index: index.html
-      autoindex: off
+      autoindex: on
       methods: [delete, get]
 
     /media/images/:
