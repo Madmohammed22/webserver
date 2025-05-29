@@ -68,7 +68,8 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
 bool Server::check(std::string filePath)
 {
     std::ifstream file(filePath.c_str());
-    if (!file.is_open()){
+    if (!file.is_open())
+    {
         return false;
     }
     return true;
@@ -136,6 +137,7 @@ bool searchOnFile(std::string dir_name, std::string file_name)
         {
             if (ent->d_type == DT_REG && file_name == ent->d_name)
             {
+                // std::cout << "[" << file_name << "]-> " << "[" << ent->d_name << "]" << std::endl;
                 closedir(dir);
                 return true;
             }
@@ -157,7 +159,7 @@ bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
     {
         if (searchOnFile(dir_name, indexFile[i]) == false)
         {
-
+            std::cout << "I was here" << std::endl;
             return false;
         }
     }
@@ -171,13 +173,15 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t 
         if (location.redirect.size() > 0)
         {
             request[fd].flag = 1;
-            filePath = redundantSlash(location.root + location.path + location.redirect);
+            filePath = redundantSlash(location.redirect);
             checkState = 301;
-            return check(filePath);
+            return check(location.root + location.path + filePath);
         }
         else if (location.index.size() > 0 && validateSearch(location.index, location.root + filePath) == true)
         {
             filePath = redundantSlash(location.root + location.path + fetchIndex(location.root + "/", location.index));
+            // filePath = location.root + "/large.pdf";
+            std::cout << "filePath-> " << filePath << std::endl;
             return check(filePath);
         }
         else
@@ -254,8 +258,7 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
     request[fd].state.filePath = filePath;
     std::string contentType = Server::getContentType(filePath);
     request[fd].state.fileSize = getFileSize(filePath);
-    const size_t LARGE_FILE_THRESHOLD = 1024 * 1024;
-
+    const size_t LARGE_FILE_THRESHOLD = 1024 * 1024; // 1mb
     if (request[fd].state.fileSize > LARGE_FILE_THRESHOLD)
     {
         request[fd].state.test = 1;
@@ -272,6 +275,11 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
         {
             request[fd].flag = 0;
             httpRespons = MovedPermanently(contentType, redundantSlash(location.path + location.redirect));
+            int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
+            if (faild == -1){
+                return close(fd), request.erase(fd), 0;
+            }
+            return 0;
         }
         else
             httpRespons = httpResponse(contentType, request[fd].state.fileSize);
@@ -299,20 +307,20 @@ std::string Server::readFile(std::string path)
     return oss.str();
 }
 
-std::pair<Location, bool> findRoot(ConfigData configIndex, std::string path)
+Location findRoot(ConfigData configIndex, std::string path)
 {
-    std::pair<Location, bool> pair_location(configIndex.getLocations()[0], false);
+    Location location;
     for (size_t i = 0; i < configIndex.getLocations().size(); i++)
     {
-        if (path == "/")
+        if (path == "/"){
             if (path == configIndex.getLocations()[i].path)
             {
-                pair_location.first = configIndex.getLocations()[i];
-                pair_location.second = true;
-                return pair_location;
+                return configIndex.getLocations()[i];;
             }
+
+        }
     }
-    return pair_location;
+    return location;
 }
 
 std::string returnNewPath(std::string path)
@@ -325,25 +333,29 @@ std::string returnNewPath(std::string path)
 }
 Location returnDefault(ConfigData configIndex)
 {
+    Location location;
     for (size_t i = 0; i < configIndex.getLocations().size(); i++)
     {
-        if ("/" == configIndex.getLocations()[i].path)
-            return configIndex.getLocations()[i];
+        if ("/" == configIndex.getLocations()[i].path){
+            location = configIndex.getLocations()[i]; 
+            return  location;
+        }
     }
-    return configIndex.getLocations()[0];
+    return location;
 }
-std::pair<Location, bool> getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex)
+Location getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex)
 {
-    std::pair<Location, bool> pair_location(returnDefault(configIndex), false);
-    if (target == "/")
-        return pair_location;
+    Location location;
+    if (target == "/" && !returnDefault(configIndex).path.empty()){
+        return returnDefault(configIndex);
+    }
+    if (returnDefault(configIndex).path.empty())
+        return location;
     for (size_t i = 0; i < configIndex.getLocations().size(); i++)
     {
         if (target == configIndex.getLocations()[i].path)
         {
-            pair_location.first = configIndex.getLocations()[i];
-            pair_location.second = true;
-            return pair_location;
+            return location = configIndex.getLocations()[i];
         }
     }
     return getExactLocationBasedOnUrlContainer(returnNewPath(target), configIndex);
@@ -358,15 +370,10 @@ void Server::addSlashBasedOnMethod(std::string &target, std::string method)
     }
 }
 
-std::pair<Location, bool> Server::getExactLocationBasedOnUrl(std::string target, ConfigData configIndex, void (*f)(std::string &fTarget, std::string method))
+Location Server::getExactLocationBasedOnUrl(std::string target, ConfigData configIndex)
 {
-    // return (target == "/") ? findRoot(configIndex, target) : (void)0;
-    if (target == "/")
-        return findRoot(configIndex, target);
-
     if (target.at(target.size() - 1) != '/')
         target = target + "/";
-    f(target, "DELETEs");
     return getExactLocationBasedOnUrlContainer(target, configIndex);
 }
 
@@ -375,7 +382,8 @@ bool Server::checkAvailability(int fd, Location location)
     for (size_t i = 0; i < location.methods.size(); i++)
     {
         std::transform(location.methods[i].begin(), location.methods[i].end(), location.methods[i].begin(), ::toupper);
-        if (location.methods[i] == request[fd].getMethod()){
+        if (location.methods[i] == request[fd].getMethod())
+        {
             return true;
         }
     }
@@ -394,29 +402,36 @@ int Server::t_stat(std::string path, Location location)
     return -1;
 }
 
-/*
-char maxurl[MAXURI + 1];
-    char *realPaths = realpath((location.path + filePath).c_str(), maxurl);
-    if (realPaths)
-        std::cout << "realpath:[" << realPaths << "]" << std::endl;
-    else
-        std::cout << "NULL" << std::endl;
- */
-int Server::serve_file_request(int fd, ConfigData configIndex)
+
+int Server::helper(int fd, std::string &filePath, ConfigData configIndex, Location location)
 {
-    std::string Connection = request[fd].connection;
-    std::string filePath = request[fd].state.filePath;
-    Location location = getExactLocationBasedOnUrl(filePath, configIndex, addSlashBasedOnMethod).first;
+
     if (t_stat(filePath, location) == 1 && filePath.at(filePath.size() - 1) != '/')
     {
         std::string httpRespons = MovedPermanently(getContentType(filePath), location.path);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
-            return std::cerr << "Failed to send HTTP header." << std::endl, false;
-        return 0;
+            return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
+        return EXIT_SUCCESS;
     }
     if (checkAvailability(fd, location) == false)
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse);
+    {
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse), EXIT_FAILURE;
+    }
+    return EXIT_FAILURE;
+}
 
+// try to find url inside 
+int Server::serve_file_request(int fd, ConfigData configIndex)
+{
+    std::string Connection = request[fd].connection;
+    std::string filePath = request[fd].state.filePath;
+    Location location = getExactLocationBasedOnUrl(filePath, configIndex);
+    if (location.path.empty() == true){
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+    }
+    if (helper(fd, filePath, configIndex, location) == EXIT_SUCCESS){
+        return 0;
+    }
     if (request[fd].state.test == 1)
     {
         if (continueFileTransfer(fd, filePath, location) == -1)
@@ -426,6 +441,9 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     size_t checkState;
     if (canBeOpen(fd, filePath, location, checkState))
     {
+        
+        std::cout << "get location: " << filePath << std::endl;
+
         if (checkState == 201)
         {
             std::string mime;
@@ -441,6 +459,12 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     }
     else
     {
+        if (checkState == 301){
+            location = getExactLocationBasedOnUrl(filePath, configIndex);
+            std::cout << "filepath [301]: " << filePath << "|location: " << t_stat(filePath, location) << std::endl;
+            if (t_stat(filePath, location) == -1)
+                getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+        }
         size_t tmp = checkState;
         checkState = 0;
         return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse)

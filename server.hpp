@@ -129,6 +129,7 @@ public:
     int parsePostRequest(int fd, ConfigData& configIndex);
 
     // Functions helper
+    int helper(int fd, std::string &filePath, ConfigData configIndex,  Location location);
     static std::string fetchIndex(std::string root, std::vector<std::string> indexFile);
     static bool check(std::string filePath);
     static std::string redundantSlash(std::string url);
@@ -138,7 +139,7 @@ public:
     int t_stat(std::string path, Location location);
     static void addSlashBasedOnMethod(std::string &target, std::string method);
     static std::string Forbidden(std::string contentType, size_t contentLength);
-    std::pair<Location, bool> getExactLocationBasedOnUrl(std::string target, ConfigData configIndex, void (*f)(std::string &fTarget, std::string method));
+    Location getExactLocationBasedOnUrl(std::string target, ConfigData configIndex);
     bool checkAvailability(int fd, Location location);
     void reWrite(std::string &filePath, ConfigData configData);
     bool closeConnection(int fd);

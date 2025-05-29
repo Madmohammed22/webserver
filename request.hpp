@@ -38,7 +38,7 @@ struct FileTransferState
     ~FileTransferState() {}
 };
 
-class Request
+class Request 
 {
 public:
     FileTransferState state;
@@ -88,6 +88,7 @@ public:
 public:
     ~Request() {}
 };
+
 
 class RequstBuilder
 {

@@ -13,6 +13,7 @@ std::string Server::getContentType(const std::string &path)
     extensionToType.insert(std::make_pair(std::string(".mp4"), std::string("video/mp4")));
     extensionToType.insert(std::make_pair(std::string(".mp3"), std::string("audio/mpeg")));
     extensionToType.insert(std::make_pair(std::string(".wav"), std::string("audio/wav")));
+    extensionToType.insert(std::make_pair(std::string(".pdf"), std::string("text/pdf")));
     extensionToType.insert(std::make_pair(std::string(".ogg"), std::string("audio/ogg")));
     extensionToType.insert(std::make_pair(std::string(".png"), std::string("image/png")));
     extensionToType.insert(std::make_pair(std::string(".jpg"), std::string("image/jpeg")));

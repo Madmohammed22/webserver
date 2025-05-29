@@ -12,6 +12,7 @@
 
 class Location
 {
+
 public:
     std::string path;
     std::string root;

@@ -100,7 +100,7 @@ int Server::handle_delete_request___(int fd, ConfigData configIndex)
 {
 
     std::string filePath = request[fd].state.filePath;
-    Location location = getExactLocationBasedOnUrl(filePath, configIndex, addSlashBasedOnMethod).first;
+    Location location = getExactLocationBasedOnUrl(filePath, configIndex);
     std::cout << "url :" << filePath << ", location: " << location.path << std::endl;
     size_t checkState = 0;
     if (canBeOpen(fd, filePath, location, checkState))
@@ -151,7 +151,8 @@ int Server::handle_delete_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
     std::string filePath = request[fd].state.filePath;
-    Location location = getExactLocationBasedOnUrl(filePath, configIndex, addSlashBasedOnMethod).first;
+    Location location = getExactLocationBasedOnUrl(filePath, configIndex);
+    
     int state = getFileType(location.root + filePath);
     state == 1 && filePath.at(filePath.size() - 1) != '/' ? filePath = location.path : filePath;
     size_t checkState = 0;
