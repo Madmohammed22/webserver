@@ -34,8 +34,8 @@ void Server::handleClientData(int fd)
     FileTransferState &state = request[fd].state;
     state.fd = fd;
 
-    Binary_String holder(CHUNK_SIZE);
-    ssize_t bytes = recv(fd, &holder[0], holder.length(), 0);
+    Binary_String holder(CHUNK_SIZE + 1);
+    ssize_t bytes = recv(fd, &holder[0], holder.length() - 1, 0);
     if (bytes <= 0)
     {
         close(fd);
