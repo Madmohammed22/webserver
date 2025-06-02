@@ -60,13 +60,13 @@ server:
       autoindex: on
       methods: [delete, get]
 
-    # /media/:    # url /data/../data/
-    #   redirect: /media/index.html
-    #   # root: /var/www/html
-    #   root: /home/mmad/Lab
-    #   index: index.html
-    #   autoindex: on
-    #   methods: [delete, get]
+    /media/:    # url /data/../data/
+      redirect: /media/index.html
+      # root: /var/www/html
+      root: /home/mmad/Lab
+      index: index.html
+      autoindex: on
+      methods: [delete, get]
 
     # /media/images/:
     #   root: /var/www/html

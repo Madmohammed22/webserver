@@ -441,7 +441,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     size_t checkState;
     if (canBeOpen(fd, filePath, location, checkState))
     {
-        
         std::cout << "get location: " << filePath << std::endl;
 
         if (checkState == 201)
@@ -459,6 +458,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     }
     else
     {
+        std::cout << "location :" << location.path << std::endl;
         if (checkState == 301){
             location = getExactLocationBasedOnUrl(filePath, configIndex);
             std::cout << "filepath [301]: " << filePath << "|location: " << t_stat(filePath, location) << std::endl;
