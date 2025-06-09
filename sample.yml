@@ -38,9 +38,6 @@ server:
 server:
   port: 8000
   host: 10.0.2.15
-  # root: /var/www/html
-  # autoindex: on
-
   server_name: mmad.com
   client_max_body_size: 1m
   
@@ -58,20 +55,20 @@ server:
       root: /var/www/html
       index: index.html
       autoindex: on
-      methods: [delete, get]
+      methods: [get]
 
     /media/:    # url /data/../data/
       redirect: /content/
       root: /var/www/html
       index: index.txt
       autoindex: on
-      methods: [get, delete]
+      methods: [get]
 
     /content/:
       root: /var/www/html
       index: messages.txt
       autoindex: on
-      methods: [post, delete, get]
+      methods: [get]
 
     /cgi-bin/:
       root: /var/www/cgi-bin
