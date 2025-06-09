@@ -87,6 +87,7 @@ bool matchPath(std::string filePath, Location location)
 
 std::string Server::fetchIndex(std::string root, std::vector<std::string> indexFile)
 {
+    std::cout << "root : " << root << std::endl;
     for (size_t i = 0; i < indexFile.size(); i++)
     {
         if (check(root + indexFile[i]) == true)
@@ -159,7 +160,6 @@ bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
     {
         if (searchOnFile(dir_name, indexFile[i]) == false)
         {
-            std::cout << "I was here" << std::endl;
             return false;
         }
     }
@@ -179,9 +179,7 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t 
         }
         else if (location.index.size() > 0 && validateSearch(location.index, location.root + filePath) == true)
         {
-            filePath = redundantSlash(location.root + location.path + fetchIndex(location.root + "/", location.index));
-            // filePath = location.root + "/large.pdf";
-            std::cout << "filePath-> " << filePath << std::endl;
+            filePath = redundantSlash(location.root + location.path + fetchIndex(location.root  + location.path, location.index));
             return check(filePath);
         }
         else
@@ -438,11 +436,11 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
             return std::cerr << "Failed to continue file transfer" << std::endl, 0;
         return 0;
     }
+    
     size_t checkState;
     if (canBeOpen(fd, filePath, location, checkState))
     {
-        std::cout << "get location: " << filePath << std::endl;
-
+        
         if (checkState == 201)
         {
             std::string mime;

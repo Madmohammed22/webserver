@@ -1,5 +1,5 @@
 server:
-  port: 8000
+  port: 7000
   host: 10.0.2.15
 
   server_name: example.com
@@ -36,7 +36,7 @@ server:
       methods: [post, delete, get]
 
 server:
-  port: 7000
+  port: 8000
   host: 10.0.2.15
   # root: /var/www/html
   # autoindex: on
@@ -61,27 +61,26 @@ server:
       methods: [delete, get]
 
     /media/:    # url /data/../data/
-      redirect: /media/index.html
-      # root: /var/www/html
-      root: /home/mmad/Lab
-      index: index.html
+      # redirect: /media/index.html
+      root: /var/www/html
+      index: index.txtss
       autoindex: on
       methods: [delete, get]
 
-    # /media/images/:
-    #   root: /var/www/html
-    #   index: main.html
-    #   autoindex: on
-    #   methods: [post, delete, get]
+    /content/images/:
+      root: /var/www/html
+      index: main.html
+      autoindex: on
+      methods: [post, delete, get]
 
-    # /cgi-bin/:
-    #   root: /var/www/cgi-bin
-    #   methods: [get, post]
-    #   cgi: .py:/usr/bin/python3
+    /cgi-bin/:
+      root: /var/www/cgi-bin
+      methods: [get, post]
+      cgi: .py:/usr/bin/python3
 
-    # /upload/:
-    #   redirect : /main.txt
-    #   root : /var/www/upload
-    #   index : test.txt
-    #   autoindex: on
-    #   methods: [delete, get, post]
+    /upload/:
+      redirect : /main.txt
+      root : /var/www/upload
+      index : test.txt
+      autoindex: on
+      methods: [delete, get, post]
