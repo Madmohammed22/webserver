@@ -61,15 +61,15 @@ server:
       methods: [delete, get]
 
     /media/:    # url /data/../data/
-      # redirect: /media/index.html
+      redirect: /content/
       root: /var/www/html
       index: index.txtss
       autoindex: on
       methods: [delete, get]
 
-    /content/images/:
+    /content/:
       root: /var/www/html
-      index: main.html
+      index: message.txt
       autoindex: on
       methods: [post, delete, get]
 
