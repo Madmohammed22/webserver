@@ -346,7 +346,7 @@ Location returnDefault(ConfigData configIndex)
     }
     return location;
 }
-Location getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex)
+Location Server::getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex)
 {
     Location location;
     if (target == "/" && !returnDefault(configIndex).path.empty())
@@ -357,7 +357,7 @@ Location getExactLocationBasedOnUrlContainer(std::string target, ConfigData conf
         return location;
     for (size_t i = 0; i < configIndex.getLocations().size(); i++)
     {
-        if (target == configIndex.getLocations()[i].path)
+        if (target == redundantSlash(configIndex.getLocations()[i].path))
         {
             return location = configIndex.getLocations()[i];
         }
@@ -439,6 +439,7 @@ int Server::sendFinalReques(int fd, std::string filePath, ConfigData configIndex
 {
     if (location.autoindex == true)
     {
+        location.path = redundantSlash(location.path);
         std::string mime;
         size_t fileSize = listDirectory(filePath, location.path, mime).size();
         std::string httpRespons = httpResponse(mime, fileSize);

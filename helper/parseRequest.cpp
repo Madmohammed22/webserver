@@ -49,7 +49,7 @@ std::string Server::redundantSlash(std::string url)
     for (size_t i = 0; i < url.size(); i++)
     {
         new_url += url[i];
-        for (size_t j = i; url[j] == '/'; j++)
+        for (size_t j = i; url[j] == '/' || url[j] == '.'; j++)
         i = j;
     }
     
