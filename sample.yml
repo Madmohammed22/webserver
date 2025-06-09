@@ -56,14 +56,14 @@ server:
     /: 
       redirect: /index.html
       root: /var/www/html
-      index: [index.html, main.html]
+      index: index.html
       autoindex: on
       methods: [delete, get]
 
     /media/:    # url /data/../data/
       redirect: /content/
       root: /var/www/html
-      index: index.txtss
+      index: index.txt
       autoindex: on
       methods: [delete, get]
 

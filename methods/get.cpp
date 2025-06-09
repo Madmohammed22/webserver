@@ -185,6 +185,7 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t 
         else
         {
             filePath = location.root + filePath;
+            checkState = 201;
             // std::cout << "I was here" << filePath <<  std::endl;
             return check(filePath);
             // checkState = !location.autoindex ? 403 : 201;
@@ -459,17 +460,23 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     size_t checkState;
     if (canBeOpen(fd, filePath, location, checkState))
     {
-
-        if (checkState == 201)
+        if (t_stat_wait(filePath) == 1)
         {
-            std::string mime;
-            size_t fileSize = listDirectory(filePath, request[fd].state.filePath, mime).size();
-            std::string httpRespons = httpResponse(mime, fileSize);
-            int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
-            faild = send(fd, listDirectory(filePath, request[fd].state.filePath, mime).c_str(), fileSize, MSG_NOSIGNAL);
-            if (faild == -1)
-                return close(fd), request.erase(fd), checkState = 0, 0;
-            return close(fd), checkState = 0, 0;
+            if (location.autoindex == true)
+            {
+                std::string mime;
+                size_t fileSize = listDirectory(filePath, location.path, mime).size();
+                std::string httpRespons = httpResponse(mime, fileSize);
+                int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
+                faild = send(fd, listDirectory(filePath, location.path, mime).c_str(), fileSize, MSG_NOSIGNAL);
+                if (faild == -1)
+                    return close(fd), request.erase(fd), checkState = 0, 0;
+                return close(fd), checkState = 0, 0;
+            }
+            else
+            {
+                return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
+            }
         }
         return (handleFileRequest(fd, filePath, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
     }
@@ -478,8 +485,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
         if (checkState == 301)
         {
             location = getExactLocationBasedOnUrl(filePath, configIndex);
-            // std::cout << "location.path: " << location.path << std::endl;
-            // exit(0);
             if (t_stat_wait(location.root + filePath) == -1)
                 getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
             else
@@ -495,7 +500,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                             size_t fileSize = listDirectory(filePath, location.path, mime).size();
                             std::string httpRespons = httpResponse(mime, fileSize);
                             int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
-                            faild = send(fd, listDirectory(filePath, request[fd].state.filePath, mime).c_str(), fileSize, MSG_NOSIGNAL);
+                            faild = send(fd, listDirectory(filePath, location.path, mime).c_str(), fileSize, MSG_NOSIGNAL);
                             if (faild == -1)
                                 return close(fd), request.erase(fd), checkState = 0, 0;
                             return close(fd), checkState = 0, 0;
@@ -509,8 +514,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 }
                 else
                 {
-                    std::cout << "path:[2] " << filePath << std::endl;
-                    exit(0);
                     return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
                 }
                 // return (handleFileRequest(fd, path, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
