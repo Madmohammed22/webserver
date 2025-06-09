@@ -129,6 +129,7 @@ public:
     int parsePostRequest(int fd, ConfigData& configIndex);
 
     // Functions helper
+    int sendFinalReques(int fd, std::string filePath, ConfigData configIndex,  Location location, size_t checkState);
     int helper(int fd, std::string &filePath, ConfigData configIndex,  Location location);
     static std::string fetchIndex(std::string root, std::vector<std::string> indexFile);
     static bool check(std::string filePath);

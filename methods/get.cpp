@@ -87,7 +87,6 @@ bool matchPath(std::string filePath, Location location)
 
 std::string Server::fetchIndex(std::string root, std::vector<std::string> indexFile)
 {
-    std::cout << "root : " << root << std::endl;
     for (size_t i = 0; i < indexFile.size(); i++)
     {
         if (check(root + indexFile[i]) == true)
@@ -436,7 +435,24 @@ int Server::helper(int fd, std::string &filePath, ConfigData configIndex, Locati
     return EXIT_FAILURE;
 }
 
-// try to find url inside
+int Server::sendFinalReques(int fd, std::string filePath, ConfigData configIndex, Location location, size_t checkState)
+{
+    if (location.autoindex == true)
+    {
+        std::string mime;
+        size_t fileSize = listDirectory(filePath, location.path, mime).size();
+        std::string httpRespons = httpResponse(mime, fileSize);
+        int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
+        faild = send(fd, listDirectory(filePath, location.path, mime).c_str(), fileSize, MSG_NOSIGNAL);
+        if (faild == -1)
+            return close(fd), request.erase(fd), checkState = 0, 0;
+        return close(fd), checkState = 0, 0;
+    }
+    else
+    {
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
+    }
+}
 int Server::serve_file_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
@@ -462,21 +478,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     {
         if (t_stat_wait(filePath) == 1)
         {
-            if (location.autoindex == true)
-            {
-                std::string mime;
-                size_t fileSize = listDirectory(filePath, location.path, mime).size();
-                std::string httpRespons = httpResponse(mime, fileSize);
-                int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
-                faild = send(fd, listDirectory(filePath, location.path, mime).c_str(), fileSize, MSG_NOSIGNAL);
-                if (faild == -1)
-                    return close(fd), request.erase(fd), checkState = 0, 0;
-                return close(fd), checkState = 0, 0;
-            }
-            else
-            {
-                return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
-            }
+            return sendFinalReques(fd, filePath, configIndex, location, checkState);
         }
         return (handleFileRequest(fd, filePath, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
     }
@@ -494,21 +496,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 {
                     if (t_stat_wait(filePath) == 1)
                     {
-                        if (location.autoindex == true)
-                        {
-                            std::string mime;
-                            size_t fileSize = listDirectory(filePath, location.path, mime).size();
-                            std::string httpRespons = httpResponse(mime, fileSize);
-                            int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
-                            faild = send(fd, listDirectory(filePath, location.path, mime).c_str(), fileSize, MSG_NOSIGNAL);
-                            if (faild == -1)
-                                return close(fd), request.erase(fd), checkState = 0, 0;
-                            return close(fd), checkState = 0, 0;
-                        }
-                        else
-                        {
-                            return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
-                        }
+                        return sendFinalReques(fd, filePath, configIndex, location, checkState);
                     }
                     return (handleFileRequest(fd, filePath, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
                 }
@@ -516,7 +504,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 {
                     return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
                 }
-                // return (handleFileRequest(fd, path, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
             }
         }
         size_t tmp = checkState;

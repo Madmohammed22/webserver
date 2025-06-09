@@ -61,11 +61,11 @@ server:
       methods: [delete, get]
 
     /media/:    # url /data/../data/
-      redirect: /content/
+      # redirect: /content/
       root: /var/www/html
       index: index.txt
       autoindex: on
-      methods: [delete, get]
+      methods: [get, delete]
 
     /content/:
       root: /var/www/html
