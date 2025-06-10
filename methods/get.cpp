@@ -67,9 +67,12 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
 
 bool Server::check(std::string filePath)
 {
+
     std::ifstream file(filePath.c_str());
+
     if (!file.is_open())
     {
+        // std::cout  << "[1]" << filePath <<  std::endl;
         return false;
     }
     return true;
@@ -169,12 +172,13 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t 
 
     if (filePath == location.path)
     {
+
         if (location.redirect.size() > 0)
         {
             request[fd].flag = 1;
             filePath = redundantSlash(location.redirect);
             checkState = 301;
-            return check(location.root + location.path + filePath);
+            return check(redundantSlash(location.root + location.path + filePath));
         }
         else if (location.index.size() > 0 && validateSearch(location.index, location.root + filePath) == true)
         {
@@ -185,7 +189,6 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t 
         {
             filePath = location.root + filePath;
             checkState = 201;
-            // std::cout << "I was here" << filePath <<  std::endl;
             return check(filePath);
             // checkState = !location.autoindex ? 403 : 201;
             // return checkState == 403 ? false : true;
@@ -291,7 +294,7 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
             return close(fd), request.erase(fd), 0;
         if (Connection == "close" || Connection.empty())
             return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
-        return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
+        return request[fd].state.isComplete = true, 201;
     }
     return 0;
 }
@@ -454,6 +457,18 @@ int Server::sendFinalReques(int fd, std::string filePath, ConfigData configIndex
         return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
     }
 }
+
+bool timedFunction(int timeoutSeconds, time_t startTime)
+{
+
+    time_t currentTime = time(NULL);
+    if (difftime(currentTime, startTime) >= timeoutSeconds)
+    {
+        return false;
+    }
+    return true;
+}
+
 int Server::serve_file_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
@@ -495,14 +510,30 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 std::string path = location.root + filePath;
                 if (canBeOpen(fd, filePath, location, checkState))
                 {
+
                     if (t_stat_wait(filePath) == 1)
                     {
                         return sendFinalReques(fd, filePath, configIndex, location, checkState);
                     }
-                    return (handleFileRequest(fd, filePath, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
+                    if (handleFileRequest(fd, filePath, Connection, location) == 201){
+                        return timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false ? 310 : 0; 
+                    }
                 }
                 else
                 {
+                    if (checkState == 301)
+                    {
+                        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false){
+                            return 310;
+                        }
+                        else
+                        {
+                            std::string httpRespons = MovedPermanently(getContentType(filePath), location.path);
+                            if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
+                                return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
+                            return 0;
+                        }
+                    }
                     return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
                 }
             }

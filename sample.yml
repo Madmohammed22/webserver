@@ -60,11 +60,12 @@ server:
     /media/:    # url /data/../data/
       redirect: /content/
       root: /var/www/html
-      index: index.txt
+      index: message.txt
       autoindex: on
       methods: [get]
 
     /content/:
+      redirect: /media/
       root: /var/www/html
       index: messages.txt
       autoindex: on

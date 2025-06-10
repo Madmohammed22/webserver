@@ -173,7 +173,7 @@ public:
     static std::string createBadRequest(std::string contentType, size_t contentLength);
     static std::string goneHttpResponse(std::string contentType, size_t contentLength);
     std::string deleteResponse(Server *server);
-    std::string createTimeoutResponse(std::string contentType, size_t contentLength);
+    static std::string createTimeoutResponse(std::string contentType, size_t contentLength);
     int getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t));
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
 

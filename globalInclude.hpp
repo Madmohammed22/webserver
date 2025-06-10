@@ -44,6 +44,7 @@
 #define MAX_EVENTS 1024
 #define CHUNK_SIZE 1024
 #define TIMEOUT 600
+#define TIMEOUTREDIRACTION 5
 #define TIMEOUTMS 30000
 #define MAXURI 1000
 #define PATHC "/root/content/"

@@ -24,6 +24,7 @@ void Server::handleNewConnection(int fd)
 
     clientToServer[conn_sock] = fd;
     request[conn_sock] = Request();
+    request[conn_sock].state.last_activity_time = time(NULL);
     request[conn_sock].state = FileTransferState();
     request[conn_sock].state.file = new std::ofstream();
     request[conn_sock].state.file->open("TMP", std::ios::binary);
@@ -51,10 +52,10 @@ void Server::handleClientData(int fd)
         int serverSocket = clientToServer[fd];
         ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], request[fd].getHost());
         state.buffer.append(holder, 0, bytes);
-        if (validateHeader(fd, state, serverConfig) == false){
+        if (validateHeader(fd, state, serverConfig) == false)
+        {
             getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, createBadRequest);
         }
-        
     }
     else if (!state.isComplete)
     {
@@ -75,13 +76,22 @@ void Server::handleClientOutput(int fd)
     {
         int serverSocket = clientToServer[fd];
         ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], request[fd].getHost());
-        if (request[fd].getMethod() == "GET"){
+        if (request[fd].getMethod() == "GET")
+        {
             std::cout << "-------( REQUEST PARSED )-------\n\n";
             std::cout << request[fd].header << std::endl;
             std::cout << "-------( END OF REQUEST )-------\n\n\n";
-            serve_file_request(fd, serverConfig);
+            int state = serve_file_request(fd, serverConfig);
+            if (state == 310)
+            {
+                close(fd);
+                request.erase(fd);
+                return;
+            }
+            return;
         }
-        else if (request[fd].getMethod() == "DELETE"){
+        else if (request[fd].getMethod() == "DELETE")
+        {
             std::cout << "-------( REQUEST PARSED )-------\n\n";
             std::cout << request[fd].header << std::endl;
             std::cout << "-------( END OF REQUEST )-------\n\n\n";
