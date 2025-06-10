@@ -130,7 +130,7 @@ int Server::handle_delete_request___(int fd, ConfigData configIndex)
 
 int Server::deleteTargetUrl(int fd, std::string filePath, ConfigData configIndex, Location location, int state)
 {
-
+    (void)configIndex;
     if (access(filePath.c_str(), R_OK | W_OK) == -1)
         return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
     if (state == 1)
@@ -147,13 +147,17 @@ int Server::deleteTargetUrl(int fd, std::string filePath, ConfigData configIndex
         return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
     return close(fd), request.erase(fd), 0;
 }
+
 int Server::handle_delete_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
     std::string filePath = request[fd].state.filePath;
     Location location = getExactLocationBasedOnUrl(filePath, configIndex);
+    int state;
+    std::cout << location.root + filePath << std::endl;
+    if ((state = getFileType(location.root + filePath)) == -1)
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
     
-    int state = getFileType(location.root + filePath);
     state == 1 && filePath.at(filePath.size() - 1) != '/' ? filePath = location.path : filePath;
     size_t checkState = 0;
     if (canBeOpen(fd, filePath, location, checkState))

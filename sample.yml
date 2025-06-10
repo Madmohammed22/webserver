@@ -75,9 +75,10 @@ server:
       methods: [get, post]
       cgi: .py:/usr/bin/python3
 
-    /upload/:
-      redirect : /main.txt
-      root : /var/www/upload
+    /uploads/:
+      # redirect : /main.txt
+      # root : /var/www/upload
+      root : /home/mmad/Desktop/upload
       index : test.txt
       autoindex: on
       methods: [delete, get, post]
