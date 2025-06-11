@@ -182,6 +182,7 @@ bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t 
         }
         else if (location.index.size() > 0 && validateSearch(location.index, location.root + filePath) == true)
         {
+            checkState = 302;
             filePath = redundantSlash(location.root + location.path + fetchIndex(location.root + location.path, location.index));
             return check(filePath);
         }
@@ -458,7 +459,7 @@ int Server::sendFinalReques(int fd, std::string filePath, ConfigData configIndex
     }
 }
 
-bool timedFunction(int timeoutSeconds, time_t startTime)
+bool Server::timedFunction(int timeoutSeconds, time_t startTime)
 {
 
     time_t currentTime = time(NULL);

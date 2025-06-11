@@ -53,21 +53,22 @@ server:
     /: 
       redirect: /index.html
       root: /var/www/html
-      index: index.html
+      # root: /home/mmad/Desktop/upload
+      index: [final.txt, test.txt]
       autoindex: on
-      methods: [get]
+      methods: [get, delete]
 
     /media/:    # url /data/../data/
-      redirect: /content/
-      root: /var/www/html
+      # redirect: /content/
       index: message.txt
+      root: /var/www/html
       autoindex: on
       methods: [get]
 
     /content/:
       redirect: /media/
       root: /var/www/html
-      index: messages.txt
+      index: message.txt
       autoindex: on
       methods: [get]
 
@@ -76,10 +77,10 @@ server:
       methods: [get, post]
       cgi: .py:/usr/bin/python3
 
-    /uploads/:
-      # redirect : /main.txt
-      # root : /var/www/upload
-      root : /home/mmad/Desktop/upload
-      index : test.txt
-      autoindex: on
-      methods: [delete, get, post]
+    # /uploads/:
+    #   # redirect : /content/
+    #   # root : /var/www/upload
+    #   root : /home/mmad/Desktop/upload
+    #   index : test.txt
+    #   autoindex: on
+    #   methods: [delete, get, post]
