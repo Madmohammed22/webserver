@@ -245,11 +245,13 @@ int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::s
         if (send(fd, "\r\n\r\n", 2, MSG_NOSIGNAL) == -1)
             throw std::runtime_error("Failed to send final CRLF");
         if (request[fd].getConnection() == "close")
-            return 0;
-            // return request.erase(fd), close(fd), 0;
+            return request.erase(fd), close(fd), 0;
         else
         {
             request[fd].state.isComplete = true;
+            // if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false){
+            //     return 310;
+            // }
             close(fd);
             request.erase(fd);
         }
@@ -257,6 +259,7 @@ int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::s
     }
     catch (const std::exception &e)
     {
+
         return 0;
     }
     return 0;

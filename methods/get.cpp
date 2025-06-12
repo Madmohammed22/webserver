@@ -463,6 +463,7 @@ bool Server::timedFunction(int timeoutSeconds, time_t startTime)
 {
 
     time_t currentTime = time(NULL);
+    std::cout  << "diff: " << difftime(currentTime, startTime) << "\n";
     if (difftime(currentTime, startTime) >= timeoutSeconds)
     {
         return false;

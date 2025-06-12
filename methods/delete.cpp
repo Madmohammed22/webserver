@@ -25,10 +25,10 @@ void DELETE::buildFileTransfers()
     FileTransferState &state = request.state;
     state.filePath = Server::parseSpecificRequest(request.header);
     state.offset = 0;
-    // state.fileSize = Server::getFileSize(PATHC + state.filePath);
+    // state.fileSize = Server::getFileSize(PATHC + state.url);
     state.isComplete = false;
     state.isValidHeader = false;
-    state.logFile.push_back("");
+    state.logFile.insert("");
 }
 
 void deleteDirectoryContents(const std::string &dir)
@@ -96,87 +96,93 @@ std::string readFiles(std::string path)
     return oss.str();
 }
 
-int Server::handle_delete_request___(int fd, ConfigData configIndex)
+// int Server::handle_delete_request___(int fd, ConfigData configdata)
+// {
+
+//     std::string url = request[fd].state.filePath;
+//     Location location = getExactLocationBasedOnUrl(url, configdata);
+//     std::cout << "url :" << url << ", location: " << location.path << std::endl;
+//     size_t checkState = 0;
+//     if (canBeOpen(fd, url, location, checkState))
+//     {
+//         checkState = 0;
+//         if (getFileType(location.path) == 1)
+//             deleteDirectoryContents(url.c_str());
+//         if (access(location.path.c_str(), X_OK | R_OK | W_OK) == -1)
+//             return getSpecificRespond(fd, configdata.getErrorPages().find(403)->second, Forbidden);
+
+//         if (DELETE(url) == -1)
+//             return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << url << std::endl, 0;
+//         request[fd].state.logFile.push_back(location.path);
+//         std::string httpResponse = deleteResponse(this);
+//         if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
+//             return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
+//         return 0;
+//     }
+//     checkState = 0;
+//     std::vector<std::string>::iterator it = find(request[fd].state.logFile.begin(), request[fd].state.logFile.end(), location.path);
+//     if (it != request[fd].state.logFile.end())
+//     {
+//         return getSpecificRespond(fd, configdata.getErrorPages().find(410)->second, goneHttpResponse);
+//     }
+//     return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
+// }
+
+int Server::deleteTargetUrl(int fd, std::string url, ConfigData configdata, Location location, int state)
 {
-
-    std::string filePath = request[fd].state.filePath;
-    Location location = getExactLocationBasedOnUrl(filePath, configIndex);
-    std::cout << "url :" << filePath << ", location: " << location.path << std::endl;
-    size_t checkState = 0;
-    if (canBeOpen(fd, filePath, location, checkState))
-    {
-        checkState = 0;
-        if (getFileType(location.path) == 1)
-            deleteDirectoryContents(filePath.c_str());
-        if (access(location.path.c_str(), X_OK | R_OK | W_OK) == -1)
-            return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
-
-        if (DELETE(filePath) == -1)
-            return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << filePath << std::endl, 0;
-        request[fd].state.logFile.push_back(location.path);
-        std::string httpResponse = deleteResponse(this);
-        if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-            return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
-        return 0;
-    }
-    checkState = 0;
-    std::vector<std::string>::iterator it = find(request[fd].state.logFile.begin(), request[fd].state.logFile.end(), location.path);
-    if (it != request[fd].state.logFile.end())
-    {
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(410)->second, goneHttpResponse);
-    }
-    return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
-}
-
-int Server::deleteTargetUrl(int fd, std::string filePath, ConfigData configIndex, Location location, int state)
-{
-    (void)configIndex;
-    if (access(filePath.c_str(), R_OK | W_OK) == -1)
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
+    if (access(url.c_str(), R_OK | W_OK) == -1)
+        return getSpecificRespond(fd, configdata.getErrorPages().find(403)->second, Forbidden);
     if (state == 1)
     {
         if (state == 1 && fetchIndex(location.root + location.path, location.index).empty())
-            return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
-        if (DELETE(filePath.c_str()) == -1)
-            return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << filePath << std::endl, 0;
+            return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
+        if (DELETE(url.c_str()) == -1)
+        {
+            return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << url << std::endl, 0;
+        }
         // deleteDirectoryContents(location.root + location.path);
     }
     else if (state == 2)
     {
-        if (DELETE(filePath.c_str()) == -1)
-            return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << filePath << std::endl, 0;
+        if (DELETE(url.c_str()) == -1)
+            return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << url << std::endl, 0;
     }
     std::string httpResponse = deleteResponse(this);
     if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
         return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
-    return close(fd), request.erase(fd), 0;
+    // return close(fd), request.erase(fd), 0;
+    return 0;
 }
 
-int Server::handle_delete_request(int fd, ConfigData configIndex)
+int Server::handle_delete_request(int fd, ConfigData configdata)
 {
     std::string Connection = request[fd].connection;
-    std::string filePath = request[fd].state.filePath;
-    Location location = getExactLocationBasedOnUrl(filePath, configIndex);
+    std::string url = request[fd].state.filePath;
+    Location location = getExactLocationBasedOnUrl(url, configdata);
     if (location.path.empty() == true)
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
     if (checkAvailability(fd, location) == false)
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse), EXIT_FAILURE;
+        return getSpecificRespond(fd, configdata.getErrorPages().find(405)->second, methodNotAllowedResponse), EXIT_FAILURE;
     int state;
-    if ((state = getFileType(location.root + filePath)) == -1)
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+    size_t checkState = 0;
+    if ((state = getFileType(location.root + url)) == -1)
+    {
+        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
+    }
 
     if (state == 1 && location.index.empty())
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
-    size_t checkState = 0;
-    if (canBeOpen(fd, filePath, location, checkState))
     {
-        return checkState = 0, deleteTargetUrl(fd, filePath, configIndex, location, state);
+        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
+    }
+    if (canBeOpen(fd, url, location, checkState))
+    {
+        return request[fd].state.logFile.insert(url), checkState = 0, deleteTargetUrl(fd, url, configdata, location, state);
     }
     else
     {
         if (checkState == 301)
         {
-            std::string httpRespons = MovedPermanently(getContentType(filePath), location.path);
+            std::string httpRespons = MovedPermanently(getContentType(url), location.path);
             if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
                 return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
             return 0;
@@ -184,11 +190,14 @@ int Server::handle_delete_request(int fd, ConfigData configIndex)
         if (location.path == "/")
         {
             if (checkState == 404)
-                filePath = location.path;
-            if (canBeOpen(fd, filePath, location, checkState))
-                return checkState = 0, deleteTargetUrl(fd, filePath, configIndex, location, state);
-            return checkState = 0, getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+                url = location.path;
+            if (canBeOpen(fd, url, location, checkState))
+            {
+                return checkState = 0, deleteTargetUrl(fd, url, configdata, location, state);
+            }
+            return checkState = 0, getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
         }
     }
+
     return 0;
 }

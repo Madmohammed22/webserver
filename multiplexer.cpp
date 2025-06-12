@@ -92,10 +92,18 @@ void Server::handleClientOutput(int fd)
         }
         else if (request[fd].getMethod() == "DELETE")
         {
+            request[fd].state.last_activity_time = time(NULL);
             std::cout << "-------( REQUEST PARSED )-------\n\n";
             std::cout << request[fd].header << std::endl;
             std::cout << "-------( END OF REQUEST )-------\n\n\n";
-            handle_delete_request(fd, serverConfig);
+            int state = handle_delete_request(fd, serverConfig);
+            if (state == 310)
+            {
+                close(fd);
+                request.erase(fd);
+                return;
+            }
+            return;
         }
         else if (request[fd].getMethod() == "POST")
         {

@@ -26,7 +26,7 @@ struct FileTransferState
     int headerFlag;
     std::ofstream *file;
     bool isCompleteShortFile;
-    std::vector<std::string> logFile;
+    std::set<std::string> logFile;
     int bytesReceived;
     Binary_String buffer;
     int flag;
