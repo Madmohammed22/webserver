@@ -38,7 +38,7 @@ struct FileTransferState
     ~FileTransferState() {}
 };
 
-class Request 
+class Request
 {
 public:
     FileTransferState state;
@@ -64,6 +64,7 @@ public:
     std::string transferEncoding;
     std::string contentLength;
     std::string ContentType;
+    std::string Cookie;
 
 public:
     void setAccept(std::string accep) { this->accept = accep; }
@@ -74,6 +75,7 @@ public:
     void setConnection(std::string c) { connection = c; }
     void setTransferEncoding(std::string te) { transferEncoding = te; }
     void setContentLength(std::string cl) { contentLength = cl; }
+    void setCookie(std::string cookie) { Cookie = cookie; }
 
 public:
     std::string getAccept() { return accept; }
@@ -84,11 +86,11 @@ public:
     std::string getConnection() { return connection; }
     std::string getTransferEncoding() { return transferEncoding; }
     std::string getContentLength() { return contentLength; }
+    std::string getCookie() { return Cookie; }
 
 public:
     ~Request() {}
 };
-
 
 class RequstBuilder
 {
@@ -101,6 +103,7 @@ public:
     virtual void buildConnection() = 0;
     virtual void buildTransferEncoding() = 0;
     virtual void buildContentLength() = 0;
+    virtual void buildCookie() = 0;
 
 public:
     virtual Request getRequest() const = 0;
@@ -126,6 +129,7 @@ public:
     void buildConnection() { includeBuild("Connection:", request.connection, 2); };
     void buildTransferEncoding() { includeBuild("Transfer-Encoding:", request.transferEncoding, 2); };
     void buildContentLength() { includeBuild("Content-Length:", request.contentLength, 2); };
+    void buildCookie() { includeBuild("Cookie:", request.Cookie, 2); };
 
     Request getRequest() const { return request; }
 };
@@ -150,6 +154,7 @@ public:
     void buildConnection() { includeBuild("Connection:", request.connection, 2); };
     void buildTransferEncoding() { includeBuild("Transfer-Encoding:", request.transferEncoding, 2); };
     void buildContentLength() { includeBuild("Content-Length:", request.contentLength, 2); };
+    void buildCookie() { includeBuild("Cookie:", request.Cookie, 2); };
     Request getRequest() const { return request; }
 };
 
@@ -173,6 +178,7 @@ public:
     void buildConnection() { includeBuild("Connection:", request.connection, 2); };
     void buildTransferEncoding() { includeBuild("Transfer-Encoding:", request.transferEncoding, 2); };
     void buildContentLength() { includeBuild("Content-Length:", request.contentLength, 2); };
+    void buildCookie() { includeBuild("Cookie:", request.Cookie, 2); };
     Request getRequest() const { return request; }
 };
 
@@ -184,13 +190,22 @@ public:
     virtual HeaderValidator *getNextValidator() = 0;
 };
 
+class CookieValidator : public HeaderValidator
+{
+public:
+    CookieValidator() {}
+    ~CookieValidator() {}
+    bool validate(RequstBuilder &builder);
+    HeaderValidator *getNextValidator() { return NULL; }
+};
+
 class FileTransferValidator : public HeaderValidator
 {
 public:
     FileTransferValidator() {}
     ~FileTransferValidator() {}
     bool validate(RequstBuilder &builder);
-    HeaderValidator *getNextValidator() { return NULL; }
+    HeaderValidator *getNextValidator() { return new CookieValidator(); }
 };
 
 class TransferEncodingValidator : public HeaderValidator

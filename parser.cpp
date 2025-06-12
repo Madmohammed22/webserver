@@ -7,24 +7,25 @@ bool header_parser(T method, Request &request, std::string header, std::map<std:
 {
     Build build;
     std::ofstream *file = request.state.file;
-    Request methaData(header, tmpMap);
-    method = T(methaData);
+    Request metaData(header, tmpMap);
+    method = T(metaData);
     build.requestBuilder(method);
     if (!build.chainOfResponsibility(method).first)
     {
         return false;
     }
-    methaData = method.getRequest();
-    request.method = methaData.getMethod();
-    request.connection = methaData.getConnection();
-    request.transferEncoding = methaData.getTransferEncoding();
-    request.contentLength = methaData.getContentLength();
-    request.ContentType = methaData.getContentType();
-    request.accept = methaData.getAccept();
-    request.host = methaData.getHost();
+    metaData = method.getRequest();
+    request.method = metaData.getMethod();
+    request.connection = metaData.getConnection();
+    request.transferEncoding = metaData.getTransferEncoding();
+    request.contentLength = metaData.getContentLength();
+    request.ContentType = metaData.getContentType();
+    request.accept = metaData.getAccept();
+    request.host = metaData.getHost();
     request.header = header;
-    request.state = methaData.getFileTransfers();
+    request.state = metaData.getFileTransfers();
     request.state.file = file;
+    request.Cookie = metaData.getCookie();
     return true;
 }
 

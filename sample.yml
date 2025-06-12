@@ -84,3 +84,9 @@ server:
       index : test.txt
       autoindex: on
       methods: [delete, get, post]
+
+    /loginForm/:
+      root: /var/www/html
+      index : index.html
+      autoindex: on
+      methods: [delete, get, post]

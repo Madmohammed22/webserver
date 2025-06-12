@@ -6,6 +6,7 @@ void Build::requestBuilder(RequstBuilder &requstBuilder)
 {
     requstBuilder.buildConnection();
     requstBuilder.buildMethod();
+    requstBuilder.buildCookie();
     requstBuilder.buildFileTransfers();
     requstBuilder.buildTransferEncoding();
     requstBuilder.buildContentLength();
@@ -19,6 +20,7 @@ std::pair<bool, int> Build::chainOfResponsibility(RequstBuilder &requstBuilder)
     std::pair<bool, int> return_pair;
     return_pair.first = true;
     return_pair.second = 0;
+    CookieValidator cookieValidator; 
     ContentLengthValidator contentLengthValidator;
     TransferEncodingValidator transferEncodingValidator;
     ConnectionValidator connectionValidator;
@@ -26,12 +28,12 @@ std::pair<bool, int> Build::chainOfResponsibility(RequstBuilder &requstBuilder)
     ContentTypeValidator contentTypeValidator;
 
     std::vector<HeaderValidator *> validators;
+    validators.push_back(&cookieValidator);
     validators.push_back(&fileTransferValidator);
     validators.push_back(&connectionValidator);
     validators.push_back(&transferEncodingValidator);
     validators.push_back(&contentLengthValidator);
     validators.push_back(&contentTypeValidator);
-
     for (std::vector<HeaderValidator *>::iterator it = validators.begin(); it != validators.end(); ++it)
     {
         if (!(*it)->validate(requstBuilder))
@@ -127,4 +129,9 @@ bool ConnectionValidator::validate(RequstBuilder &builder)
     bool check = builder.getRequest().getConnection() == "close" || builder.getRequest().getConnection() == "keep-alive" || builder.getRequest().getConnection() == "undefined" || !builder.getRequest().getConnection().empty();
 
     return check;
+}
+
+bool CookieValidator::validate(RequstBuilder &builder){
+    std::cout << "[" << builder.getRequest().getCookie() << "]" << std::endl;
+    return true;
 }
