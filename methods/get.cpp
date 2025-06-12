@@ -410,7 +410,7 @@ int Server::t_stat(std::string path, Location location)
     return -1;
 }
 
-int t_stat_wait(std::string path)
+int Server::t_stat_wait(std::string path)
 {
     // std::string path = location.root + path;
     struct stat s;

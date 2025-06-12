@@ -129,6 +129,7 @@ public:
     int parsePostRequest(int fd, ConfigData& configIndex);
 
     // Functions helper
+    static int t_stat_wait(std::string path);
     static bool timedFunction(int timeoutSeconds, time_t startTime);
     static Location getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex);
     int sendFinalReques(int fd, std::string filePath, ConfigData configIndex,  Location location, size_t checkState);

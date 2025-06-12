@@ -158,31 +158,24 @@ int Server::handle_delete_request(int fd, ConfigData configIndex)
     std::string filePath = request[fd].state.filePath;
     Location location = getExactLocationBasedOnUrl(filePath, configIndex);
     if (location.path.empty() == true)
-    {
         return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
-    }
     if (checkAvailability(fd, location) == false)
         return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse), EXIT_FAILURE;
-    // cout << "location.path: " << location.path << "\n";
     int state;
-    if ((state = getFileType(location.root + location.path)) == -1 || location.path.empty())
+    if ((state = getFileType(location.root + filePath)) == -1)
         return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
 
-    state == 1 && filePath.at(filePath.size() - 1) != '/' ? filePath = location.path : filePath;
     if (state == 1 && location.index.empty())
         return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
-
     size_t checkState = 0;
     if (canBeOpen(fd, filePath, location, checkState))
     {
-        cout << "checkState: " << checkState << "\n";
         return checkState = 0, deleteTargetUrl(fd, filePath, configIndex, location, state);
     }
     else
     {
         if (checkState == 301)
         {
-
             std::string httpRespons = MovedPermanently(getContentType(filePath), location.path);
             if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
                 return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
@@ -197,8 +190,5 @@ int Server::handle_delete_request(int fd, ConfigData configIndex)
             return checkState = 0, getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
         }
     }
-
-    close(fd);
-    request.erase(fd);
     return 0;
 }
