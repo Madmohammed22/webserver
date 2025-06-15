@@ -53,8 +53,7 @@ server:
     /:
       # redirect: /index.html
       root: /var/www/html
-      # root: /home/mmad/Desktop/upload
-      index: test.txtss
+      index: index.html
       autoindex: on
       methods: [get, delete]
 

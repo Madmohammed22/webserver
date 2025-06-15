@@ -49,7 +49,7 @@ std::string Server::redundantSlash(std::string url)
     for (size_t i = 0; i < url.size(); i++)
     {
         new_url += url[i];
-        for (size_t j = i; url[j] == '/' || url[j] == '.'; j++)
+        for (size_t j = i; url[j] == '/'; j++)
         i = j;
     }
     
@@ -68,9 +68,11 @@ std::string Server::parseSpecificRequest(std::string request)
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
             requestedPath = url_decode(redundantSlash(requestedPath));
+            std::cout << "requestedPath: " << requestedPath << std::endl;
             if (!requestedPath.empty())
             {
                 filePath = requestedPath;
+
             }
         }
         return filePath;

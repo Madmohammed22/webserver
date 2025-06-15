@@ -129,6 +129,7 @@ public:
     int parsePostRequest(int fd, ConfigData& configIndex);
 
     // Functions helper
+    static bool areSameDirectories(const char *path1, const char *path2);
     static int t_stat_wait(std::string path);
     static bool timedFunction(int timeoutSeconds, time_t startTime);
     static Location getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex);

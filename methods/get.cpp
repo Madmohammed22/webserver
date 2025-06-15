@@ -361,7 +361,8 @@ Location Server::getExactLocationBasedOnUrlContainer(std::string target, ConfigD
         return location;
     for (size_t i = 0; i < configIndex.getLocations().size(); i++)
     {
-        if (target == redundantSlash(configIndex.getLocations()[i].path))
+
+        if (areSameDirectories((target).c_str(), (redundantSlash(configIndex.getLocations()[i].path)).c_str()))
         {
             return location = configIndex.getLocations()[i];
         }
@@ -463,12 +464,32 @@ bool Server::timedFunction(int timeoutSeconds, time_t startTime)
 {
 
     time_t currentTime = time(NULL);
-    std::cout  << "diff: " << difftime(currentTime, startTime) << "\n";
+    std::cout << "diff: " << difftime(currentTime, startTime) << "\n";
     if (difftime(currentTime, startTime) >= timeoutSeconds)
     {
         return false;
     }
     return true;
+}
+
+bool Server::areSameDirectories(const char *path1, const char *path2)
+{
+    char resolvedPath1[PATH_MAX];
+    char resolvedPath2[PATH_MAX];
+
+    if (realpath(path1, resolvedPath1) == NULL)
+    {
+        // std::cerr << "Error resolving path1: " << path1 << std::endl;
+        return false;
+    }
+
+    if (realpath(path2, resolvedPath2) == NULL)
+    {
+        // std::cerr << "Error resolving path2: " << path2 << std::endl;
+        return false;
+    }
+
+    return strcmp(resolvedPath1, resolvedPath2) == 0;
 }
 
 int Server::serve_file_request(int fd, ConfigData configIndex)
@@ -517,15 +538,17 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                     {
                         return sendFinalReques(fd, filePath, configIndex, location, checkState);
                     }
-                    if (handleFileRequest(fd, filePath, Connection, location) == 201){
-                        return timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false ? 310 : 0; 
+                    if (handleFileRequest(fd, filePath, Connection, location) == 201)
+                    {
+                        return timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false ? 310 : 0;
                     }
                 }
                 else
                 {
                     if (checkState == 301)
                     {
-                        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false){
+                        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+                        {
                             return 310;
                         }
                         else

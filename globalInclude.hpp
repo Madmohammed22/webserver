@@ -33,7 +33,9 @@
 #include <set>
 #include <algorithm>
 #include <dirent.h>
-
+#include <iostream>
+#include <limits.h> // For PATH_MAX
+#include <stdlib.h> // For realpath
 #include "Binary_String.hpp"
 
 #define ERROR404 404
@@ -48,6 +50,7 @@
 #define TIMEOUTMS 30000
 #define MAXURI 1000
 #define PATHC "/root/content/"
+#define ROOT "/var/www/html"
 #define PATHE "root/error/"
 #define PATHU "root/UPLOAD"
 #define STATIC "root/static/"
