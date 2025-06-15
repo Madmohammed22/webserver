@@ -7,7 +7,7 @@
 
 struct FileTransferState
 {
-    std::string filePath;
+    std::string url;
     size_t offset;
     size_t fileSize;
     bool isComplete;

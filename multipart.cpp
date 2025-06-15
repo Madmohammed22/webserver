@@ -41,7 +41,7 @@ void Server::createFileName(std::string line, int fd)
     start += 10;
     size_t end = line.find("\"", start);
    
-    std::string fileName = request[fd].state.filePath + line.substr(start, end - start);
+    std::string fileName = request[fd].state.url + line.substr(start, end - start);
     std::ofstream *newFile = new std::ofstream(fileName.c_str(), std::ios::binary | std::ios::trunc);
     if (!newFile->is_open())
     {
@@ -121,11 +121,11 @@ void Server::writeData(Binary_String& chunk, int fd)
     }
 }
 
-bool checkEndPoint(std::string &filePath)
+bool checkEndPoint(std::string &url)
 {
     struct stat info;
    
-    if (stat(filePath.c_str(), &info) != 0)
+    if (stat(url.c_str(), &info) != 0)
         return false; 
     if (S_ISDIR(info.st_mode))
     {
@@ -137,7 +137,7 @@ bool checkEndPoint(std::string &filePath)
 int Server::parsePostRequest(int fd, ConfigData& configIndex)
 {
     std::string contentType;
-    std::string filePath;
+    std::string url;
     FileTransferState &state = request[fd].state;
     size_t boundaryStart;
 
@@ -151,8 +151,8 @@ int Server::parsePostRequest(int fd, ConfigData& configIndex)
     }
     else
         return getSpecificRespond(fd, configIndex.getErrorPages().find(400)->second, createBadRequest);
-    state.filePath = "root/Upload";
-    /*if (checkEndPoint(state.filePath) == false)*/
+    state.url = "root/Upload";
+    /*if (checkEndPoint(state.url) == false)*/
     /*    return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);*/
     return (0);
 }
@@ -161,7 +161,7 @@ void Server::handlePostRequest(int fd)
 {
     Binary_String chunkedData;
 
-    request[fd].state.filePath = "root/Upload";
+    request[fd].state.url = "root/Upload";
     chunkedData = readFileChunk_post(fd);
     if (chunkedData.empty())
       request.erase(fd);

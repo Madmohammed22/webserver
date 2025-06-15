@@ -23,7 +23,7 @@ void DELETE::includeBuild(std::string target, std::string &metaData, int pick)
 void DELETE::buildFileTransfers()
 {
     FileTransferState &state = request.state;
-    state.filePath = Server::parseSpecificRequest(request.header);
+    state.url = Server::parseSpecificRequest(request.header);
     state.offset = 0;
     // state.fileSize = Server::getFileSize(PATHC + state.url);
     state.isComplete = false;
@@ -99,7 +99,7 @@ std::string readFiles(std::string path)
 // int Server::handle_delete_request___(int fd, ConfigData configdata)
 // {
 
-//     std::string url = request[fd].state.filePath;
+//     std::string url = request[fd].state.url;
 //     Location location = getExactLocationBasedOnUrl(url, configdata);
 //     std::cout << "url :" << url << ", location: " << location.path << std::endl;
 //     size_t checkState = 0;
@@ -157,7 +157,7 @@ int Server::deleteTargetUrl(int fd, std::string url, ConfigData configdata, Loca
 int Server::handle_delete_request(int fd, ConfigData configdata)
 {
     std::string Connection = request[fd].connection;
-    std::string url = request[fd].state.filePath;
+    std::string url = request[fd].state.url;
     Location location = getExactLocationBasedOnUrl(url, configdata);
     if (location.path.empty() == true)
         return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);

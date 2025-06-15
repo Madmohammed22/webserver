@@ -21,12 +21,12 @@ void POST::includeBuild(std::string target, std::string &metaData, int pick)
 void POST::buildFileTransfers()
 {
     FileTransferState &state = request.state;
-    state.filePath = Server::parseSpecificRequest(request.header);
+    state.url = Server::parseSpecificRequest(request.header);
     state.offset = 0;
-    state.fileSize = Server::getFileSize(PATHC + state.filePath);
+    state.fileSize = Server::getFileSize(PATHC + state.url);
     state.isComplete = false;
-    state.mime = Server::getContentType(state.filePath);
-    state.uriLength = state.filePath.length();
+    state.mime = Server::getContentType(state.url);
+    state.uriLength = state.url.length();
     state.test = 0;
     state.headerFlag = true;
     // state.logFile[""] = "";

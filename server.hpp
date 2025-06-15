@@ -133,12 +133,12 @@ public:
     static int t_stat_wait(std::string path);
     static bool timedFunction(int timeoutSeconds, time_t startTime);
     static Location getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex);
-    int sendFinalReques(int fd, std::string filePath, ConfigData configIndex,  Location location, size_t checkState);
-    int helper(int fd, std::string &filePath, ConfigData configIndex,  Location location);
+    int sendFinalReques(int fd, std::string url, ConfigData configIndex,  Location location, size_t checkState);
+    int helper(int fd, std::string &url, ConfigData configIndex,  Location location);
     static std::string fetchIndex(std::string root, std::vector<std::string> indexFile);
-    static bool check(std::string filePath);
+    static bool check(std::string url);
     static std::string redundantSlash(std::string url);
-    int deleteTargetUrl(int fd, std::string filePath, ConfigData configIndex, Location location, int state);
+    int deleteTargetUrl(int fd, std::string url, ConfigData configIndex, Location location, int state);
     int handle_delete_request___(int fd, ConfigData configIndex);
     std::string listDirectory(const std::string &dir_path, const std::string &fileName, std::string& mime);
     int t_stat(std::string path, Location location);
@@ -146,7 +146,7 @@ public:
     static std::string Forbidden(std::string contentType, size_t contentLength);
     Location getExactLocationBasedOnUrl(std::string target, ConfigData configIndex);
     bool checkAvailability(int fd, Location location);
-    void reWrite(std::string &filePath, ConfigData configData);
+    void reWrite(std::string &url, ConfigData configData);
     bool closeConnection(int fd);
     static bool containsOnlyWhitespace(const std::string &str);
     static std::string trim(std::string str);
@@ -155,7 +155,7 @@ public:
     std::string readFile(std::string path);
     int getFileType(std::string path);
     static Location getLocation_adder1(std::string targetLocation, ConfigData configIndex);
-    bool canBeOpen(int fd, std::string &filePath, Location location, size_t &checkState);
+    bool canBeOpen(int fd, std::string &url, Location location, size_t &checkState);
     static std::string parseSpecificRequest(std::string request);
     static std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();
@@ -181,8 +181,8 @@ public:
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
 
     // Transfer-Encoding: chunked
-    int handleFileRequest(int fd, const std::string &filePath, std::string Connection, Location configIndex);
-    int continueFileTransfer(int fd, std::string filePath, Location configIndex);
+    int handleFileRequest(int fd, const std::string &url, std::string Connection, Location configIndex);
+    int continueFileTransfer(int fd, std::string url, Location configIndex);
     void setnonblocking(int fd);
     static std::map<std::string, std::string> key_value_pair(std::string header);
 

@@ -32,12 +32,12 @@ void GET::includeBuild(std::string target, std::string &metaData, int pick)
 void GET::buildFileTransfers()
 {
     FileTransferState &state = request.state;
-    state.filePath = Server::parseSpecificRequest(request.header);
+    state.url = Server::parseSpecificRequest(request.header);
     state.offset = 0;
-    state.fileSize = Server::getFileSize(state.filePath);
+    state.fileSize = Server::getFileSize(state.url);
     state.isComplete = false;
-    state.mime = Server::getContentType(state.filePath);
-    state.uriLength = state.filePath.length();
+    state.mime = Server::getContentType(state.url);
+    state.uriLength = state.url.length();
     state.test = 0;
     state.last_activity_time = time(NULL);
 }
@@ -65,25 +65,25 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
     return true;
 }
 
-bool Server::check(std::string filePath)
+bool Server::check(std::string url)
 {
 
-    std::ifstream file(filePath.c_str());
+    std::ifstream file(url.c_str());
 
     if (!file.is_open())
     {
-        // std::cout  << "[1]" << filePath <<  std::endl;
+        // std::cout  << "[1]" << url <<  std::endl;
         return false;
     }
     return true;
 }
 
-bool matchPath(std::string filePath, Location location)
+bool matchPath(std::string url, Location location)
 {
-    if (filePath == "/")
+    if (url == "/")
         return false;
 
-    if (filePath == location.path)
+    if (url == location.path)
         return true;
     return false;
 }
@@ -167,42 +167,42 @@ bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
     }
     return true;
 }
-bool Server::canBeOpen(int fd, std::string &filePath, Location location, size_t &checkState)
+bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &checkState)
 {
 
-    if (filePath == location.path)
+    if (url == location.path)
     {
 
         if (location.redirect.size() > 0)
         {
             request[fd].flag = 1;
-            filePath = redundantSlash(location.redirect);
+            url = redundantSlash(location.redirect);
             checkState = 301;
-            return check(redundantSlash(location.root + location.path + filePath));
+            return check(redundantSlash(location.root + location.path + url));
         }
-        else if (location.index.size() > 0 && validateSearch(location.index, location.root + filePath) == true)
+        else if (location.index.size() > 0 && validateSearch(location.index, location.root + url) == true)
         {
             checkState = 302;
-            filePath = redundantSlash(location.root + location.path + fetchIndex(location.root + location.path, location.index));
-            return check(filePath);
+            url = redundantSlash(location.root + location.path + fetchIndex(location.root + location.path, location.index));
+            return check(url);
         }
         else
         {
-            filePath = location.root + filePath;
+            url = location.root + url;
             checkState = 201;
-            return check(filePath);
+            return check(url);
             // checkState = !location.autoindex ? 403 : 201;
             // return checkState == 403 ? false : true;
         }
     }
     else
     {
-        filePath = location.root + filePath;
-        checkState = (check(filePath) == true) ? 200 : 404;
+        url = location.root + url;
+        checkState = (check(url) == true) ? 200 : 404;
         return (checkState == 200) ? true : false;
     }
 
-    return check(filePath);
+    return check(url);
 }
 
 bool sendChunk(int fd, const char *data, size_t size)
@@ -223,7 +223,7 @@ bool sendFinalChunk(int fd)
            send(fd, "\r\n", 2, MSG_NOSIGNAL) != -1;
 }
 
-int Server::continueFileTransfer(int fd, std::string filePath, Location location)
+int Server::continueFileTransfer(int fd, std::string url, Location location)
 {
     (void)location;
     char buffer[CHUNK_SIZE];
@@ -231,7 +231,7 @@ int Server::continueFileTransfer(int fd, std::string filePath, Location location
     size_t bytesToRead;
     remainingBytes > CHUNK_SIZE ? bytesToRead = CHUNK_SIZE : bytesToRead = remainingBytes;
     size_t bytesRead = 0;
-    if (!readFileChunk(filePath, buffer, request[fd].state.offset, bytesToRead, bytesRead))
+    if (!readFileChunk(url, buffer, request[fd].state.offset, bytesToRead, bytesRead))
     {
         return request[fd].getConnection() == "close" ? -1 : 0;
     }
@@ -257,11 +257,11 @@ int Server::continueFileTransfer(int fd, std::string filePath, Location location
     return 0;
 }
 
-int Server::handleFileRequest(int fd, const std::string &filePath, std::string Connection, Location location)
+int Server::handleFileRequest(int fd, const std::string &url, std::string Connection, Location location)
 {
-    request[fd].state.filePath = filePath;
-    std::string contentType = Server::getContentType(filePath);
-    request[fd].state.fileSize = getFileSize(filePath);
+    request[fd].state.url = url;
+    std::string contentType = Server::getContentType(url);
+    request[fd].state.fileSize = getFileSize(url);
     const size_t LARGE_FILE_THRESHOLD = 1024 * 1024; // 1mb
     if (request[fd].state.fileSize > LARGE_FILE_THRESHOLD)
     {
@@ -269,7 +269,7 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
         std::string httpRespons = createChunkedHttpResponse(contentType);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
             return std::cerr << "Failed to send chunked HTTP header." << std::endl, 0;
-        return continueFileTransfer(fd, request[fd].state.filePath, location);
+        return continueFileTransfer(fd, request[fd].state.url, location);
     }
     else
     {
@@ -289,7 +289,7 @@ int Server::handleFileRequest(int fd, const std::string &filePath, std::string C
         else
             httpRespons = httpResponse(contentType, request[fd].state.fileSize);
         int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
-        faild = send(fd, readFile(filePath).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL);
+        faild = send(fd, readFile(url).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL);
         faild = send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL);
         if (faild == -1)
             return close(fd), request.erase(fd), 0;
@@ -423,12 +423,12 @@ int Server::t_stat_wait(std::string path)
     return -1;
 }
 
-int Server::helper(int fd, std::string &filePath, ConfigData configIndex, Location location)
+int Server::helper(int fd, std::string &url, ConfigData configIndex, Location location)
 {
 
-    if (t_stat(filePath, location) == 1 && filePath.at(filePath.size() - 1) != '/')
+    if (t_stat(url, location) == 1 && url.at(url.size() - 1) != '/')
     {
-        std::string httpRespons = MovedPermanently(getContentType(filePath), location.path);
+        std::string httpRespons = MovedPermanently(getContentType(url), location.path);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
             return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
         return EXIT_SUCCESS;
@@ -440,16 +440,16 @@ int Server::helper(int fd, std::string &filePath, ConfigData configIndex, Locati
     return EXIT_FAILURE;
 }
 
-int Server::sendFinalReques(int fd, std::string filePath, ConfigData configIndex, Location location, size_t checkState)
+int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Location location, size_t checkState)
 {
     if (location.autoindex == true)
     {
         location.path = redundantSlash(location.path);
         std::string mime;
-        size_t fileSize = listDirectory(filePath, location.path, mime).size();
+        size_t fileSize = listDirectory(url, location.path, mime).size();
         std::string httpRespons = httpResponse(mime, fileSize);
         int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
-        faild = send(fd, listDirectory(filePath, location.path, mime).c_str(), fileSize, MSG_NOSIGNAL);
+        faild = send(fd, listDirectory(url, location.path, mime).c_str(), fileSize, MSG_NOSIGNAL);
         if (faild == -1)
             return close(fd), request.erase(fd), checkState = 0, 0;
         return close(fd), checkState = 0, 0;
@@ -495,50 +495,50 @@ bool Server::areSameDirectories(const char *path1, const char *path2)
 int Server::serve_file_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
-    std::string filePath = request[fd].state.filePath;
-    Location location = getExactLocationBasedOnUrl(filePath, configIndex);
+    std::string url = request[fd].state.url;
+    Location location = getExactLocationBasedOnUrl(url, configIndex);
     if (location.path.empty() == true)
     {
         return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
     }
-    if (helper(fd, filePath, configIndex, location) == EXIT_SUCCESS)
+    if (helper(fd, url, configIndex, location) == EXIT_SUCCESS)
     {
         return 0;
     }
     if (request[fd].state.test == 1)
     {
-        if (continueFileTransfer(fd, filePath, location) == -1)
+        if (continueFileTransfer(fd, url, location) == -1)
             return std::cerr << "Failed to continue file transfer" << std::endl, 0;
         return 0;
     }
 
     size_t checkState;
-    if (canBeOpen(fd, filePath, location, checkState))
+    if (canBeOpen(fd, url, location, checkState))
     {
-        if (t_stat_wait(filePath) == 1)
+        if (t_stat_wait(url) == 1)
         {
-            return sendFinalReques(fd, filePath, configIndex, location, checkState);
+            return sendFinalReques(fd, url, configIndex, location, checkState);
         }
-        return (handleFileRequest(fd, filePath, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
+        return (handleFileRequest(fd, url, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
     }
     else
     {
         if (checkState == 301)
         {
-            location = getExactLocationBasedOnUrl(filePath, configIndex);
-            if (t_stat_wait(location.root + filePath) == -1)
+            location = getExactLocationBasedOnUrl(url, configIndex);
+            if (t_stat_wait(location.root + url) == -1)
                 getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
             else
             {
-                std::string path = location.root + filePath;
-                if (canBeOpen(fd, filePath, location, checkState))
+                std::string path = location.root + url;
+                if (canBeOpen(fd, url, location, checkState))
                 {
 
-                    if (t_stat_wait(filePath) == 1)
+                    if (t_stat_wait(url) == 1)
                     {
-                        return sendFinalReques(fd, filePath, configIndex, location, checkState);
+                        return sendFinalReques(fd, url, configIndex, location, checkState);
                     }
-                    if (handleFileRequest(fd, filePath, Connection, location) == 201)
+                    if (handleFileRequest(fd, url, Connection, location) == 201)
                     {
                         return timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false ? 310 : 0;
                     }
@@ -553,7 +553,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                         }
                         else
                         {
-                            std::string httpRespons = MovedPermanently(getContentType(filePath), location.path);
+                            std::string httpRespons = MovedPermanently(getContentType(url), location.path);
                             if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
                                 return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
                             return 0;

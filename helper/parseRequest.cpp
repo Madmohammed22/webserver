@@ -1,8 +1,8 @@
 #include "../server.hpp"
 
-// void reWrite(std::string &filePath, ConfigData configData){
-//     if (filePath == "/")
-//         filePath =  configData.get
+// void reWrite(std::string &url, ConfigData configData){
+//     if (url == "/")
+//         url =  configData.get
 // }
 void Server::printfContentHeader(Server *server, int fd)
 {
@@ -58,7 +58,7 @@ std::string Server::redundantSlash(std::string url)
 
 std::string Server::parseSpecificRequest(std::string request)
 {
-    std::string filePath;
+    std::string url;
     size_t startPos = request.find("GET ");
     if (startPos != std::string::npos)
     {
@@ -71,11 +71,11 @@ std::string Server::parseSpecificRequest(std::string request)
             std::cout << "requestedPath: " << requestedPath << std::endl;
             if (!requestedPath.empty())
             {
-                filePath = requestedPath;
+                url = requestedPath;
 
             }
         }
-        return filePath;
+        return url;
     }
 
     // Handle DELETE requests
@@ -90,10 +90,10 @@ std::string Server::parseSpecificRequest(std::string request)
             requestedPath = url_decode(redundantSlash(requestedPath));
             if (!requestedPath.empty())
             {
-                filePath = requestedPath;
+                url = requestedPath;
             }
         }
-        return filePath;
+        return url;
     }
 
     // Handle POST requests
@@ -108,15 +108,15 @@ std::string Server::parseSpecificRequest(std::string request)
             requestedPath = url_decode(redundantSlash(requestedPath));
             if (!requestedPath.empty() && requestedPath == "/")
             {
-                filePath = PATHC;
+                url = PATHC;
             }
             else
                 return requestedPath;
         }
-        return filePath;
+        return url;
     }
 
-    return filePath;
+    return url;
 }
 
 std::string Server::trim(std::string str)
