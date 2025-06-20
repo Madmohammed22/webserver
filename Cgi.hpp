@@ -34,10 +34,12 @@ public:
   ~Cgi();
 
   std::string CgiBodyResponse;
-  int _pipeIn[2];
-  int _pipeOut[2];
-  int fdOut;
-  std::string fileName;
+  std::string fileNameOut;
+  std::string fileNameIn;
+  enum cgiState cgiState;
+  int fdIn;
+  int bytesSend;
+  int readPosition;
 
   void parseCgi(Request &req);
   bool getIsCgi();
@@ -49,9 +51,6 @@ public:
   pid_t getPid();
   void setStatus(int status);
 
-public:
-
-  enum cgiState cgiState;
 
 };
 

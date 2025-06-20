@@ -121,7 +121,8 @@ public:
 
 
     // Post method
-    
+    void writePostDataToCgi(Request &req);
+    void cleanupResources(Request& req);
     void handlePostRequest(int fd);
     Binary_String readFileChunk_post(int fd);
     void createFileName(std::string line, int fd);

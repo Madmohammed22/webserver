@@ -5,9 +5,10 @@
 #include "helper/utils.hpp"
  
 Cgi::Cgi() :_env(NULL), _argv(NULL), _isCgi(false), _pid(-1), cgiState(CGI_NOT_STARTED)
+              , fdIn(-1), bytesSend(0)
 {
-    _pipeIn[0] = _pipeIn[1] = -1;
-    _pipeOut[0] = _pipeOut[1] = -1;
+  if (fdIn != -1)
+    close(fdIn);
 }
 
 Cgi::~Cgi()
@@ -29,14 +30,6 @@ Cgi::~Cgi()
         free(_argv[1]);
         free(_argv);
     }
-  if (_pipeIn[0] != -1)
-    close(_pipeIn[0]);
-  if (_pipeIn[1] != -1)
-    close(_pipeIn[1]);
-  if (_pipeOut[0] != -1)
-    close(_pipeOut[0]);
-  if (_pipeOut[1] != -1)
-    close(_pipeOut[1]);
 }
 
 void Cgi::parseCgi(Request &req)
@@ -73,13 +66,13 @@ void Cgi::parseCgi(Request &req)
   if (_path.find(".php", ExtensionPos) != std::string::npos
     && _path.find(".py", ExtensionPos) != std::string::npos)
     return ;
-  
-  //[soukaina] if the access returns -1 a wierdo prb comes test it later, and check if the file can open first
+  std::cout << _path << std::endl;
   if (access(_path.c_str(), R_OK | X_OK ) == -1)
   {
     req.code = 403;
     return ;
   }
+  std::cout << " i was here darling \n\n";
 
   // [soukaina] here i supposed that you already check if the method in the request is allowed in the location
   // if not you should add it
@@ -133,19 +126,27 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
   (void )serv;
   (void) req;
 
-  fileName = createTempFile();
-  int fdOut = open(fileName.c_str(), O_WRONLY | O_CREAT, 0644);  
+  fileNameOut = createTempFile();
+  if (req.getMethod() == "POST")
+  {
+    fileNameIn = createTempFile();
+    fdIn = open(fileNameIn.c_str(), O_RDWR | O_CREAT, 0644);  
+  }
+  int fdOut = open(fileNameOut.c_str(), O_WRONLY | O_CREAT, 0644);  
+  
   _pid = fork();
-  if ( _pid < 0)
+  if ( _pid < 0 )
   {
     req.code = 500;
     return ;
   }
   
   // here we are in the child process
-  if (_pid == 0)
+  if ( _pid == 0 )
   {
     dup2(fdOut, STDOUT_FILENO);
+    if (req.getMethod() == "POST")
+      dup2(fdIn, STDIN_FILENO);
     if ( execve(_argv[0], _argv, _env) == -1 )
        exit(1);
   }

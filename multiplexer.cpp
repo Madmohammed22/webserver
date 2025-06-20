@@ -57,12 +57,17 @@ void Server::handleClientData(int fd)
             //[soukaina] here i did give serverConfig null cause the request is wrong so there
             // the header is not parssed and the host has not been setted 
             // so the actuall place where we should call getConfig.. is after the header is checked  
+            // it did broke when it's called with post method
             ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], NULL);
             //[soukaina] here i should build the respond error for the code variable that was set by the validate header function
             getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, createBadRequest);
         }
-        // [soukaina] to be deleted
-        state.isComplete = true;
+        if (request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
+        {
+          request[fd].cgi.runCgi(*this ,fd, request[fd], request[fd].serverConfig);
+          request[fd].cgi.cgiState = CGI_RUNNING;
+          return ;
+        }
     }
     else if (!state.isComplete)
     {
@@ -74,12 +79,6 @@ void Server::handleClientData(int fd)
             state.file->close();
             state.isComplete = true;
         }
-    }
-    if (request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
-    {
-      request[fd].cgi.runCgi(*this ,fd, request[fd], request[fd].serverConfig);
-      request[fd].cgi.cgiState = CGI_RUNNING;
-      return ;
     }
     holder.clear();
 }
@@ -96,7 +95,12 @@ void Server::handleClientOutput(int fd)
         // [soukaina] i have added this line in the parser file after the parsing
         /*request[fd].location = getExactLocationBasedOnUrl(request[fd].state.filePath, serverConfig);*/
         // request[fd].location = serverConfig.getLocations().front();
-    if (request[fd].cgi.cgiState == CGI_RUNNING)
+
+    if (request[fd].cgi.cgiState == CGI_RUNNING && request[fd].cgi.fdIn != -1)
+    {
+      writePostDataToCgi(request[fd]);
+    }
+    else if (request[fd].cgi.cgiState == CGI_RUNNING)
     {
       int pid;
       int status;
@@ -104,7 +108,7 @@ void Server::handleClientOutput(int fd)
       pid = waitpid(request[fd].cgi.getPid(), &status, WNOHANG);
       if (pid == request[fd].cgi.getPid())
       {
-        int fde = open(request[fd].cgi.fileName.c_str(), O_RDWR);
+        int fde = open(request[fd].cgi.fileNameOut.c_str(), O_RDWR);
         char *buffer = (char *)malloc(1024);
         
         int readBytes = read(fde, buffer, 1024);

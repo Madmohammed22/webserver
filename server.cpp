@@ -173,3 +173,53 @@ ConfigData Server::getConfigForRequest(t_listen listen, std::string serverName)
     }
     return configList[0];
 }
+
+void Server::writePostDataToCgi(Request& req)
+{
+     if (req.multp.readPosition == 0)
+     {
+         req.multp.file = new std::ifstream("TMP", std::ios::binary);
+         if (!req.multp.file->is_open())
+         {
+             req.code = 500;
+             cleanupResources(req);
+             return ;
+         }
+     }
+
+     char* buffer = (char *)malloc(CHUNK_SIZE);
+     req.multp.file->read(buffer, CHUNK_SIZE);
+     int bytesRead = req.multp.file->gcount();
+
+     std::cout << " the data that been sent is \n";
+     std::cout << buffer << std::endl;
+     if (bytesRead > 0)
+     {
+        int bytesSent = write(req.cgi.fdIn, buffer, bytesRead);
+        if (bytesSent < 0)
+        {
+          req.code = 500;
+          cleanupResources(req);
+        }
+
+        req.multp.readPosition += bytesRead;
+        req.cgi.bytesSend += bytesSent;
+     }
+
+     if (bytesRead == 0 || req.cgi.bytesSend >= req.state.bytesReceived)
+         cleanupResources(req);
+}
+
+void Server::cleanupResources(Request& req)
+{
+    if (req.multp.file)
+    {
+        req.multp.file->close();
+        delete req.multp.file;
+    }
+    if (req.cgi.fdIn != -1)
+    {
+        close(req.cgi.fdIn);
+        req.cgi.fdIn = -1;
+    }
+}
