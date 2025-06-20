@@ -1,6 +1,6 @@
 #include "ConfigParsing.hpp"
 #include "WebservException.hpp"
-#include "utils.hpp"
+#include "helper/utils.hpp"
 
 ConfigParsing::ConfigParsing() {};
 ConfigParsing::~ConfigParsing() {};

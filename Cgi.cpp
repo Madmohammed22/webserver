@@ -2,7 +2,7 @@
 #include "request.hpp"
 #include "server.hpp"
 #include "ConfigData.hpp"
-#include "utils.hpp"
+#include "helper/utils.hpp"
  
 Cgi::Cgi() :_env(NULL), _argv(NULL), _isCgi(false), _pid(-1), cgiState(CGI_NOT_STARTED)
 {
@@ -133,7 +133,7 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
   (void )serv;
   (void) req;
 
-  fileName = "cgiTest";
+  fileName = createTempFile();
   int fdOut = open(fileName.c_str(), O_WRONLY | O_CREAT, 0644);  
   _pid = fork();
   if ( _pid < 0)

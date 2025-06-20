@@ -1,7 +1,70 @@
-#include "../ConfigParsing.hpp"
-#include <string>
-#include <cctype>
-#include <sstream>
+#include "../globalInclude.hpp"
+
+std::string createTempFile()
+{
+    std::ostringstream filename;
+    filename << "/tmp/file_" << time(0) << "_" << (rand() % 1000);
+    
+    std::ofstream file(filename.str().c_str());
+    if (!file)
+    {
+        std::cerr << "Failed to create file: " << filename.str() << std::endl;
+        return "";
+    }
+    
+    file.close();
+    return filename.str();
+}
+
+int getFileType(std::string path)
+{
+    struct stat s;
+
+    if( stat(path.c_str(), &s) == 0 )
+    {
+        if( s.st_mode & S_IFDIR )
+            return 1;
+        if( s.st_mode & S_IFREG )
+            return 2;
+    }
+    return -1;
+}
+
+
+int ft_strlen(char *str)
+{
+  int i;
+
+  i = 0;
+  while (str[i])
+    i++;
+  return (i);
+}
+
+int	ft_atoi(const char *nptr)
+{
+	int	i;
+	int	res;
+	int	sign;
+
+	i = 0;
+	sign = 1;
+	while ((nptr[i] >= 9 && nptr[i] <= 13) || nptr[i] == 32)
+		i++;
+	if (nptr[i] == '-' || nptr[i] == '+')
+	{
+		if (nptr[i] == '-')
+			sign = -1;
+		i++;
+	}
+	res = 0;
+	while (nptr[i] >= '0' && nptr[i] <= '9')
+	{
+		res = res * 10 + nptr[i] - 48;
+		i++;
+	}
+	return (res * sign);
+}
 
 std::string& rtrim(std::string& str)
 {
