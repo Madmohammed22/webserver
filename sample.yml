@@ -1,6 +1,6 @@
 server:
   port: 7000
-  host: 10.0.2.15
+  host: 10.32.111.166
 
   server_name: example.com
   client_max_body_size: 1m
@@ -36,8 +36,8 @@ server:
       methods: [post, delete, get]
 
 server:
-  port: 8000
-  host: 10.0.2.15
+  port: 8004
+  host: 10.32.111.166
   server_name: mmad.com
   client_max_body_size: 1m
   
@@ -50,6 +50,13 @@ server:
      410: root/error/410.html
      415: root/error/415.html
   locations:
+    /cgi-bin/:
+      root: /var/www/cgi
+      index: index.php
+      autoindex: on
+      cgi: .py:/usr/bin/python3
+      methods: [get, post]
+
     /:
       # redirect: /index.html
       root: /var/www/html
@@ -71,12 +78,6 @@ server:
       autoindex: on
       methods: [get]
 
-    /cgi-bin/:
-      root: /var/www/cgi
-      index: index.php
-      autoindex: on
-      cgi: .py:/usr/bin/python3
-      methods: [get, post]
 
     /uploads/:
       # redirect : /content/

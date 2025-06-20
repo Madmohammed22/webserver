@@ -46,7 +46,7 @@ void Server::handleClientData(int fd)
 
     holder[bytes] = '\0';
 
-    if (!state.headerFlag && !state.isComplete)
+    if (state.headerFlag == true && !state.isComplete)
     {
         int serverSocket = clientToServer[fd];
         // i should rethink about this part cause this part the host is not yet setted
@@ -61,7 +61,7 @@ void Server::handleClientData(int fd)
             //[soukaina] here i should build the respond error for the code variable that was set by the validate header function
             getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, createBadRequest);
         }
-        
+        // [soukaina] to be deleted
         state.isComplete = true;
     }
     else if (!state.isComplete)
@@ -75,7 +75,7 @@ void Server::handleClientData(int fd)
             state.isComplete = true;
         }
     }
-    if (!request[fd].cgi.getIsCgi() && request[fd].cgi.cgiState == CGI_NOT_STARTED)
+    if (request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
     {
       request[fd].cgi.runCgi(*this ,fd, request[fd], request[fd].serverConfig);
       request[fd].cgi.cgiState = CGI_RUNNING;
@@ -110,7 +110,6 @@ void Server::handleClientOutput(int fd)
         int readBytes = read(fde, buffer, 1024);
         if (readBytes == 0 || readBytes < 0)
           close(fde);
-        std::cout << "bytes " << readBytes << std::endl;
         std::string helper(buffer);
         free(buffer);
         request[fd].cgi.CgiBodyResponse += helper;

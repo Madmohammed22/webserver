@@ -12,15 +12,23 @@ Cgi::Cgi() :_env(NULL), _argv(NULL), _isCgi(false), _pid(-1), cgiState(CGI_NOT_S
 
 Cgi::~Cgi()
 {
-  for (char **env = _env; env && *env; env++)
-    free(*env);
-  free(_env);
-  if (_argv)
+  int i;
+
+  i = 0;
+  if (_env)
   {
-      free(_argv[0]);
-      free(_argv[1]);
-      free(_argv);
+    while (_env[i])
+    {
+      free(_env[i]);
+    }
+    free(_env);
   }
+    if (_argv)
+    {
+        free(_argv[0]);
+        free(_argv[1]);
+        free(_argv);
+    }
   if (_pipeIn[0] != -1)
     close(_pipeIn[0]);
   if (_pipeIn[1] != -1)
@@ -33,9 +41,8 @@ Cgi::~Cgi()
 
 void Cgi::parseCgi(Request &req)
 {
-  std::string path = req.getFileTransfers().url;
+  std::string path = req.state.url;
 
-  std::cout << path  << std::endl;
   size_t quePos = path.find('?');
 
   if (quePos != std::string::npos)
@@ -48,9 +55,12 @@ void Cgi::parseCgi(Request &req)
 
   if (path == "/cgi-bin")
     _path = path + "/" + req.location.index[0];
-  
-  if (path == "/cgi-bin/")
+  else if (path == "/cgi-bin/")
     _path = path + req.location.index[0];
+  else 
+    _path = path;
+  if (_path[0] == '/')
+    _path.erase(0, 1);
    // if (getFileType(_path) != 2)
   // {
   //   req.code = 404;
@@ -60,11 +70,12 @@ void Cgi::parseCgi(Request &req)
   int ExtensionPos = _path.rfind('.');
 
   // if the file is not executable ( the nginx default behavior is to send it as a static file)
-  if (_path.find(".php", ExtensionPos) == std::string::npos
-    && _path.find(".py", ExtensionPos) == std::string::npos)
+  if (_path.find(".php", ExtensionPos) != std::string::npos
+    && _path.find(".py", ExtensionPos) != std::string::npos)
     return ;
   
-  if (access(_path.c_str(), R_OK |  X_OK) == -1)
+  //[soukaina] if the access returns -1 a wierdo prb comes test it later, and check if the file can open first
+  if (access(_path.c_str(), R_OK | X_OK ) == -1)
   {
     req.code = 403;
     return ;
@@ -80,6 +91,7 @@ void Cgi::parseCgi(Request &req)
   _isCgi = true;
 }
 
+
 void Cgi::setEnv(Request &req)
 {
   size_t allocSize = 11;
@@ -89,7 +101,6 @@ void Cgi::setEnv(Request &req)
   int i = 0;
 
   int start = _path.rfind("/");
-  
   scriptName = _path.substr(start + 1, _path.length());
 
   _env = (char **)calloc(allocSize + 1, sizeof(char *));
@@ -106,7 +117,6 @@ void Cgi::setEnv(Request &req)
   _env[i] = NULL;
 
   // i should protect this function
-  std::cout << _path << std::endl;
   // ext = _path.substr(_path.rfind("."), _path.length());
   ext = ".py";
   _argv = (char **)malloc(sizeof(char *) * 3);
@@ -122,19 +132,23 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
   (void)fd;
   (void )serv;
   (void) req;
-  // _pid = fork();
-  // if ( _pid < 0)
-  // {
-  //   req.code = 500;
-  //   return ;
-  // }
+
   fileName = "cgiTest";
   int fdOut = open(fileName.c_str(), O_WRONLY | O_CREAT, 0644);  
-  // std::cout << fdOut << std::endl;
+  _pid = fork();
+  if ( _pid < 0)
+  {
+    req.code = 500;
+    return ;
+  }
+  
   // here we are in the child process
-  // std::cout << _argv[1] << std::endl;
-    // if ( execve(_argv[0], _argv, NULL) == -1 )
-    //   exit(1);
+  if (_pid == 0)
+  {
+    dup2(fdOut, STDOUT_FILENO);
+    if ( execve(_argv[0], _argv, _env) == -1 )
+       exit(1);
+  }
   close(fdOut);
 }
 

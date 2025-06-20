@@ -47,7 +47,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
         // [soukaina] here after the request is checked i will store the serverConfig in the request
         serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], request[fd].getHost());
         request[fd].serverConfig = serverConfig;
-        state.headerFlag = true;
+        state.headerFlag = false;
         if (request[fd].bodyStart)
         {
             Binary_String body = holder.substr(request[fd].bodyStart, holder.length());
@@ -69,7 +69,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
             if (header_parser(post, request[fd], state.header, tmpMap) == false)
             {
                 return false;
-            }
+            } 
             std::cout << "-------( REQUEST PARSED )-------\n\n";
             std::cout << request[fd].header << std::endl;
             std::cout << "-------( END OF REQUEST )-------\n\n\n";
@@ -84,14 +84,13 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
         }
         // [soukaina] this must be changed to right function that extract the correct location
         request[fd].location = serverConfig.getLocations().front();
+        // std::cout << request[fd].location.root << std::endl;
         if (request[fd].state.url.find("/cgi-bin") != std::string::npos)
         {
-          Cgi cgi;
-
-          cgi.parseCgi(request[fd]);
+          request[fd].cgi.parseCgi(request[fd]);
           if (request[fd].code != 200)
               return (false);
-          cgi.setEnv(request[fd]);
+          request[fd].cgi.setEnv(request[fd]);
         }
         state.buffer.clear();
     }

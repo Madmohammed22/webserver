@@ -50,7 +50,7 @@ struct FileTransferState
     std::string fileType;
     int fd;
     bool isValidHeader;
-    int headerFlag;
+    bool headerFlag;
     std::ofstream *file;
     bool isCompleteShortFile;
     std::set<std::string> logFile;
@@ -61,7 +61,7 @@ struct FileTransferState
     struct Multipart multp;
     std::set<std::string> knownPaths;
 
-    FileTransferState() : offset(0), fileSize(0), isComplete(false), PostHeaderIsValid(false), headerFlag(0), bytesReceived(0) {}
+    FileTransferState() : offset(0), fileSize(0), isComplete(false), PostHeaderIsValid(false), headerFlag(true), bytesReceived(0) {}
     ~FileTransferState() {}
 };
 

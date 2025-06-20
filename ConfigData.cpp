@@ -248,6 +248,8 @@ void ConfigData::parseLocation(std::string key, std::string value, Location &cur
     }
     else if (key == "cgi")
     {
+        if (!currentLocation.cgi.empty())
+            throw WebservException("Configuration File: duplicated key");
         parseCgiPair(value, currentLocation.cgi);
     }
     else if (key == "redirect")

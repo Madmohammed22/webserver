@@ -28,7 +28,7 @@ void POST::buildFileTransfers()
     state.mime = Server::getContentType(state.url);
     state.uriLength = state.url.length();
     state.test = 0;
-    state.headerFlag = true;
+    state.headerFlag = false;
     // state.logFile[""] = "";
 
 }
