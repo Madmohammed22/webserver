@@ -2,6 +2,31 @@
 #include <cctype>
 #include <sstream>
 
+int getFileType(std::string path)
+{
+    struct stat s;
+
+    if( stat(path.c_str(), &s) == 0 )
+    {
+        if( s.st_mode & S_IFDIR )
+            return 1;
+        if( s.st_mode & S_IFREG )
+            return 2;
+    }
+    return -1;
+}
+
+
+int ft_strlen(char *str)
+{
+  int i;
+
+  i = 0;
+  while (str[i])
+    i++;
+  return (i);
+}
+
 int	ft_atoi(const char *nptr)
 {
 	int	i;

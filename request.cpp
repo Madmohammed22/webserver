@@ -135,3 +135,276 @@ bool CookieValidator::validate(RequstBuilder &builder){
     std::cout << "[" << builder.getRequest().getCookie() << "]" << std::endl;
     return true;
 }
+
+bool   IsUnreservedChar(char c)
+{
+    return ( isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~');
+}
+
+bool isValidHeaderKeyChar(char c)
+{
+    return (isalnum(c) || c == '-' || c == '_');
+}
+
+bool isValidHeaderValueChar(char c)
+{
+    std::string specialChars = "_ :;.,\\/\"'?!(){}[]@<>=-+*#$&`|~^%";
+    
+    return (isalnum(c) || specialChars.find(c) != std::string::npos);
+}
+
+bool IsReservedChar(char c)
+{
+    std::string reserved_chars = "!*'();:@&=+$,/?#[]";
+
+    return (reserved_chars.find(c) != std::string::npos);
+}
+
+int    Request::checkHeaderSyntax(Binary_String buffer)
+{
+    int i = 0;
+
+    while (buffer[i])
+    {
+        if (_parsingState == START)
+        {
+            if (buffer[i] == 'G')
+                method = "ET";
+            else if (buffer[i] == 'P')
+                method = "OST";
+            else if (buffer[i] == 'D')
+                method = "ELETE";
+            else
+            {
+                code = 501;
+                _parsingState = ERROR;
+                break ;
+            }
+            _parsingState = Method;                   
+        }
+        else if (_parsingState == Method)
+        {
+            if (!method.length())
+            {
+                _parsingState = FirstSpace;
+                continue ;
+            }
+            else
+            {
+                if (method[0] == buffer[i])
+                    method.erase(0, 1);
+                else
+                {
+                    code = 501;
+                    _parsingState = ERROR;
+                    break;
+                }
+            }
+        }
+        else if (_parsingState == FirstSpace)
+        {
+            if (buffer[i] != ' ')
+            {
+                code = 450;
+                _parsingState = ERROR;
+                break;
+            }
+            _parsingState = SlashURI; 
+        }
+        else if (_parsingState == SlashURI)
+        {
+            if (buffer[i] != '/')
+            {
+                code = 451;
+                _parsingState = ERROR;
+                break;
+            }
+            _parsingState = URIBody;
+        }
+        else if (_parsingState == URIBody)
+        {
+            if (buffer[i] == ' ')
+            {
+                _parsingState = StringH;
+            }
+            if (!IsReservedChar(buffer[i]) == false && !IsUnreservedChar(buffer[i]) == false)
+            {
+                code = 452;
+                _parsingState = ERROR;
+                break;
+            }
+            _urlLength++;
+            if (_urlLength > MAX_URI_SIZE)
+            {
+                code = 414;
+                _parsingState = ERROR;
+                break;
+            }
+        }
+        else if (_parsingState == StringH)
+        {
+                if (buffer[i] != 'H')
+                {
+                    code = 453;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = StringHT;
+        }
+        else if (_parsingState == StringHT)
+        {
+                if (buffer[i] != 'T')
+                {
+                    code = 454;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = StringHTT;
+        }
+        else if (_parsingState == StringHTT)
+        {
+                if (buffer[i] != 'T')
+                {
+                    code = 455;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = StringHTTP;
+        }
+        else if (_parsingState == StringHTTP)
+        {
+                if (buffer[i] != 'P')
+                {
+                    code = 456;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = StringHTTPSlash;
+        }
+        else if (_parsingState == StringHTTPSlash)
+        {
+                if (buffer[i] != '/')
+                {
+                    code = 457;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = StringHTTPSlashN;
+        }
+        else if (_parsingState == StringHTTPSlashN)
+        {
+                if (!isdigit(buffer[i]))
+                {
+                    code = 458;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = StringHTTPSlashNDot;
+        }
+        else if (_parsingState == StringHTTPSlashNDot)
+        {
+                if (buffer[i] != '.')
+                {
+                    code = 459;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = StringHTTPSlashNDotN;
+        }
+        else if (_parsingState == StringHTTPSlashNDotN)
+        {
+                if (!isdigit(buffer[i]))
+                {
+                    code = 460;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = FirstSlashR;
+        }
+        else if (_parsingState == FirstSlashR)
+        {
+                if (buffer[i] != '\r')
+                {
+                    code = 461;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = FirstSlashN;
+        }
+        else if (_parsingState == FirstSlashN)
+        {
+                if (buffer[i] != '\n')
+                {
+                    code = 462;
+                    _parsingState = ERROR;
+                    break;
+                }
+                _parsingState = HeaderKey;
+        }
+        else if (_parsingState == HeaderKey)
+        {
+            if (buffer[i] == '\r')
+                _parsingState = END;
+            else if (buffer[i] == '\n')
+            {
+                _keyLength = 0;
+            }
+            else if (buffer[i] == ':')
+            {
+                _parsingState = HeaderValue;
+                state.header += buffer[i];
+                i++;
+            }
+            else if (!isValidHeaderKeyChar(buffer[i]))
+            {
+                code = 463;
+                _parsingState = ERROR;
+                break;
+            }
+            _keyLength++;
+            if (_keyLength > MAX_HEADER_KEY_SIZE)
+            {
+                code = 414;
+                _parsingState = ERROR;
+                break;
+            }
+        }
+        else if (_parsingState == HeaderValue)
+        {
+            if (buffer[i] == '\r')
+            {
+                _valueLength = 0;
+                _parsingState = HeaderKey;
+            }
+            else if (!isValidHeaderValueChar(buffer[i]))
+            {
+                code = 464;
+                _parsingState = ERROR;
+                break;
+            }
+            _valueLength++;
+            if (_valueLength > MAX_HEADER_VALUE_SIZE)
+            {
+                code = 465;
+                _parsingState = ERROR;
+                break;
+            }
+        }
+        else if (_parsingState == END)
+        {
+            if (buffer[i] != '\n')
+            {
+                code = 466;
+                break;
+            }
+            state.header += buffer[i];
+            state.header += '\0';
+            if (buffer[i + 1] != '\0')
+                bodyStart = i + 1;
+            return code;
+        }
+        state.header += buffer[i];
+        i++;
+    }
+    return code;
+}

@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include "Cgi.hpp"
 #include "request.hpp"
 
 template <typename T>
@@ -7,60 +8,57 @@ bool header_parser(T method, Request &request, std::string header, std::map<std:
 {
     Build build;
     std::ofstream *file = request.state.file;
-    Request metaData(header, tmpMap);
-    method = T(metaData);
+    Request methaData(header, tmpMap);
+    method = T(methaData);
     build.requestBuilder(method);
     if (!build.chainOfResponsibility(method).first)
     {
         return false;
     }
-    metaData = method.getRequest();
-    request.method = metaData.getMethod();
-    request.connection = metaData.getConnection();
-    request.transferEncoding = metaData.getTransferEncoding();
-    request.contentLength = metaData.getContentLength();
-    request.ContentType = metaData.getContentType();
-    request.accept = metaData.getAccept();
-    request.host = metaData.getHost();
+
+    //[soukaina] can you just assign methaData to request ???
+
+    methaData = method.getRequest();
+    request.method = methaData.getMethod();
+    request.connection = methaData.getConnection();
+    request.transferEncoding = methaData.getTransferEncoding();
+    request.contentLength = methaData.getContentLength();
+    request.ContentType = methaData.getContentType();
+    request.accept = methaData.getAccept();
+    request.host = methaData.getHost();
     request.header = header;
-    request.state = metaData.getFileTransfers();
+    request.state = methaData.getFileTransfers();
     request.state.file = file;
-    request.Cookie = metaData.getCookie();
     return true;
 }
 
-bool Server::validateHeader(int fd, FileTransferState &state, ConfigData serverConfig)
+bool Server::validateHeader(int fd, FileTransferState &state, Binary_String holder)
 {
     std::map<std::string, std::string> tmpMap;
-    size_t header_end = state.buffer.find("\r\n\r\n");
     static size_t backup;
+    ConfigData serverConfig;
+    
+    request[fd].checkHeaderSyntax(holder);
 
-    if (header_end != std::string::npos)
+    if (request[fd].getParsingState() == ERROR)
+      return (false);
+    if (request[fd].getParsingState() == END)
     {
-        state.header = state.buffer.substr(0, header_end + 4);
+        // [soukaina] here after the request is checked i will store the serverConfig in the request
+        serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], request[fd].getHost());
+        request[fd].serverConfig = serverConfig;
         state.headerFlag = true;
-        size_t body_start = header_end + 4;
-        if (body_start < state.buffer.length())
+        if (request[fd].bodyStart)
         {
-
-            Binary_String body_part = state.buffer.substr(body_start, state.buffer.length());
-            backup += body_part.length();
-            state.file->write(body_part.c_str(), body_part.length());
+            Binary_String body = holder.substr(request[fd].bodyStart, holder.length());
+            backup += body.length();
+            state.file->write(body.c_str(), body.length());
         }
-        try
-        {
-            
-            tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header.to_string(), serverConfig).first);
-        }
-        catch (const std::exception &e)
-        {
-            return false;
-        }
-
+        tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header, serverConfig).first);
         if (state.header.find("GET") != std::string::npos)
         {
             GET get;
-            if (header_parser(get, request[fd], state.header.to_string(), tmpMap) == false)
+            if (header_parser(get, request[fd], state.header, tmpMap) == false)
                 return false;
             request[fd].state.isComplete = true;
         }
@@ -68,7 +66,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, ConfigData serverC
         {
             POST post;
 
-            if (header_parser(post, request[fd], state.header.to_string(), tmpMap) == false)
+            if (header_parser(post, request[fd], state.header, tmpMap) == false)
             {
                 return false;
             }
@@ -80,13 +78,20 @@ bool Server::validateHeader(int fd, FileTransferState &state, ConfigData serverC
         {
             DELETE delete_;
 
-            if (header_parser(delete_, request[fd], state.header.to_string(), tmpMap) == false)
+            if (header_parser(delete_, request[fd], state.header, tmpMap) == false)
                 return false;
             request[fd].state.isComplete = true;
         }
-        else if (state.header.find("PUT") != std::string::npos || state.header.find("PATCH") != std::string::npos || state.header.find("HEAD") != std::string::npos || state.header.find("OPTIONS") != std::string::npos)
+        // [soukaina] this must be changed to right function that extract the correct location
+        request[fd].location = serverConfig.getLocations().front();
+        if (request[fd].state.url.find("/cgi-bin") != std::string::npos)
         {
-            return getSpecificRespond(fd, serverConfig.getErrorPages().find(405)->second, methodNotAllowedResponse), true;
+          Cgi cgi;
+
+          cgi.parseCgi(request[fd]);
+          if (request[fd].code != 200)
+              return (false);
+          cgi.setEnv(request[fd]);
         }
         state.buffer.clear();
     }

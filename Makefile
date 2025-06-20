@@ -7,7 +7,7 @@ SRC = main.cpp multiplexer.cpp parser.cpp server.cpp $(SRC_DIR2)/get.cpp $(SRC_D
 	$(SRC_DIR1)/establishingServer.cpp\
 	$(SRC_DIR1)/utils.cpp\
 	$(SRC_DIR1)/processMethodNotAllowed.cpp\
-	request.cpp ConfigData.cpp ConfigParsing.cpp multipart.cpp\
+	request.cpp ConfigData.cpp ConfigParsing.cpp multipart.cpp Cgi.cpp\
 
 OBJ = $(SRC:.cpp=.o)
 

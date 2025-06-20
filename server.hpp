@@ -113,7 +113,7 @@ public:
     int handleClientConnectionsForMultipleServers();
     int startMultipleServers(t_listen configData);
     int startServer();
-    bool validateHeader(int fd, FileTransferState &state, ConfigData serverConfig);
+    bool validateHeader(int fd, FileTransferState &state, Binary_String holder);
     int handleClientConnections();
     // Methods
     int serve_file_request(int fd, ConfigData configIndex);

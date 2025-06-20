@@ -24,7 +24,6 @@ void Server::handleNewConnection(int fd)
 
     clientToServer[conn_sock] = fd;
     request[conn_sock] = Request();
-    request[conn_sock].state.last_activity_time = time(NULL);
     request[conn_sock].state = FileTransferState();
     request[conn_sock].state.file = new std::ofstream();
     request[conn_sock].state.file->open("TMP", std::ios::binary);
@@ -35,8 +34,8 @@ void Server::handleClientData(int fd)
     FileTransferState &state = request[fd].state;
     state.fd = fd;
 
-    Binary_String holder(CHUNK_SIZE + 1);
-    ssize_t bytes = recv(fd, &holder[0], holder.length() - 1, 0);
+    Binary_String holder(CHUNK_SIZE);
+    ssize_t bytes = recv(fd, &holder[0], CHUNK_SIZE - 1, 0);
     if (bytes <= 0)
     {
         close(fd);
@@ -50,12 +49,20 @@ void Server::handleClientData(int fd)
     if (!state.headerFlag && !state.isComplete)
     {
         int serverSocket = clientToServer[fd];
-        ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], request[fd].getHost());
+        // i should rethink about this part cause this part the host is not yet setted
+        // so there is a big probability that i am sending an empty string
         state.buffer.append(holder, 0, bytes);
-        if (validateHeader(fd, state, serverConfig) == false)
+        if (validateHeader(fd, state, holder) == false)
         {
+            //[soukaina] here i did give serverConfig null cause the request is wrong so there
+            // the header is not parssed and the host has not been setted 
+            // so the actuall place where we should call getConfig.. is after the header is checked  
+            ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], NULL);
+            //[soukaina] here i should build the respond error for the code variable that was set by the validate header function
             getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, createBadRequest);
         }
+        
+        state.isComplete = true;
     }
     else if (!state.isComplete)
     {
@@ -68,50 +75,65 @@ void Server::handleClientData(int fd)
             state.isComplete = true;
         }
     }
+    if (!request[fd].cgi.getIsCgi() && request[fd].cgi.cgiState == CGI_NOT_STARTED)
+    {
+      request[fd].cgi.runCgi(*this ,fd, request[fd], request[fd].serverConfig);
+      request[fd].cgi.cgiState = CGI_RUNNING;
+      return ;
+    }
+    holder.clear();
 }
 
 void Server::handleClientOutput(int fd)
 {
-    if (request[fd].state.isComplete)
+  
+    if (!request[fd].state.isComplete)
+      return;
+
+    ConfigData& serverConfig = request[fd].serverConfig;
+        //[ soukaina ] here the location is still segfaulting if the post method with data called
+
+        // [soukaina] i have added this line in the parser file after the parsing
+        /*request[fd].location = getExactLocationBasedOnUrl(request[fd].state.filePath, serverConfig);*/
+        // request[fd].location = serverConfig.getLocations().front();
+    if (request[fd].cgi.cgiState == CGI_RUNNING)
     {
-        int serverSocket = clientToServer[fd];
-        ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], request[fd].getHost());
-        if (request[fd].getMethod() == "GET")
-        {
-            std::cout << "-------( REQUEST PARSED )-------\n\n";
-            std::cout << request[fd].header << std::endl;
-            std::cout << "-------( END OF REQUEST )-------\n\n\n";
-            int state = serve_file_request(fd, serverConfig);
-            if (state == 310)
-            {
-                close(fd);
-                request.erase(fd);
-                return;
-            }
-            return;
-        }
-        else if (request[fd].getMethod() == "DELETE")
-        {
-            request[fd].state.last_activity_time = time(NULL);
-            std::cout << "-------( REQUEST PARSED )-------\n\n";
-            std::cout << request[fd].header << std::endl;
-            std::cout << "-------( END OF REQUEST )-------\n\n\n";
-            int state = handle_delete_request(fd, serverConfig);
-            if (state == 310)
-            {
-                close(fd);
-                request.erase(fd);
-                return;
-            }
-            return;
-        }
-        else if (request[fd].getMethod() == "POST")
-        {
-            //[soukaina] here i should check for the post if an error responce is sent
-            if (request[fd].state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig) != 0)
-                request[fd].state.PostHeaderIsValid = true;
-            handlePostRequest(fd);
-        }
+      int pid;
+      int status;
+      
+      pid = waitpid(request[fd].cgi.getPid(), &status, WNOHANG);
+      if (pid == request[fd].cgi.getPid())
+      {
+        int fde = open(request[fd].cgi.fileName.c_str(), O_RDWR);
+        char *buffer = (char *)malloc(1024);
+        
+        int readBytes = read(fde, buffer, 1024);
+        if (readBytes == 0 || readBytes < 0)
+          close(fde);
+        std::cout << "bytes " << readBytes << std::endl;
+        std::string helper(buffer);
+        free(buffer);
+        request[fd].cgi.CgiBodyResponse += helper;
+      } 
+    }
+    else if (request[fd].getMethod() == "GET"){
+      std::cout << "-------( REQUEST PARSED )-------\n\n";
+      std::cout << request[fd].header << std::endl;
+      std::cout << "-------( END OF REQUEST )-------\n\n\n";
+      serve_file_request(fd, serverConfig);
+    }
+    else if (request[fd].getMethod() == "DELETE"){
+      std::cout << "-------( REQUEST PARSED )-------\n\n";
+      std::cout << request[fd].header << std::endl;
+      std::cout << "-------( END OF REQUEST )-------\n\n\n";
+      handle_delete_request(fd, serverConfig);
+    }
+    else if (request[fd].getMethod() == "POST")
+    {
+      //[soukaina] here i should check for the post if an error responce is sent
+      if (request[fd].state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig) != 0)
+        request[fd].state.PostHeaderIsValid = true;
+      handlePostRequest(fd);
     }
 }
 
@@ -134,7 +156,7 @@ int Server::handleClientConnectionsForMultipleServers()
         }
         else if (events[i].events & EPOLLOUT)
         {
-            handleClientOutput(fd);
+          handleClientOutput(fd);
         }
     }
     return EXIT_SUCCESS;

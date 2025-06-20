@@ -3,7 +3,7 @@
 Binary_String Server::readFileChunk_post(int fd)
 {
     std::ifstream *file;
-    
+
     file = request[fd].multp.file;
     if (request[fd].multp.readPosition == 0)
     {
@@ -121,11 +121,11 @@ void Server::writeData(Binary_String& chunk, int fd)
     }
 }
 
-bool checkEndPoint(std::string &url)
+bool checkEndPoint(std::string &filePath)
 {
     struct stat info;
    
-    if (stat(url.c_str(), &info) != 0)
+    if (stat(filePath.c_str(), &info) != 0)
         return false; 
     if (S_ISDIR(info.st_mode))
     {
@@ -137,14 +137,14 @@ bool checkEndPoint(std::string &url)
 int Server::parsePostRequest(int fd, ConfigData& configIndex)
 {
     std::string contentType;
-    std::string url;
+    std::string filePath;
     FileTransferState &state = request[fd].state;
     size_t boundaryStart;
 
     contentType = request[fd].getContentType();
     if (contentType.find("boundary=") != std::string::npos) 
     {
-        boundaryStart = contentType.find("boundary=") + 9;
+         boundaryStart = contentType.find("boundary=") + 9;
         request[fd].multp.boundary = contentType.substr(boundaryStart, contentType.length());
         if (request[fd].multp.boundary.length() == 0)
             return getSpecificRespond(fd, configIndex.getErrorPages().find(400)->second, createBadRequest);
@@ -152,7 +152,7 @@ int Server::parsePostRequest(int fd, ConfigData& configIndex)
     else
         return getSpecificRespond(fd, configIndex.getErrorPages().find(400)->second, createBadRequest);
     state.url = "root/Upload";
-    /*if (checkEndPoint(state.url) == false)*/
+    /*if (checkEndPoint(state.filePath) == false)*/
     /*    return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);*/
     return (0);
 }
@@ -168,4 +168,3 @@ void Server::handlePostRequest(int fd)
     /*std::cout << chunkedData << std::endl ; */
     writeData(chunkedData, fd);
 }
-

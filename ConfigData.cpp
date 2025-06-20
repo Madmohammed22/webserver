@@ -41,6 +41,11 @@ void ConfigData::setContent(std::string content)
 
 void ConfigData::setHost(std::string host)
 {
+	if (host == "localhost")
+    {
+		  _host = "127.0.0.1";
+      return ;
+    }
     _host = host;
 }
 
@@ -101,8 +106,13 @@ void ConfigData::parseConfigData()
         if (key == "host")
         {
             if (!_host.empty())
+            {
                 throw WebservException("Configuration file : duplicated");
-            _host = value;
+            }
+            if (value == "localhost")
+		        _host = "127.0.0.1";
+            else
+                _host = value;
         }
         else if (key == "port")
         {
@@ -245,6 +255,12 @@ void ConfigData::parseLocation(std::string key, std::string value, Location &cur
         if (!currentLocation.redirect.empty())
             throw WebservException("Configuration File: duplicated key");
         currentLocation.redirect = value;
+    }
+    else if (key == "upload")
+    {
+        if (!currentLocation.upload.empty())
+            throw WebservException("Configaration File: duplicated key");
+        currentLocation.upload = value;
     }
     else
     {

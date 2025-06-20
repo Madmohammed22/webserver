@@ -2,9 +2,36 @@
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
 
-#include "server.hpp"
 #include "globalInclude.hpp"
+#include "Cgi.hpp"
 
+#define MAX_URI_SIZE 2048
+#define MAX_HEADER_KEY_SIZE 8192
+#define MAX_HEADER_VALUE_SIZE 128
+
+enum parsingState
+{
+    START,
+    Method,
+    FirstSpace,
+    SlashURI,
+    URIBody,
+    StringH,
+    StringHT,
+    StringHTT,
+    StringHTTP,
+    StringHTTPSlash,
+    StringHTTPSlashN,
+    StringHTTPSlashNDot,
+    StringHTTPSlashNDotN,
+    FirstSlashR,
+    FirstSlashN,
+    HeaderKey,
+    HeaderValue,
+    ERROR,
+    END
+};
+ 
 struct FileTransferState
 {
     std::string url;
@@ -18,7 +45,7 @@ struct FileTransferState
     int uriLength;
     int test;
 
-    Binary_String header;
+    std::string header;
     time_t last_activity_time;
     std::string fileType;
     int fd;
@@ -41,19 +68,29 @@ struct FileTransferState
 class Request
 {
 public:
+    ConfigData serverConfig;
     FileTransferState state;
     std::string header;
+    Cgi cgi;
     struct Multipart multp;
+    Location location;
     std::map<std::string, std::string> keys;
     int flag;
+    int code;
+    int bodyStart;
 
 public:
-    Request() : multp() {}
+    Request(): cgi(), multp() , code(200), bodyStart(0), _parsingState(START), _urlLength(0), _keyLength(0), _valueLength(0){}
     Request(std::string h, std::map<std::string, std::string> k)
-        : multp()
-    {
+    : multp(){
+        this->code = 200;
+        this->_urlLength = 0;
+        this->_keyLength = 0;
+        this->_valueLength = 0;
+        this->_parsingState = START;
         this->header = h;
         this->keys = k;
+        this->bodyStart = 0;
     }
 
 public:
@@ -65,6 +102,13 @@ public:
     std::string contentLength;
     std::string ContentType;
     std::string Cookie;
+
+// parsing request Syntax
+private:
+    parsingState _parsingState;
+    int _urlLength;
+    int _keyLength;
+    int _valueLength;
 
 public:
     void setAccept(std::string accep) { this->accept = accep; }
@@ -79,6 +123,7 @@ public:
 
 public:
     std::string getAccept() { return accept; }
+    parsingState getParsingState() { return _parsingState; }
     std::string getHost() { return host; }
     std::string getMethod() { return method; }
     std::string getContentType() { return ContentType; }
@@ -88,6 +133,8 @@ public:
     std::string getContentLength() { return contentLength; }
     std::string getCookie() { return Cookie; }
 
+    //parsing request
+    int checkHeaderSyntax(Binary_String buffer);
 public:
     ~Request() {}
 };

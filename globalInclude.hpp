@@ -1,14 +1,9 @@
 #ifndef GLOBALINCLUDE_HPP
 #define GLOBALINCLUDE_HPP
 
-#include "request.hpp"
 
-#include <time.h>
 #include <bits/types.h>
-#include "server.hpp"
 #include <unistd.h>
-#include <iomanip>
-#include <filesystem>
 #include <dirent.h>   
 #include <cstring>
 #include <sstream>
@@ -33,9 +28,8 @@
 #include <set>
 #include <algorithm>
 #include <dirent.h>
-#include <iostream>
-#include <limits.h> // For PATH_MAX
-#include <stdlib.h> // For realpath
+#include <iomanip>
+#include <sys/wait.h>
 #include "Binary_String.hpp"
 
 #define ERROR404 404
@@ -55,7 +49,6 @@
 #define PATHU "root/UPLOAD"
 #define STATIC "root/static/"
 #define TEST "root/test/"
-
 
 struct Multipart
 {
