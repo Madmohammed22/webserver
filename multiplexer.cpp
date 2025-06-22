@@ -54,9 +54,6 @@ void Server::handleClientData(int fd)
         state.buffer.append(holder, 0, bytes);
         if (validateHeader(fd, state, holder) == false)
         {
-            //[soukaina] here i did give serverConfig null cause the request is wrong so there
-            // the header is not parssed and the host has not been setted 
-            // so the actuall place where we should call getConfig.. is after the header is checked  
             // it did broke when it's called with post method
             ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], NULL);
             //[soukaina] here i should build the respond error for the code variable that was set by the validate header function
@@ -85,58 +82,86 @@ void Server::handleClientData(int fd)
 
 void Server::handleClientOutput(int fd)
 {
-  
-    if (!request[fd].state.isComplete)
+    Request &req = request[fd];
+
+    if (!req.state.isComplete)
       return;
 
-    ConfigData& serverConfig = request[fd].serverConfig;
+    ConfigData& serverConfig = req.serverConfig;
         //[ soukaina ] here the location is still segfaulting if the post method with data called
 
         // [soukaina] i have added this line in the parser file after the parsing
         /*request[fd].location = getExactLocationBasedOnUrl(request[fd].state.filePath, serverConfig);*/
         // request[fd].location = serverConfig.getLocations().front();
 
-    if (request[fd].cgi.cgiState == CGI_RUNNING && request[fd].cgi.fdIn != -1)
+    if (req.cgi.cgiState == CGI_RUNNING && req.cgi.fdIn != -1)
     {
-      writePostDataToCgi(request[fd]);
+      writePostDataToCgi(req);
+      // if (req.code != 200)
+      //   getSpecificRespond(fd, serverConfig.getErrorPages().find(500)->second, createNotFoundResponse);
     }
-    else if (request[fd].cgi.cgiState == CGI_RUNNING)
-    {
-      int pid;
-      int status;
-      
-      pid = waitpid(request[fd].cgi.getPid(), &status, WNOHANG);
-      if (pid == request[fd].cgi.getPid())
-      {
-        int fde = open(request[fd].cgi.fileNameOut.c_str(), O_RDWR);
-        char *buffer = (char *)malloc(1024);
-        
-        int readBytes = read(fde, buffer, 1024);
-        if (readBytes == 0 || readBytes < 0)
-          close(fde);
-        std::string helper(buffer);
-        free(buffer);
-        request[fd].cgi.CgiBodyResponse += helper;
-      } 
-    }
-    else if (request[fd].getMethod() == "GET"){
+    else if (req.cgi.cgiState == CGI_RUNNING)
+      getCgiResponse(req);
+    else if (req.getMethod() == "GET"){
       std::cout << "-------( REQUEST PARSED )-------\n\n";
-      std::cout << request[fd].header << std::endl;
+      std::cout << req.header << std::endl;
       std::cout << "-------( END OF REQUEST )-------\n\n\n";
       serve_file_request(fd, serverConfig);
     }
-    else if (request[fd].getMethod() == "DELETE"){
+    else if (req.getMethod() == "DELETE"){
       std::cout << "-------( REQUEST PARSED )-------\n\n";
-      std::cout << request[fd].header << std::endl;
+      std::cout << req.header << std::endl;
       std::cout << "-------( END OF REQUEST )-------\n\n\n";
       handle_delete_request(fd, serverConfig);
     }
-    else if (request[fd].getMethod() == "POST")
+    else if (req.getMethod() == "POST")
     {
       //[soukaina] here i should check for the post if an error responce is sent
-      if (request[fd].state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig) != 0)
-        request[fd].state.PostHeaderIsValid = true;
+      if (req.state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig) != 0)
+        req.state.PostHeaderIsValid = true;
       handlePostRequest(fd);
+    }
+}
+
+void Server::getCgiResponse(Request &req)
+{
+    int status;
+    int pid = waitpid(req.cgi.getPid(), &status, WNOHANG);
+
+    if (pid == req.cgi.getPid())
+    {
+        if (WEXITSTATUS(status) != 0)
+            req.code = 502;
+           // adding specific error response here
+
+        int fde = open(req.cgi.fileNameOut.c_str(), O_RDONLY, 0644);
+        if (fde < 0)
+        {
+            req.code = 500;
+            // adding specific error response here
+            return;
+        }
+
+        char buffer[CHUNK_SIZE];
+        while (true)
+        {
+            int readBytes = read(fde, buffer, CHUNK_SIZE);
+            
+            std::cout << "this is me " <<  readBytes << std::endl;
+            if (readBytes < 0)
+            {
+                req.code = 500;
+                close(fde);
+                return;
+            }
+            if (readBytes == 0)
+            {
+                close(fde);
+                break;
+            }
+            req.cgi.CgiBodyResponse.append(buffer, readBytes);
+            std::cout.write(buffer, readBytes);
+        }
     }
 }
 

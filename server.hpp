@@ -119,9 +119,11 @@ public:
     int serve_file_request(int fd, ConfigData configIndex);
     int handle_delete_request(int fd, ConfigData configIndex);
 
+    //Cgi
+    void getCgiResponse(Request &req);
+    void writePostDataToCgi(Request &req);
 
     // Post method
-    void writePostDataToCgi(Request &req);
     void cleanupResources(Request& req);
     void handlePostRequest(int fd);
     Binary_String readFileChunk_post(int fd);

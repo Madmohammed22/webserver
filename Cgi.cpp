@@ -16,20 +16,21 @@ Cgi::~Cgi()
   int i;
 
   i = 0;
-  if (_env)
+  if (_env && *_env)
   {
     while (_env[i])
     {
       free(_env[i]);
+      i++;
     }
     free(_env);
   }
-    if (_argv)
-    {
-        free(_argv[0]);
-        free(_argv[1]);
-        free(_argv);
-    }
+  if (_argv)
+  {
+    free(_argv[0]);
+    free(_argv[1]);
+    free(_argv);
+  }
 }
 
 void Cgi::parseCgi(Request &req)
@@ -72,7 +73,6 @@ void Cgi::parseCgi(Request &req)
     req.code = 403;
     return ;
   }
-  std::cout << " i was here darling \n\n";
 
   // [soukaina] here i supposed that you already check if the method in the request is allowed in the location
   // if not you should add it
@@ -145,8 +145,12 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
   if ( _pid == 0 )
   {
     dup2(fdOut, STDOUT_FILENO);
+    close(fdOut);
     if (req.getMethod() == "POST")
+    {
       dup2(fdIn, STDIN_FILENO);
+      close(fdIn);
+    }
     if ( execve(_argv[0], _argv, _env) == -1 )
        exit(1);
   }

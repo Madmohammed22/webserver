@@ -191,8 +191,6 @@ void Server::writePostDataToCgi(Request& req)
      req.multp.file->read(buffer, CHUNK_SIZE);
      int bytesRead = req.multp.file->gcount();
 
-     std::cout << " the data that been sent is \n";
-     std::cout << buffer << std::endl;
      if (bytesRead > 0)
      {
         int bytesSent = write(req.cgi.fdIn, buffer, bytesRead);
