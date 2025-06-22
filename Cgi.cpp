@@ -130,8 +130,9 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
   fileNameOut = createTempFile();
   if (req.getMethod() == "POST")
   {
-    fileNameIn = createTempFile();
+    fileNameIn = "TMP";
     fdIn = open(fileNameIn.c_str(), O_RDWR | O_CREAT, 0644);  
+    serv.writePostDataToCgi(req);
   }
   int fdOut = open(fileNameOut.c_str(), O_WRONLY | O_CREAT, 0644);  
   

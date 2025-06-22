@@ -59,7 +59,7 @@ void Server::handleClientData(int fd)
             //[soukaina] here i should build the respond error for the code variable that was set by the validate header function
             getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, createBadRequest);
         }
-        if (request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
+        if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
         {
           request[fd].cgi.runCgi(*this ,fd, request[fd], request[fd].serverConfig);
           request[fd].cgi.cgiState = CGI_RUNNING;
@@ -75,6 +75,12 @@ void Server::handleClientData(int fd)
         {
             state.file->close();
             state.isComplete = true;
+        }
+        if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
+        {
+          request[fd].cgi.runCgi(*this ,fd, request[fd], request[fd].serverConfig);
+          request[fd].cgi.cgiState = CGI_RUNNING;
+          return ;
         }
     }
     holder.clear();
@@ -94,13 +100,7 @@ void Server::handleClientOutput(int fd)
         /*request[fd].location = getExactLocationBasedOnUrl(request[fd].state.filePath, serverConfig);*/
         // request[fd].location = serverConfig.getLocations().front();
 
-    if (req.cgi.cgiState == CGI_RUNNING && req.cgi.fdIn != -1)
-    {
-      writePostDataToCgi(req);
-      // if (req.code != 200)
-      //   getSpecificRespond(fd, serverConfig.getErrorPages().find(500)->second, createNotFoundResponse);
-    }
-    else if (req.cgi.cgiState == CGI_RUNNING)
+    if (req.cgi.cgiState == CGI_RUNNING)
       getCgiResponse(req);
     else if (req.getMethod() == "GET"){
       std::cout << "-------( REQUEST PARSED )-------\n\n";
@@ -147,7 +147,6 @@ void Server::getCgiResponse(Request &req)
         {
             int readBytes = read(fde, buffer, CHUNK_SIZE);
             
-            std::cout << "this is me " <<  readBytes << std::endl;
             if (readBytes < 0)
             {
                 req.code = 500;
@@ -160,7 +159,7 @@ void Server::getCgiResponse(Request &req)
                 break;
             }
             req.cgi.CgiBodyResponse.append(buffer, readBytes);
-            std::cout.write(buffer, readBytes);
+            // std::cout.write(buffer, readBytes);
         }
     }
 }
