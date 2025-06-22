@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include "helper/utils.hpp"
 
 void Server::handleNewConnection(int fd)
 {
@@ -26,7 +27,8 @@ void Server::handleNewConnection(int fd)
     request[conn_sock] = Request();
     request[conn_sock].state = FileTransferState();
     request[conn_sock].state.file = new std::ofstream();
-    request[conn_sock].state.file->open("TMP", std::ios::binary);
+    request[conn_sock].state.fileName = createTempFile();
+    request[conn_sock].state.file->open(request[conn_sock].state.fileName.c_str(), std::ios::binary);
 }
 
 void Server::handleClientData(int fd)
@@ -132,7 +134,7 @@ void Server::getCgiResponse(Request &req)
     {
         if (WEXITSTATUS(status) != 0)
             req.code = 502;
-           // adding specific error response here
+            // adding specific error response here
 
         int fde = open(req.cgi.fileNameOut.c_str(), O_RDONLY, 0644);
         if (fde < 0)
@@ -159,7 +161,7 @@ void Server::getCgiResponse(Request &req)
                 break;
             }
             req.cgi.CgiBodyResponse.append(buffer, readBytes);
-            // std::cout.write(buffer, readBytes);
+            std::cout.write(buffer, readBytes);
         }
     }
 }

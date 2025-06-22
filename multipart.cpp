@@ -9,7 +9,7 @@ Binary_String Server::readFileChunk_post(int fd)
     {
         request[fd].multp.file = new std::ifstream();
         file = request[fd].multp.file;
-        file->open("TMP");
+        file->open(request[fd].state.fileName.c_str());
         if (!file->is_open())
         {
             std::cerr << "File is not open for reading" << std::endl;

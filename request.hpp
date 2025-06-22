@@ -45,6 +45,7 @@ struct FileTransferState
     int uriLength;
     int test;
 
+    std::string fileName;
     std::string header;
     time_t last_activity_time;
     std::string fileType;

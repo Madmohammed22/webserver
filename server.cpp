@@ -178,9 +178,10 @@ void Server::writePostDataToCgi(Request& req)
 {
      if (req.multp.readPosition == 0)
      {
-         req.multp.file = new std::ifstream("TMP", std::ios::binary);
+         req.multp.file = new std::ifstream(req.state.fileName.c_str(), std::ios::binary);
          if (!req.multp.file->is_open())
          {
+             std::cout << "is not open\n\n";
              req.code = 500;
              cleanupResources(req);
              return ;

@@ -36,6 +36,8 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
 {
     std::map<std::string, std::string> tmpMap;
     static size_t backup;
+    // [soukaina] this is really a bad thing we should figure out another solution
+    std::string fileName_backup;
     ConfigData serverConfig;
     
     request[fd].checkHeaderSyntax(holder);
@@ -54,6 +56,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
             backup += body.length();
             state.file->write(body.c_str(), body.length());
         }
+        fileName_backup = state.fileName;
         tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header, serverConfig).first);
         if (state.header.find("GET") != std::string::npos)
         {
@@ -94,6 +97,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
         }
         state.buffer.clear();
     }
+    state.fileName = fileName_backup;
     state.bytesReceived = backup;
     return true;
 }

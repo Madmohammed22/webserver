@@ -1,6 +1,6 @@
 server:
   port: 7000
-  host: 10.52.85.102
+  host: localhost
 
   server_name: example.com
   client_max_body_size: 1m
@@ -38,7 +38,7 @@ server:
 
 server:
   port: 8004
-  host: 10.52.85.102
+  host: localhost
   server_name: mmad.com
   client_max_body_size: 1m
   
