@@ -33,6 +33,7 @@ Cgi::~Cgi()
   }
 }
 
+
 void Cgi::parseCgi(Request &req)
 {
   std::string path = req.state.url;
@@ -64,10 +65,10 @@ void Cgi::parseCgi(Request &req)
   int ExtensionPos = _path.rfind('.');
 
   // if the file is not executable ( the nginx default behavior is to send it as a static file)
-  if (_path.find(".php", ExtensionPos) != std::string::npos
-    && _path.find(".py", ExtensionPos) != std::string::npos)
+  if (!(req.location.cgi.find(_path.substr(ExtensionPos)) != req.location.cgi.end()))
+  {
     return ;
-  std::cout << _path << std::endl;
+  }
   if (access(_path.c_str(), R_OK | X_OK ) == -1)
   {
     req.code = 403;
