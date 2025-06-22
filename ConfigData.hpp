@@ -32,6 +32,7 @@ private:
     std::vector<Location> _locations;
     std::vector<std::string> _content;
     std::string _host;
+    std::string _default_root;
     int _port;
     std::string _server_name;
     size_t _client_max_body_size;
@@ -48,6 +49,7 @@ public:
     std::vector<Location> getLocations() const;
     void addLocation(const std::string& path, const Location& location);
     std::string getHost();
+    std::string getDefaultRoot();
     int getPort();
     std::string getServerName();
     size_t getClientMaxBodySize();
@@ -59,6 +61,7 @@ public:
     void setContent(std::string content);
     void setHost(std::string host);
     void setPort(int port);
+    void setDefaultRoot(std::string root);
     void setRedirect(std::string);
     void setServerName(std::string server_name);
     void setClientMaxBodySize(size_t client_max_body_size);

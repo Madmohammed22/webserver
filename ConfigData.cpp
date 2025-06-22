@@ -69,6 +69,16 @@ void ConfigData::setErrorPages(std::map<int, std::string> error_pages)
     _error_pages = error_pages;
 }
 
+void ConfigData::setDefaultRoot(std::string root)
+{
+  _default_root = root;
+}
+
+std::string ConfigData::getDefaultRoot( void )
+{
+  return (_default_root);
+}
+
 void ConfigData::addErrorPage(int code, std::string path)
 {
     _error_pages[code] = path;
@@ -130,6 +140,12 @@ void ConfigData::parseConfigData()
         else if (key == "client_max_body_size")
         {
             parseBodySize(value);
+        }
+        else if (key == "root")
+        {
+            if (!_default_root.empty())
+                throw WebservException("Configuration file : duplicated");
+            _default_root = value;
         }
         else if (key == "locations")
         {

@@ -5,6 +5,7 @@ server:
   server_name: example.com
   client_max_body_size: 1m
   
+  root: /var/www
   error_page:
      400: root/error/400.html
      404: root/error/404.html
