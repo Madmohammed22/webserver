@@ -27,6 +27,7 @@ bool header_parser(T method, Request &request, std::string header, std::map<std:
     request.accept = methaData.getAccept();
     request.host = methaData.getHost();
     request.header = header;
+    request.Cookie = methaData.getCookie();
     request.state = methaData.getFileTransfers();
     request.state.file = file;
     return true;

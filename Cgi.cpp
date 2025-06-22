@@ -103,6 +103,8 @@ void Cgi::setEnv(Request &req)
   _env[i++] = strdup(("SCRIPT_FILENAME=" + scriptName).c_str());
   _env[i++] = strdup(("QUERY_STRING=" + _query).c_str());
   _env[i++] = strdup(("SERVER_NAME=" + req.getHost()).c_str());
+  std::cout << "eeeeeeee" <<req.getCookie() << std::endl;
+  _env[i++] = strdup(("COOKIES=" + req.Cookie).c_str());
   // [soukaina] just for know but it should be changed  
   _env[i++] = strdup("SERVER_PORT=8080");
   _env[i++] = strdup("SERVER_PROTOCOL=HTTP/1.1");
