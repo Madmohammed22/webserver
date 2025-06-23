@@ -1,6 +1,41 @@
 #include "server.hpp"
 #include "Cgi.hpp"
 #include "request.hpp"
+#include "helper/utils.hpp"
+
+std::string concatenate(std::vector<std::string> &vec)
+{
+    std::string result;
+    std::vector<std::string>::iterator it;
+  
+    for (it = vec.begin(); it != vec.end(); it++)
+    {
+        result += '/' + *it;
+    }
+    return result;
+}
+
+std::string resolveUrl(std::string &url)
+{
+  std::vector<std::string> splitBySlash;
+  std::vector<std::string> currentUrl;
+
+  splitBySlash = split(url, '/');
+  std::vector<std::string>::iterator it;
+
+  for (it = splitBySlash.begin(); it != splitBySlash.end(); it++)
+  {
+    if (*it == ".." && !currentUrl.empty())
+      currentUrl.pop_back(); 
+    else if (*it == ".." && currentUrl.empty())
+      return ("");
+    else if (*it != ".")
+      currentUrl.push_back(*it);
+  }
+  if (currentUrl.empty())
+    return ("/");
+  return (concatenate(currentUrl));
+}
 
 template <typename T>
 
@@ -86,6 +121,9 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
                 return false;
             request[fd].state.isComplete = true;
         }
+        request[fd].state.url = "/path/../path/pathkhk/..";
+        std::cout << "this is my resolved URL " << resolveUrl(request[fd].state.url)<< std::endl;
+        exit(0);
         // [soukaina] this must be changed to right function that extract the correct location
         request[fd].location = serverConfig.getLocations().front();
         // std::cout << request[fd].location.root << std::endl;
@@ -93,7 +131,10 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
         {
           request[fd].cgi.parseCgi(request[fd]);
           if (request[fd].code != 200)
+          {
+              std::cout << "i have been here\n";
               return (false);
+          }
           request[fd].cgi.setEnv(request[fd]);
         }
         state.buffer.clear();

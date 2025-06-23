@@ -161,9 +161,10 @@ void Server::getCgiResponse(Request &req)
                 break;
             }
             req.cgi.CgiBodyResponse.append(buffer, readBytes);
-            std::cout.write(buffer, readBytes);
         }
+        getSpecificRespond(fde, req.serverConfig.getErrorPages().find(400)->second, createBadRequest);
     }
+    
 }
 
 int Server::handleClientConnectionsForMultipleServers()
