@@ -158,7 +158,7 @@ public:
     std::string readFile(std::string path);
     int getFileType(std::string path);
     static Location getLocation_adder1(std::string targetLocation, ConfigData configIndex);
-    bool canBeOpen(int fd, std::string &url, Location location, size_t &checkState);
+    bool canBeOpen(int fd, std::string &url, Location location, size_t &checkState, ConfigData configIndex);
     static std::string parseSpecificRequest(std::string request);
     static std::ifstream::pos_type getFileSize(const std::string &path);
     static std::string getCurrentTimeInGMT();

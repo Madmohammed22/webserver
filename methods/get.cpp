@@ -167,12 +167,12 @@ bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
     }
     return true;
 }
-bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &checkState)
+bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &checkState, ConfigData configIndex)
 {
-
-    if (url == location.path)
+    std::string root = configIndex.getDefaultRoot();
+    // if (url == location.path)
+    if (areSameDirectories((root + url).c_str(), (redundantSlash((root + location.path)).c_str())))
     {
-
         if (location.redirect.size() > 0)
         {
             request[fd].flag = 1;
@@ -353,6 +353,7 @@ Location returnDefault(ConfigData configIndex)
 Location Server::getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex)
 {
     Location location;
+    std::string root = configIndex.getDefaultRoot();
     if (target == "/" && !returnDefault(configIndex).path.empty())
     {
         return returnDefault(configIndex);
@@ -362,7 +363,7 @@ Location Server::getExactLocationBasedOnUrlContainer(std::string target, ConfigD
     for (size_t i = 0; i < configIndex.getLocations().size(); i++)
     {
 
-        if (areSameDirectories((target).c_str(), (redundantSlash(configIndex.getLocations()[i].path)).c_str()))
+        if (areSameDirectories((root + target).c_str(), (redundantSlash(configIndex.getLocations()[i].path)).c_str()))
         {
             return location = configIndex.getLocations()[i];
         }
@@ -446,10 +447,10 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
     {
         location.path = redundantSlash(location.path);
         std::string mime;
-        size_t fileSize = listDirectory(url, location.path, mime).size();
+        size_t fileSize = listDirectory(url, url, mime).size();
         std::string httpRespons = httpResponse(mime, fileSize);
         int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
-        faild = send(fd, listDirectory(url, location.path, mime).c_str(), fileSize, MSG_NOSIGNAL);
+        faild = send(fd, listDirectory(url, url, mime).c_str(), fileSize, MSG_NOSIGNAL);
         if (faild == -1)
             return close(fd), request.erase(fd), checkState = 0, 0;
         return close(fd), checkState = 0, 0;
@@ -497,6 +498,8 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     std::string Connection = request[fd].connection;
     std::string url = request[fd].state.url;
     Location location = getExactLocationBasedOnUrl(url, configIndex);
+    std::cout << "location: " << location.path << std::endl;
+    // exit(0);
     if (location.path.empty() == true)
     {
         return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
@@ -513,7 +516,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     }
 
     size_t checkState;
-    if (canBeOpen(fd, url, location, checkState))
+    if (canBeOpen(fd, url, location, checkState, configIndex))
     {
         if (t_stat_wait(url) == 1)
         {
@@ -531,7 +534,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
             else
             {
                 std::string path = location.root + url;
-                if (canBeOpen(fd, url, location, checkState))
+                if (canBeOpen(fd, url, location, checkState, configIndex))
                 {
 
                     if (t_stat_wait(url) == 1)

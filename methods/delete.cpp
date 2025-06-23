@@ -174,7 +174,7 @@ int Server::handle_delete_request(int fd, ConfigData configdata)
     {
         return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
     }
-    if (canBeOpen(fd, url, location, checkState))
+    if (canBeOpen(fd, url, location, checkState, configdata))
     {
         return request[fd].state.logFile.insert(url), checkState = 0, deleteTargetUrl(fd, url, configdata, location, state);
     }
@@ -191,7 +191,7 @@ int Server::handle_delete_request(int fd, ConfigData configdata)
         {
             if (checkState == 404)
                 url = location.path;
-            if (canBeOpen(fd, url, location, checkState))
+            if (canBeOpen(fd, url, location, checkState, configdata))
             {
                 return checkState = 0, deleteTargetUrl(fd, url, configdata, location, state);
             }

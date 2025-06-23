@@ -181,14 +181,14 @@ std::string Server::MovedPermanently(std::string contentType, std::string locati
     return oss.str();
 }
 
-std::string Server::listDirectory(const std::string &dir_path, const std::string &fileName, std::string &mime)
+std::string Server::listDirectory(const std::string &dir_path, const std::string &url, std::string &mime)
 {
     std::string nameFile = "file.html";
     mime = getContentType(nameFile);
     std::ofstream outFile(nameFile.c_str());
     if (!outFile.is_open())
     {
-        std::cerr << "Failed to open file:: " << fileName << std::endl;
+        std::cerr << "Failed to open file:: " << url << std::endl;
         return "";
     }
 
@@ -198,7 +198,7 @@ std::string Server::listDirectory(const std::string &dir_path, const std::string
             << "    <title>Directory Listing</title>\n"
             << "</head>\n"
             << "<body>\n"
-            << "    <h1>Index of " << fileName << "</h1>\n"
+            << "    <h1>Index of " << url << "</h1>\n"
             << "    <hr>\n"
             << "    <pre>\n";
     DIR *dp = opendir(dir_path.c_str());

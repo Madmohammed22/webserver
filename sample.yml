@@ -37,11 +37,11 @@ server:
       methods: [post, delete, get]
 
 server:
-  port: 8004
+  port: 8000
   host: localhost
   server_name: mmad.com
   client_max_body_size: 1m
-  
+  root: /var/www/html
   error_page:
      403: root/error/403.html
      400: root/error/400.html
@@ -61,19 +61,19 @@ server:
     /:
       # redirect: /index.html
       root: /var/www/html
-      index: index.html
+      index: index.htmls
       autoindex: on
       methods: [get, delete]
 
     /media/:    # url /data/../data/
       # redirect: /content/
-      index: [message.txt]
+      index: [message.txts]
       root: /var/www/html
       autoindex: on
       methods: [get, delete]
 
     /content/:
-      redirect: /media/
+      # redirect: /media/
       root: /var/www/html
       index: message.txt
       autoindex: on
