@@ -447,10 +447,10 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
     {
         location.path = redundantSlash(location.path);
         std::string mime;
-        size_t fileSize = listDirectory(url, url, mime).size();
+        size_t fileSize = listDirectory(url, url.substr(url.rfind("/"), url.size()), mime).size();
         std::string httpRespons = httpResponse(mime, fileSize);
         int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
-        faild = send(fd, listDirectory(url, url, mime).c_str(), fileSize, MSG_NOSIGNAL);
+        faild = send(fd, listDirectory(url, url.substr(url.rfind("/"), url.size()), mime).c_str(), fileSize, MSG_NOSIGNAL);
         if (faild == -1)
             return close(fd), request.erase(fd), checkState = 0, 0;
         return close(fd), checkState = 0, 0;
@@ -515,12 +515,16 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
         return 0;
     }
 
+    char resolvedPath1[PATH_MAX];
+
+    if (realpath((configIndex.getDefaultRoot() + url).c_str(), resolvedPath1) == NULL)
+        getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
     size_t checkState;
     if (canBeOpen(fd, url, location, checkState, configIndex))
     {
         if (t_stat_wait(url) == 1)
         {
-            return sendFinalReques(fd, url, configIndex, location, checkState);
+            return sendFinalReques(fd, resolvedPath1, configIndex, location, checkState);
         }
         return (handleFileRequest(fd, url, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
     }
