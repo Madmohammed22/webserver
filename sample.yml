@@ -66,8 +66,8 @@ server:
       methods: [get, delete]
 
     /media/:    # url /data/../data/
-      redirect: /content/
-      index: [message.txts]
+      # redirect: /content/
+      index: [message.txt]
       root: /var/www/html
       autoindex: on
       methods: [get, delete]

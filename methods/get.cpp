@@ -171,8 +171,6 @@ bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
 bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &checkState, ConfigData configIndex)
 {
     std::string root = configIndex.getDefaultRoot();
-    // if (url == location.path)
-    // if (areSameDirectories((root + url).c_str(), (redundantSlash((root + location.path)).c_str())))
     
     if ((resolveUrl(url) + "/") == redundantSlash(location.path))
     {
@@ -446,7 +444,6 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
 {
     if (location.autoindex == true)
     {
-        // std::cout << "url :" << request[fd].state.url << std::endl;
         location.path = redundantSlash(location.path);
         std::string mime;
         size_t fileSize = listDirectory(url, resolveUrl(request[fd].state.url), mime).size();
@@ -473,26 +470,6 @@ bool Server::timedFunction(int timeoutSeconds, time_t startTime)
         return false;
     }
     return true;
-}
-
-bool Server::areSameDirectories(const char *path1, const char *path2)
-{
-    char resolvedPath1[PATH_MAX];
-    char resolvedPath2[PATH_MAX];
-
-    if (realpath(path1, resolvedPath1) == NULL)
-    {
-        // std::cerr << "Error resolving path1: " << path1 << std::endl;
-        return false;
-    }
-
-    if (realpath(path2, resolvedPath2) == NULL)
-    {
-        // std::cerr << "Error resolving path2: " << path2 << std::endl;
-        return false;
-    }
-
-    return strcmp(resolvedPath1, resolvedPath2) == 0;
 }
 
 int Server::serve_file_request(int fd, ConfigData configIndex)

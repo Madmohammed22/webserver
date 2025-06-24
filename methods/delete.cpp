@@ -96,38 +96,6 @@ std::string readFiles(std::string path)
     return oss.str();
 }
 
-// int Server::handle_delete_request___(int fd, ConfigData configdata)
-// {
-
-//     std::string url = request[fd].state.url;
-//     Location location = getExactLocationBasedOnUrl(url, configdata);
-//     std::cout << "url :" << url << ", location: " << location.path << std::endl;
-//     size_t checkState = 0;
-//     if (canBeOpen(fd, url, location, checkState))
-//     {
-//         checkState = 0;
-//         if (getFileType(location.path) == 1)
-//             deleteDirectoryContents(url.c_str());
-//         if (access(location.path.c_str(), X_OK | R_OK | W_OK) == -1)
-//             return getSpecificRespond(fd, configdata.getErrorPages().find(403)->second, Forbidden);
-
-//         if (DELETE(url) == -1)
-//             return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << url << std::endl, 0;
-//         request[fd].state.logFile.push_back(location.path);
-//         std::string httpResponse = deleteResponse(this);
-//         if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
-//             return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
-//         return 0;
-//     }
-//     checkState = 0;
-//     std::vector<std::string>::iterator it = find(request[fd].state.logFile.begin(), request[fd].state.logFile.end(), location.path);
-//     if (it != request[fd].state.logFile.end())
-//     {
-//         return getSpecificRespond(fd, configdata.getErrorPages().find(410)->second, goneHttpResponse);
-//     }
-//     return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
-// }
-
 int Server::deleteTargetUrl(int fd, std::string url, ConfigData configdata, Location location, int state)
 {
     if (access(url.c_str(), R_OK | W_OK) == -1)
