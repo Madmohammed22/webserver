@@ -61,27 +61,27 @@ server:
     /:
       # redirect: /index.html
       root: /var/www/html
-      index: index.htmls
+      index: [index.html]
       autoindex: on
       methods: [get, delete]
 
     /media/:    # url /data/../data/
-      # redirect: /content/
+      redirect: /content/
       index: [message.txt]
       root: /var/www/html
       autoindex: on
       methods: [get, delete]
 
     /content/:
-      # redirect: /media/
+      redirect: /media/
       root: /var/www/html
-      index: indexs.txt
+      index: index.txt
       autoindex: on
       methods: [get]
 
 
     /uploads/:
-      # redirect : /content/
+      redirect : /content/
       root : /home/mmad/Desktop/upload
       index : test.txt
       autoindex: on

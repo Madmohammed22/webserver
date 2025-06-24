@@ -63,9 +63,9 @@ void Server::handleClientData(int fd)
         }
         if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
         {
-          request[fd].cgi.runCgi(*this ,fd, request[fd], request[fd].serverConfig);
-          request[fd].cgi.cgiState = CGI_RUNNING;
-          return ;
+            request[fd].cgi.runCgi(*this, fd, request[fd], request[fd].serverConfig);
+            request[fd].cgi.cgiState = CGI_RUNNING;
+            return;
         }
     }
     else if (!state.isComplete)
@@ -80,9 +80,9 @@ void Server::handleClientData(int fd)
         }
         if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
         {
-          request[fd].cgi.runCgi(*this ,fd, request[fd], request[fd].serverConfig);
-          request[fd].cgi.cgiState = CGI_RUNNING;
-          return ;
+            request[fd].cgi.runCgi(*this, fd, request[fd], request[fd].serverConfig);
+            request[fd].cgi.cgiState = CGI_RUNNING;
+            return;
         }
     }
     holder.clear();
@@ -93,35 +93,42 @@ void Server::handleClientOutput(int fd)
     Request &req = request[fd];
 
     if (!req.state.isComplete)
-      return;
+        return;
 
-    ConfigData& serverConfig = req.serverConfig;
-        //[ soukaina ] here the location is still segfaulting if the post method with data called
+    ConfigData &serverConfig = req.serverConfig;
+    //[ soukaina ] here the location is still segfaulting if the post method with data called
 
-        // [soukaina] i have added this line in the parser file after the parsing
-        /*request[fd].location = getExactLocationBasedOnUrl(request[fd].state.filePath, serverConfig);*/
-        // request[fd].location = serverConfig.getLocations().front();
+    // [soukaina] i have added this line in the parser file after the parsing
+    /*request[fd].location = getExactLocationBasedOnUrl(request[fd].state.filePath, serverConfig);*/
+    // request[fd].location = serverConfig.getLocations().front();
 
     if (req.cgi.cgiState == CGI_RUNNING)
-      getCgiResponse(req);
-    else if (req.getMethod() == "GET"){
-      std::cout << "-------( REQUEST PARSED )-------\n\n";
-      std::cout << req.header << std::endl;
-      std::cout << "-------( END OF REQUEST )-------\n\n\n";
-      serve_file_request(fd, serverConfig);
+        getCgiResponse(req);
+    else if (req.getMethod() == "GET")
+    {
+        std::cout << "-------( REQUEST PARSED )-------\n\n";
+        std::cout << req.header << std::endl;
+        std::cout << "-------( END OF REQUEST )-------\n\n\n";
+        int state = serve_file_request(fd, serverConfig);
+        if (state == 310)
+        {
+            close(fd);
+            request.erase(fd);
+        }
     }
-    else if (req.getMethod() == "DELETE"){
-      std::cout << "-------( REQUEST PARSED )-------\n\n";
-      std::cout << req.header << std::endl;
-      std::cout << "-------( END OF REQUEST )-------\n\n\n";
-      handle_delete_request(fd, serverConfig);
+    else if (req.getMethod() == "DELETE")
+    {
+        std::cout << "-------( REQUEST PARSED )-------\n\n";
+        std::cout << req.header << std::endl;
+        std::cout << "-------( END OF REQUEST )-------\n\n\n";
+        handle_delete_request(fd, serverConfig);
     }
     else if (req.getMethod() == "POST")
     {
-      //[soukaina] here i should check for the post if an error responce is sent
-      if (req.state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig) != 0)
-        req.state.PostHeaderIsValid = true;
-      handlePostRequest(fd);
+        //[soukaina] here i should check for the post if an error responce is sent
+        if (req.state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig) != 0)
+            req.state.PostHeaderIsValid = true;
+        handlePostRequest(fd);
     }
 }
 
@@ -134,7 +141,7 @@ void Server::getCgiResponse(Request &req)
     {
         if (WEXITSTATUS(status) != 0)
             req.code = 502;
-            // adding specific error response here
+        // adding specific error response here
 
         int fde = open(req.cgi.fileNameOut.c_str(), O_RDONLY, 0644);
         if (fde < 0)
@@ -148,7 +155,7 @@ void Server::getCgiResponse(Request &req)
         while (true)
         {
             int readBytes = read(fde, buffer, CHUNK_SIZE);
-            
+
             if (readBytes < 0)
             {
                 req.code = 500;
@@ -164,7 +171,6 @@ void Server::getCgiResponse(Request &req)
         }
         getSpecificRespond(fde, req.serverConfig.getErrorPages().find(400)->second, createBadRequest);
     }
-    
 }
 
 int Server::handleClientConnectionsForMultipleServers()
@@ -186,7 +192,7 @@ int Server::handleClientConnectionsForMultipleServers()
         }
         else if (events[i].events & EPOLLOUT)
         {
-          handleClientOutput(fd);
+            handleClientOutput(fd);
         }
     }
     return EXIT_SUCCESS;

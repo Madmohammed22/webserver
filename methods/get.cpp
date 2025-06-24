@@ -171,8 +171,7 @@ bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
 bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &checkState, ConfigData configIndex)
 {
     std::string root = configIndex.getDefaultRoot();
-    
-    if ((resolveUrl(url) + "/") == redundantSlash(location.path))
+    if (redundantSlash((resolveUrl(url) + "/")) == redundantSlash(location.path))
     {
         if (location.redirect.size() > 0)
         {
@@ -193,8 +192,6 @@ bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &chec
             url = location.root + url;
             checkState = 201;
             return check(url);
-            // checkState = !location.autoindex ? 403 : 201;
-            // return checkState == 403 ? false : true;
         }
     }
     else
@@ -297,6 +294,7 @@ int Server::handleFileRequest(int fd, const std::string &url, std::string Connec
             return close(fd), request.erase(fd), 0;
         if (Connection == "close" || Connection.empty())
             return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
+        // close(fd), request.erase(fd);
         return request[fd].state.isComplete = true, 201;
     }
     return 0;
@@ -452,7 +450,7 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
         faild = send(fd, listDirectory(url, resolveUrl(request[fd].state.url), mime).c_str(), fileSize, MSG_NOSIGNAL);
         if (faild == -1)
             return close(fd), request.erase(fd), checkState = 0, 0;
-        return close(fd), checkState = 0, 0;
+        return checkState = 0, 0;
     }
     else
     {
@@ -462,9 +460,7 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
 
 bool Server::timedFunction(int timeoutSeconds, time_t startTime)
 {
-
     time_t currentTime = time(NULL);
-    std::cout << "diff: " << difftime(currentTime, startTime) << "\n";
     if (difftime(currentTime, startTime) >= timeoutSeconds)
     {
         return false;
@@ -476,7 +472,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
     std::string url = request[fd].state.url;
-    // std::cout << "url: " << url << std
     Location location = getExactLocationBasedOnUrl(url, configIndex);
     if (location.path.empty() == true)
     {
@@ -493,18 +488,16 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
         return 0;
     }
 
-
     size_t checkState;
     std::string save = url;
     if (canBeOpen(fd, url, location, checkState, configIndex))
     {
         if (t_stat_wait(url) == 1)
         {
-            // std::cout << save << std::endl;
-            // std::cout << url << std::endl;
             return sendFinalReques(fd, resolveUrl(url), configIndex, location, checkState);
         }
-        return (handleFileRequest(fd, url, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
+        // return (handleFileRequest(fd, url, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
+        return (handleFileRequest(fd, url, Connection, location) == -1) ? 0 : 200;
     }
     else
     {
@@ -525,7 +518,9 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                     }
                     if (handleFileRequest(fd, url, Connection, location) == 201)
                     {
-                        return timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false ? 310 : 0;
+                        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+                            return 310;
+                        return 0;
                     }
                 }
                 else
@@ -533,9 +528,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                     if (checkState == 301)
                     {
                         if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
-                        {
                             return 310;
-                        }
                         else
                         {
                             std::string httpRespons = MovedPermanently(getContentType(url), location.path);

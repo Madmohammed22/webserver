@@ -97,7 +97,7 @@ int Server::establishingMultiServer(t_listen listen_)
         return EXIT_FAILURE;
     }
 
-    std::cout << "Server started on port " << listen_.port << std::endl;
+    // std::cout << "Server started on port " << listen_.port << std::endl;
     return serverSocket;
 }
 
@@ -148,8 +148,9 @@ void Server::getListenPairs()
     std::vector<t_listen>::iterator itListen;
     for (itListen = listenVec.begin(); itListen != listenVec.end(); itListen++)
     {
-        std::cout << " the host " << itListen->host << " the port " << itListen->port << std::endl;
+        std::cout << "The host " << itListen->host << " the port " << itListen->port << "" <<  std::endl;
     }
+    std::cout << "\n";
 }
 
 ConfigData Server::getConfigForRequest(t_listen listen, std::string serverName)

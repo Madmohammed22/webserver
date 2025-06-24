@@ -122,7 +122,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
             request[fd].state.isComplete = true;
         }
         // request[fd].state.url = "/path/../path/pathkhk/..";
-        std::cout << "this is my resolved URL " << resolveUrl(request[fd].state.url)<< std::endl;
+        // std::cout << "this is my resolved URL " << resolveUrl(request[fd].state.url)<< std::endl;
         // exit(0);
         // [soukaina] this must be changed to right function that extract the correct location
         request[fd].location = serverConfig.getLocations().front();

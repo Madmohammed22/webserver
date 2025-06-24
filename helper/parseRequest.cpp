@@ -68,7 +68,6 @@ std::string Server::parseSpecificRequest(std::string request)
         {
             std::string requestedPath = request.substr(startPos, endPos - startPos);
             requestedPath = url_decode(redundantSlash(requestedPath));
-            std::cout << "requestedPath: " << requestedPath << std::endl;
             if (!requestedPath.empty())
             {
                 url = requestedPath;
