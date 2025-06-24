@@ -12,6 +12,7 @@
 
 #include "../server.hpp"
 #include "../request.hpp"
+#include "../helper/utils.hpp"
 
 void GET::includeBuild(std::string target, std::string &metaData, int pick)
 {
@@ -171,12 +172,15 @@ bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &chec
 {
     std::string root = configIndex.getDefaultRoot();
     // if (url == location.path)
-    if (areSameDirectories((root + url).c_str(), (redundantSlash((root + location.path)).c_str())))
+    // if (areSameDirectories((root + url).c_str(), (redundantSlash((root + location.path)).c_str())))
+    
+    if ((resolveUrl(url) + "/") == redundantSlash(location.path))
     {
         if (location.redirect.size() > 0)
         {
             request[fd].flag = 1;
             url = redundantSlash(location.redirect);
+            request[fd].state.url = redundantSlash(location.redirect);
             checkState = 301;
             return check(redundantSlash(location.root + location.path + url));
         }
@@ -362,11 +366,8 @@ Location Server::getExactLocationBasedOnUrlContainer(std::string target, ConfigD
         return location;
     for (size_t i = 0; i < configIndex.getLocations().size(); i++)
     {
-
-        if (areSameDirectories((root + target).c_str(), (redundantSlash(configIndex.getLocations()[i].path)).c_str()))
-        {
+        if ((resolveUrl(target) + "/") == redundantSlash(configIndex.getLocations()[i].path))
             return location = configIndex.getLocations()[i];
-        }
     }
     return getExactLocationBasedOnUrlContainer(returnNewPath(target), configIndex);
 }
@@ -445,12 +446,13 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
 {
     if (location.autoindex == true)
     {
+        // std::cout << "url :" << request[fd].state.url << std::endl;
         location.path = redundantSlash(location.path);
         std::string mime;
-        size_t fileSize = listDirectory(url, url.substr(url.rfind("/"), url.size()), mime).size();
+        size_t fileSize = listDirectory(url, resolveUrl(request[fd].state.url), mime).size();
         std::string httpRespons = httpResponse(mime, fileSize);
         int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
-        faild = send(fd, listDirectory(url, url.substr(url.rfind("/"), url.size()), mime).c_str(), fileSize, MSG_NOSIGNAL);
+        faild = send(fd, listDirectory(url, resolveUrl(request[fd].state.url), mime).c_str(), fileSize, MSG_NOSIGNAL);
         if (faild == -1)
             return close(fd), request.erase(fd), checkState = 0, 0;
         return close(fd), checkState = 0, 0;
@@ -497,9 +499,8 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
 {
     std::string Connection = request[fd].connection;
     std::string url = request[fd].state.url;
+    // std::cout << "url: " << url << std
     Location location = getExactLocationBasedOnUrl(url, configIndex);
-    std::cout << "location: " << location.path << std::endl;
-    // exit(0);
     if (location.path.empty() == true)
     {
         return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
@@ -515,16 +516,16 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
         return 0;
     }
 
-    char resolvedPath1[PATH_MAX];
 
-    if (realpath((configIndex.getDefaultRoot() + url).c_str(), resolvedPath1) == NULL)
-        getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
     size_t checkState;
+    std::string save = url;
     if (canBeOpen(fd, url, location, checkState, configIndex))
     {
         if (t_stat_wait(url) == 1)
         {
-            return sendFinalReques(fd, resolvedPath1, configIndex, location, checkState);
+            // std::cout << save << std::endl;
+            // std::cout << url << std::endl;
+            return sendFinalReques(fd, resolveUrl(url), configIndex, location, checkState);
         }
         return (handleFileRequest(fd, url, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
     }
