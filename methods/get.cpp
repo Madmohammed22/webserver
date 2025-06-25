@@ -286,7 +286,13 @@ int Server::handleFileRequest(int fd, const std::string &url, std::string Connec
             return 0;
         }
         else
-            httpRespons = httpResponse(contentType, request[fd].state.fileSize);
+        {
+            if (request[fd].getCookie() != "undefined")
+                httpRespons = httpResponseIncludeCookie(contentType, request[fd].state.fileSize, request[fd].getCookie());
+            else
+                httpRespons = httpResponse(contentType, request[fd].state.fileSize);
+            // httpRespons = httpResponse(contentType, request[fd].state.fileSize);
+        }
         int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
         faild = send(fd, readFile(url).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL);
         faild = send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL);
@@ -442,10 +448,15 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
 {
     if (location.autoindex == true)
     {
+        std::string httpRespons;
         location.path = redundantSlash(location.path);
         std::string mime;
         size_t fileSize = listDirectory(url, resolveUrl(request[fd].state.url), mime).size();
-        std::string httpRespons = httpResponse(mime, fileSize);
+        if (request[fd].getCookie() != "undefined")
+            httpRespons = httpResponseIncludeCookie(mime, fileSize, request[fd].getCookie());
+        else
+            httpRespons = httpResponse(mime, fileSize);
+
         int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
         faild = send(fd, listDirectory(url, resolveUrl(request[fd].state.url), mime).c_str(), fileSize, MSG_NOSIGNAL);
         if (faild == -1)
@@ -473,6 +484,8 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     std::string Connection = request[fd].connection;
     std::string url = request[fd].state.url;
     Location location = getExactLocationBasedOnUrl(url, configIndex);
+
+    // std::cout << "cookie : " << request[fd].getCookie() << std::endl;
     if (location.path.empty() == true)
     {
         return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);

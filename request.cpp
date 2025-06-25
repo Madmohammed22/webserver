@@ -87,6 +87,10 @@ bool ContentTypeValidator::validate(RequstBuilder &builder)
     }
     else if (builder.getRequest().getMethod() == "POST")
     {
+        // return true;
+        if (builder.getRequest().getContentLength() == "0"){
+            return true;
+        }
         return builder.getRequest().getContentType().find("multipart/form-data") != std::string::npos;
     }
     else if (builder.getRequest().getMethod() == "DELETE")

@@ -77,6 +77,17 @@ std::string Server::httpResponse(std::string contentType, size_t contentLength)
     return oss.str();
 }
 
+std::string Server::httpResponseIncludeCookie(std::string contentType, size_t contentLength, std::string setCookie)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 200 OK\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT() << "\r\n"
+        << "setCookie: " << setCookie << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+    return oss.str();
+}
+
 std::string Server::Forbidden(std::string contentType, size_t contentLength)
 {
     std::ostringstream oss;

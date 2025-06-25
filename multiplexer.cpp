@@ -37,6 +37,7 @@ void Server::handleClientData(int fd)
     state.fd = fd;
 
     Binary_String holder(CHUNK_SIZE);
+    
     ssize_t bytes = recv(fd, &holder[0], CHUNK_SIZE - 1, 0);
     if (bytes <= 0)
     {
@@ -57,7 +58,7 @@ void Server::handleClientData(int fd)
         if (validateHeader(fd, state, holder) == false)
         {
             // it did broke when it's called with post method
-            ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], NULL);
+            ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], "");
             //[soukaina] here i should build the respond error for the code variable that was set by the validate header function
             getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, createBadRequest);
         }
@@ -76,6 +77,7 @@ void Server::handleClientData(int fd)
         if (static_cast<int>(atoi(request[fd].contentLength.c_str())) <= state.bytesReceived)
         {
             state.file->close();
+            std::cout << "i have been here\n";
             state.isComplete = true;
         }
         if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)

@@ -89,6 +89,10 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
         if (request[fd].bodyStart)
         {
             Binary_String body = holder.substr(request[fd].bodyStart, holder.length());
+            for ( int i = 0; i < (int)body.length(); i++)
+            {
+                printf("%c",body[i]);
+            }
             backup += body.length();
             state.file->write(body.c_str(), body.length());
         }
@@ -107,6 +111,8 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
 
             if (header_parser(post, request[fd], state.header, tmpMap) == false)
             {
+                std::cout << "I was here\n";
+                exit(0);
                 return false;
             } 
             std::cout << "-------( REQUEST PARSED )-------\n\n";
@@ -125,7 +131,12 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
         // std::cout << "this is my resolved URL " << resolveUrl(request[fd].state.url)<< std::endl;
         // exit(0);
         // [soukaina] this must be changed to right function that extract the correct location
-        request[fd].location = serverConfig.getLocations().front();
+        // request[fd].location = serverConfig.getLocations().front();
+        // request[fd].location = getExactLocationBasedOnUrl(state.url, request[fd].serverConfig);
+
+        if (request[fd].getMethod() != "POST"){
+            request[fd].state.file->close();
+        }
         // std::cout << request[fd].location.root << std::endl;
         if (request[fd].state.url.find("/cgi-bin") != std::string::npos)
         {
