@@ -82,21 +82,12 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
       return (false);
     if (request[fd].getParsingState() == END)
     {
+        backup = state.bytesReceived;
+        fileName_backup = state.fileName;
         // [soukaina] here after the request is checked i will store the serverConfig in the request
         serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], request[fd].getHost());
         request[fd].serverConfig = serverConfig;
         state.headerFlag = false;
-        if (request[fd].bodyStart)
-        {
-            Binary_String body = holder.substr(request[fd].bodyStart, holder.length());
-            for ( int i = 0; i < (int)body.length(); i++)
-            {
-                printf("%c",body[i]);
-            }
-            backup += body.length();
-            state.file->write(body.c_str(), body.length());
-        }
-        fileName_backup = state.fileName;
         tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header, serverConfig).first);
         if (state.header.find("GET") != std::string::npos)
         {
@@ -126,6 +117,22 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
             if (header_parser(delete_, request[fd], state.header, tmpMap) == false)
                 return false;
             request[fd].state.isComplete = true;
+        }
+        if (request[fd].getMethod() != "POST")
+        {
+          request[fd].state.file->close();
+        }
+        if (request[fd].bodyStart)
+        {
+            Binary_String body = holder.substr(request[fd].bodyStart, ft_strlen((char *)holder.c_str()));
+            backup = backup - request[fd].bodyStart;
+
+            state.file->write(body.c_str(), ft_strlen((char *)body.c_str()));
+            if (static_cast<int>(atoi(request[fd].contentLength.c_str())) <= (int) backup)
+            {
+              state.isComplete = true;
+              state.file->close();
+            }
         }
         // request[fd].state.url = "/path/../path/pathkhk/..";
         // std::cout << "this is my resolved URL " << resolveUrl(request[fd].state.url)<< std::endl;

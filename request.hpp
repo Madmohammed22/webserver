@@ -72,6 +72,7 @@ public:
     ConfigData serverConfig;
     FileTransferState state;
     std::string header;
+    std::string startBody;
     Cgi cgi;
     struct Multipart multp;
     Location location;

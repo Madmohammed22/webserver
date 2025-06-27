@@ -191,6 +191,7 @@ void Server::writePostDataToCgi(Request& req)
 
      char* buffer = (char *)malloc(CHUNK_SIZE);
      req.multp.file->read(buffer, CHUNK_SIZE);
+
      int bytesRead = req.multp.file->gcount();
 
      if (bytesRead > 0)
@@ -223,3 +224,4 @@ void Server::cleanupResources(Request& req)
         req.cgi.fdIn = -1;
     }
 }
+

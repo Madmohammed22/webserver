@@ -26,7 +26,6 @@ Binary_String Server::readFileChunk_post(int fd)
     char *buffer = new char[CHUNK_SIZE];
     file->read(buffer, CHUNK_SIZE);
     size_t bytesRead = file->gcount();
-    
     request[fd].multp.readPosition += bytesRead;
     
     Binary_String chunk(buffer, bytesRead);
@@ -109,6 +108,7 @@ void Server::writeData(Binary_String& chunk, int fd)
                 {
                     request[fd].multp.partialHeaderBuffer.clear();
                     request[fd].multp.outFiles.back()->close();
+                    request[fd].multp.readPosition = -2;
                     break;
                 }
                 else
@@ -160,11 +160,25 @@ int Server::parsePostRequest(int fd, ConfigData& configIndex)
 void Server::handlePostRequest(int fd)
 {
     Binary_String chunkedData;
-
+    
+    
     request[fd].state.url = "root/Upload";
     chunkedData = readFileChunk_post(fd);
     if (chunkedData.empty())
       request.erase(fd);
     /*std::cout << chunkedData << std::endl ; */
     writeData(chunkedData, fd);
+    if (request[fd].multp.readPosition == -2)
+    {
+      std::string httpRespons;
+      httpRespons = httpResponse(request[fd].ContentType, request[fd].state.fileSize);
+      
+      int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
+      if (faild == -1)
+          close(fd), request.erase(fd);
+      if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
+          request[fd].state.isComplete = true, close(fd), request.erase(fd);
+      close(fd), request.erase(fd);
+      request[fd].state.isComplete = true;
+    }
 }

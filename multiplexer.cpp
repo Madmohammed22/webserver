@@ -37,8 +37,14 @@ void Server::handleClientData(int fd)
     state.fd = fd;
 
     Binary_String holder(CHUNK_SIZE);
+<<<<<<< HEAD
     
     ssize_t bytes = recv(fd, &holder[0], CHUNK_SIZE - 1, 0);
+=======
+    size_t bytes = recv(fd, &holder[0], CHUNK_SIZE - 1, 0);
+
+    holder[bytes + 1] = '\0';
+>>>>>>> 5451b73 ( the post method problems is solved)
     if (bytes <= 0)
     {
         close(fd);
@@ -47,15 +53,13 @@ void Server::handleClientData(int fd)
         return;
     }
 
-    holder[bytes] = '\0';
-
     if (state.headerFlag == true && !state.isComplete)
     {
         int serverSocket = clientToServer[fd];
         // i should rethink about this part cause this part the host is not yet setted
         // so there is a big probability that i am sending an empty string
-        state.buffer.append(holder, 0, bytes);
-        if (validateHeader(fd, state, holder) == false)
+        /*state.buffer.append(holder, 0, bytes);*/
+        if ((state.bytesReceived = bytes) && validateHeader(fd, state, holder) == false)
         {
             // it did broke when it's called with post method
             ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], "");
@@ -73,12 +77,10 @@ void Server::handleClientData(int fd)
     {
         state.file->write(holder.c_str(), bytes);
         state.bytesReceived += bytes;
-
         if (static_cast<int>(atoi(request[fd].contentLength.c_str())) <= state.bytesReceived)
         {
-            state.file->close();
-            std::cout << "i have been here\n";
             state.isComplete = true;
+            state.file->close();
         }
         if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
         {
@@ -171,7 +173,6 @@ void Server::getCgiResponse(Request &req)
             }
             req.cgi.CgiBodyResponse.append(buffer, readBytes);
         }
-        getSpecificRespond(fde, req.serverConfig.getErrorPages().find(400)->second, createBadRequest);
     }
 }
 

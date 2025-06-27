@@ -1,5 +1,5 @@
 server:
-  port: 7000
+  port: 8000
   host: localhost
 
   server_name: example.com
@@ -15,8 +15,7 @@ server:
      415: root/error/415.html
   locations:
     /: 
-      redirect: /index.html
-      root: /var/www/html
+      root: ROOT/html/
       index: index.html
       autoindex: on
       methods: [delete, post, get]
@@ -37,7 +36,7 @@ server:
       methods: [post, delete, get]
 
 server:
-  port: 8000
+  port: 7000
   host: localhost
   server_name: mmad.com
   client_max_body_size: 1m
