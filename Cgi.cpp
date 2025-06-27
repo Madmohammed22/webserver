@@ -54,6 +54,8 @@ void Cgi::parseCgi(Request &req)
     _path = path + req.location.index[0];
   else 
     _path = path;
+
+
   if (_path[0] == '/')
     _path.erase(0, 1);
    // if (getFileType(_path) != 2)
@@ -64,11 +66,16 @@ void Cgi::parseCgi(Request &req)
 
   int ExtensionPos = _path.rfind('.');
 
+      
   // if the file is not executable ( the nginx default behavior is to send it as a static file)
   if (!(req.location.cgi.find(_path.substr(ExtensionPos)) != req.location.cgi.end()))
   {
+    std::cout << _path.substr(ExtensionPos) << std::endl;
+    std::cout << req.location.cgi[_path.substr(ExtensionPos)] << std::endl;
+    exit(0);
     return ;
   }
+
   if (access(_path.c_str(), R_OK | X_OK ) == -1)
   {
     req.code = 403;
@@ -129,6 +136,7 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
   (void) req;
 
   fileNameOut = createTempFile();
+
   if (req.getMethod() == "POST")
   {
     fileNameIn = req.state.fileName;
@@ -143,7 +151,7 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
     req.code = 500;
     return ;
   }
-  
+
   // here we are in the child process
   if ( _pid == 0 )
   {

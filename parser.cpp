@@ -143,7 +143,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     // std::cout << "this is my resolved URL " << resolveUrl(request[fd].state.url)<< std::endl;
     // exit(0);
     // [soukaina] this must be changed to right function that extract the correct location
-    // request[fd].location = serverConfig.getLocations().front();
+    request[fd].location = serverConfig.getLocations().front();
     // request[fd].location = getExactLocationBasedOnUrl(state.url, request[fd].serverConfig);
 
     if (request[fd].getMethod() != "POST")
@@ -153,6 +153,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     // std::cout << request[fd].location.root << std::endl;
     if (request[fd].state.url.find("/cgi-bin") != std::string::npos)
     {
+
       request[fd].cgi.parseCgi(request[fd]);
       if (request[fd].code != 200)
       {
