@@ -68,17 +68,16 @@ void Server::handleClientData(int fd)
             request[fd].cgi.cgiState = CGI_RUNNING;
             return;
         }
-
     }
     else if (!state.isComplete)
     {
         state.file->write(holder.c_str(), bytes);
         state.bytesReceived += bytes;
-        std::cout << state.bytesReceived << std::endl;
 
         if (static_cast<int>(atoi(request[fd].contentLength.c_str())) <= state.bytesReceived)
         {
             state.isComplete = true;
+            std::cout << "i was here once \n";
             state.file->close();
         }
         if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
@@ -109,14 +108,22 @@ void Server::handleClientOutput(int fd)
         getCgiResponse(req);
     else if (req.getMethod() == "GET")
     {
-        std::cout << "-------( REQUEST PARSED )-------\n\n";
-        std::cout << req.header << std::endl;
-        std::cout << "-------( END OF REQUEST )-------\n\n\n";
+        // std::cout << "-------( REQUEST PARSED )-------\n\n";
+        // std::cout << req.header << std::endl;
+        // std::cout << "-------( END OF REQUEST )-------\n\n\n";
         int state = serve_file_request(fd, serverConfig);
         if (state == 310)
         {
             close(fd);
             request.erase(fd);
+        }
+        if (state == 200 || state == 0)
+        {
+            if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+            {
+                close(fd);
+                request.erase(fd);
+            }
         }
     }
     else if (req.getMethod() == "DELETE")
@@ -124,10 +131,37 @@ void Server::handleClientOutput(int fd)
         std::cout << "-------( REQUEST PARSED )-------\n\n";
         std::cout << req.header << std::endl;
         std::cout << "-------( END OF REQUEST )-------\n\n\n";
-        handle_delete_request(fd, serverConfig);
+        int state = handle_delete_request(fd, serverConfig);
+        if (state == 0)
+        {
+            if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+            {
+                close(fd);
+                request.erase(fd);
+            }
+        }
     }
     else if (req.getMethod() == "POST")
     {
+        if (request[fd].getContentLength() == "0")
+        {
+            request[fd].state.file->close();
+            std::string httpRespons;
+            httpRespons = httpResponse(request[fd].ContentType, request[fd].state.fileSize);
+            int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
+            if (faild == -1)
+            {
+                close(fd), request.erase(fd);
+            }
+            if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
+                request[fd].state.isComplete = true, close(fd), request.erase(fd);
+            if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+            {
+                close(fd);
+                request.erase(fd);
+            }
+            return;
+        }
         //[soukaina] here i should check for the post if an error responce is sent
         if (req.state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig) != 0)
             req.state.PostHeaderIsValid = true;

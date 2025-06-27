@@ -119,6 +119,7 @@ int Server::deleteTargetUrl(int fd, std::string url, ConfigData configdata, Loca
     if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
         return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
     // return close(fd), request.erase(fd), 0;
+    request[fd].state.last_activity_time = time(NULL);
     return 0;
 }
 

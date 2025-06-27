@@ -136,7 +136,7 @@ bool ConnectionValidator::validate(RequstBuilder &builder)
 }
 
 bool CookieValidator::validate(RequstBuilder &builder){
-    std::cout << "[" << builder.getRequest().getCookie() << "]" << std::endl;
+    (void)builder;
     return true;
 }
 

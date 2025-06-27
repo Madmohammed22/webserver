@@ -1,5 +1,5 @@
 server:
-  port: 8000
+  port: 7000
   host: localhost
 
   server_name: example.com
@@ -36,7 +36,7 @@ server:
       methods: [post, delete, get]
 
 server:
-  port: 7000
+  port: 8000
   host: localhost
   server_name: mmad.com
   client_max_body_size: 1m
@@ -62,7 +62,7 @@ server:
       root: /var/www/html
       index: [index.html]
       autoindex: on
-      methods: [get, delete]
+      methods: [get, delete, post]
 
     /media/:    # url /data/../data/
       # redirect: /content/
@@ -80,7 +80,7 @@ server:
 
 
     /uploads/:
-      redirect : /content/
+      # redirect : /content/
       root : /home/mmad/Desktop/upload
       index : test.txt
       autoindex: on

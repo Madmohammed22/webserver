@@ -29,7 +29,6 @@ void POST::buildFileTransfers()
     state.uriLength = state.url.length();
     state.test = 0;
     state.headerFlag = false;
-    // state.logFile[""] = "";
-
+    state.last_activity_time = time(NULL);
 }
 

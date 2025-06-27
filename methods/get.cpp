@@ -253,11 +253,12 @@ int Server::continueFileTransfer(int fd, std::string url, Location location)
         }
         request[fd].state.test = 0;
     }
-    return 0;
+    return 200;
 }
 
 int Server::handleFileRequest(int fd, const std::string &url, std::string Connection, Location location)
 {
+    std::cout << "---------------\n"; 
     request[fd].state.url = url;
     std::string contentType = Server::getContentType(url);
     request[fd].state.fileSize = getFileSize(url);
@@ -301,7 +302,7 @@ int Server::handleFileRequest(int fd, const std::string &url, std::string Connec
         if (Connection == "close" || Connection.empty())
             return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
         // close(fd), request.erase(fd);
-        return request[fd].state.isComplete = true, 201;
+        return request[fd].state.isComplete = true, 200;
     }
     return 0;
 }
@@ -461,7 +462,7 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
         faild = send(fd, listDirectory(url, resolveUrl(request[fd].state.url), mime).c_str(), fileSize, MSG_NOSIGNAL);
         if (faild == -1)
             return close(fd), request.erase(fd), checkState = 0, 0;
-        return checkState = 0, 0;
+        return checkState = 0, 200;
     }
     else
     {
@@ -472,8 +473,10 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
 bool Server::timedFunction(int timeoutSeconds, time_t startTime)
 {
     time_t currentTime = time(NULL);
+    std::cout << "[" << difftime(currentTime, startTime) << "]" << std::endl;
     if (difftime(currentTime, startTime) >= timeoutSeconds)
     {
+        std::cout << "close fd\n";
         return false;
     }
     return true;
@@ -481,11 +484,11 @@ bool Server::timedFunction(int timeoutSeconds, time_t startTime)
 
 int Server::serve_file_request(int fd, ConfigData configIndex)
 {
+    // return 200;
     std::string Connection = request[fd].connection;
     std::string url = request[fd].state.url;
     Location location = getExactLocationBasedOnUrl(url, configIndex);
 
-    // std::cout << "cookie : " << request[fd].getCookie() << std::endl;
     if (location.path.empty() == true)
     {
         return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);

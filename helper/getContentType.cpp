@@ -259,12 +259,9 @@ int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::s
             return request.erase(fd), close(fd), 0;
         else
         {
-            request[fd].state.isComplete = true;
-            // if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false){
-            //     return 310;
-            // }
-            close(fd);
-            request.erase(fd);
+            // request[fd].state.isComplete = true;
+            // close(fd);
+            // request.erase(fd);
         }
         return 0;
     }

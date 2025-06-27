@@ -16,7 +16,7 @@ Binary_String Server::readFileChunk_post(int fd)
             return Binary_String();
         }
     }
-    
+
     if (!file->is_open())
     {
         std::cerr << "File is not open for reading" << std::endl;
@@ -27,19 +27,18 @@ Binary_String Server::readFileChunk_post(int fd)
     file->read(buffer, CHUNK_SIZE);
     size_t bytesRead = file->gcount();
     request[fd].multp.readPosition += bytesRead;
-    
     Binary_String chunk(buffer, bytesRead);
     delete[] buffer;
     return chunk;
 }
 
-void Server::createFileName(std::string line, int fd) 
+void Server::createFileName(std::string line, int fd)
 {
     size_t start = line.find("filename=\"");
-    
+
     start += 10;
     size_t end = line.find("\"", start);
-   
+
     std::string fileName = request[fd].state.url + line.substr(start, end - start);
     std::ofstream *newFile = new std::ofstream(fileName.c_str(), std::ios::binary | std::ios::trunc);
     if (!newFile->is_open())
@@ -51,12 +50,12 @@ void Server::createFileName(std::string line, int fd)
     }
     request[fd].multp.outFiles.push_back(newFile);
     request[fd].multp.currentFileIndex = request[fd].multp.outFiles.size() - 1;
-   
-    std::cout << "Opened file #" << request[fd].multp.currentFileIndex 
+
+    std::cout << "Opened file #" << request[fd].multp.currentFileIndex
               << ": " << fileName << std::endl;
 }
 
-void Server::writeData(Binary_String& chunk, int fd)
+void Server::writeData(Binary_String &chunk, int fd)
 {
     std::string boundary = request[fd].multp.boundary;
     std::string boundaryEnd = boundary + "--";
@@ -65,6 +64,7 @@ void Server::writeData(Binary_String& chunk, int fd)
 
     while (true)
     {
+
         if (request[fd].multp.isInHeader)
         {
             size_t headerEnd = request[fd].multp.partialHeaderBuffer.find("\r\n\r\n");
@@ -86,7 +86,7 @@ void Server::writeData(Binary_String& chunk, int fd)
             {
                 if (!request[fd].multp.outFiles.empty())
                 {
-                    std::ofstream* file = request[fd].multp.outFiles.back();
+                    std::ofstream *file = request[fd].multp.outFiles.back();
                     file->write(request[fd].multp.partialHeaderBuffer.data(),
                                 request[fd].multp.partialHeaderBuffer.size());
                 }
@@ -98,7 +98,7 @@ void Server::writeData(Binary_String& chunk, int fd)
                 bool isFinalBoundary = (request[fd].multp.partialHeaderBuffer.substr(boundaryPos, boundaryEnd.size()) == boundaryEnd);
                 if (!request[fd].multp.outFiles.empty() && boundaryPos > 0)
                 {
-                    std::ofstream* file = request[fd].multp.outFiles.back();
+                    std::ofstream *file = request[fd].multp.outFiles.back();
                     file->write(request[fd].multp.partialHeaderBuffer.data(), boundaryPos - 2);
                 }
 
@@ -124,9 +124,9 @@ void Server::writeData(Binary_String& chunk, int fd)
 bool checkEndPoint(std::string &filePath)
 {
     struct stat info;
-   
+
     if (stat(filePath.c_str(), &info) != 0)
-        return false; 
+        return false;
     if (S_ISDIR(info.st_mode))
     {
         return (true);
@@ -134,7 +134,7 @@ bool checkEndPoint(std::string &filePath)
     return (false);
 }
 
-int Server::parsePostRequest(int fd, ConfigData& configIndex)
+int Server::parsePostRequest(int fd, ConfigData &configIndex)
 {
     std::string contentType;
     std::string filePath;
@@ -142,9 +142,9 @@ int Server::parsePostRequest(int fd, ConfigData& configIndex)
     size_t boundaryStart;
 
     contentType = request[fd].getContentType();
-    if (contentType.find("boundary=") != std::string::npos) 
+    if (contentType.find("boundary=") != std::string::npos)
     {
-         boundaryStart = contentType.find("boundary=") + 9;
+        boundaryStart = contentType.find("boundary=") + 9;
         request[fd].multp.boundary = contentType.substr(boundaryStart, contentType.length());
         if (request[fd].multp.boundary.length() == 0)
             return getSpecificRespond(fd, configIndex.getErrorPages().find(400)->second, createBadRequest);
@@ -160,25 +160,39 @@ int Server::parsePostRequest(int fd, ConfigData& configIndex)
 void Server::handlePostRequest(int fd)
 {
     Binary_String chunkedData;
-    
-    
+
+    if (request[fd].multp.readPosition == -2)
+    {
+        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+        {
+            close(fd);
+            request.erase(fd);
+        }
+        return ;
+    }
     request[fd].state.url = "root/Upload";
     chunkedData = readFileChunk_post(fd);
     if (chunkedData.empty())
-      request.erase(fd);
-    /*std::cout << chunkedData << std::endl ; */
+        request.erase(fd);
     writeData(chunkedData, fd);
     if (request[fd].multp.readPosition == -2)
     {
-      std::string httpRespons;
-      httpRespons = httpResponse(request[fd].ContentType, request[fd].state.fileSize);
-      
-      int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
-      if (faild == -1)
-          close(fd), request.erase(fd);
-      if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
-          request[fd].state.isComplete = true, close(fd), request.erase(fd);
-      close(fd), request.erase(fd);
-      request[fd].state.isComplete = true;
+        std::string httpRespons;
+        httpRespons = httpResponse(request[fd].ContentType, request[fd].state.fileSize);
+
+        int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
+        if (faild == -1)
+        {
+            close(fd), request.erase(fd);
+        }
+        if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
+            request[fd].state.isComplete = true, close(fd), request.erase(fd);
+        request[fd].multp.file->close();
+        request[fd].state.isComplete = true;
+        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+        {
+            close(fd);
+            request.erase(fd);
+        }
     }
 }
