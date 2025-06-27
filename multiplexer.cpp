@@ -37,14 +37,9 @@ void Server::handleClientData(int fd)
     state.fd = fd;
 
     Binary_String holder(CHUNK_SIZE);
-<<<<<<< HEAD
-    
-    ssize_t bytes = recv(fd, &holder[0], CHUNK_SIZE - 1, 0);
-=======
     size_t bytes = recv(fd, &holder[0], CHUNK_SIZE - 1, 0);
 
     holder[bytes + 1] = '\0';
->>>>>>> 5451b73 ( the post method problems is solved)
     if (bytes <= 0)
     {
         close(fd);
@@ -66,17 +61,21 @@ void Server::handleClientData(int fd)
             //[soukaina] here i should build the respond error for the code variable that was set by the validate header function
             getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, createBadRequest);
         }
+
         if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
         {
             request[fd].cgi.runCgi(*this, fd, request[fd], request[fd].serverConfig);
             request[fd].cgi.cgiState = CGI_RUNNING;
             return;
         }
+
     }
     else if (!state.isComplete)
     {
         state.file->write(holder.c_str(), bytes);
         state.bytesReceived += bytes;
+        std::cout << state.bytesReceived << std::endl;
+
         if (static_cast<int>(atoi(request[fd].contentLength.c_str())) <= state.bytesReceived)
         {
             state.isComplete = true;

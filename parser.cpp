@@ -84,6 +84,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     {
         backup = state.bytesReceived;
         fileName_backup = state.fileName;
+        backup = backup - request[fd].bodyStart;
         // [soukaina] here after the request is checked i will store the serverConfig in the request
         serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], request[fd].getHost());
         request[fd].serverConfig = serverConfig;
@@ -124,10 +125,10 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
         }
         if (request[fd].bodyStart)
         {
-            Binary_String body = holder.substr(request[fd].bodyStart, ft_strlen((char *)holder.c_str()));
-            backup = backup - request[fd].bodyStart;
-
-            state.file->write(body.c_str(), ft_strlen((char *)body.c_str()));
+            Binary_String body = holder.substr(request[fd].bodyStart, backup);
+            
+            state.file->write(body.c_str(), backup);
+            std::cout << backup << std::endl;
             if (static_cast<int>(atoi(request[fd].contentLength.c_str())) <= (int) backup)
             {
               state.isComplete = true;
