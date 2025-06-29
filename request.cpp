@@ -53,9 +53,8 @@ bool FileTransferValidator::validate(RequstBuilder &builder)
     std::string method = builder.getRequest().getMethod();
     if (method == "GET" || method == "POST" || method == "DELETE")
     {
-        // || resolveUrl((builder.getRequest().state.url)).empty()
         std::string outOfRange = builder.getRequest().state.url;
-        if (builder.getRequest().state.uriLength > MAXURI  || resolveUrl(outOfRange).empty() )
+        if (resolveUrl(outOfRange).empty() )
         {
             return false;
         }
