@@ -185,7 +185,7 @@ public:
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
 
     // Transfer-Encoding: chunked
-    int handleFileRequest(int fd, const std::string &url, std::string Connection, Location configIndex);
+    int handleFileRequest(int fd, std::string &url, std::string Connection, Location configIndex);
     int continueFileTransfer(int fd, std::string url, Location configIndex);
     void setnonblocking(int fd);
     static std::map<std::string, std::string> key_value_pair(std::string header);

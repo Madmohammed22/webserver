@@ -1,43 +1,9 @@
 server:
-  port: 7000
-  host: localhost
-
-  server_name: example.com
-  client_max_body_size: 1m
-  
-  root: /var/www
-  error_page:
-     400: root/error/400.html
-     404: root/error/404.html
-     405: root/error/405.html
-     408: root/error/408.html
-     410: root/error/410.html
-     415: root/error/415.html
-  locations:
-    /: 
-      root: ROOT/html/
-      index: index.html
-      autoindex: on
-      methods: [delete, post, get]
-
-    /op/: 
-      redirect: /index.html
-      root: /var/www/html
-      index: index.html, index.html
-      autoindex: on
-      methods: [post, delete, get]
-
-
-
-    /upload/:
-      methods: [post, delete, get]
-
-server:
   port: 8000
-  host: localhost
+  host: 10.14.1.2
   server_name: mmad.com
   client_max_body_size: 1m
-  root: /var/www/html
+  root: /ROOT/html
   error_page:
      403: root/error/403.html
      400: root/error/400.html
@@ -57,7 +23,7 @@ server:
 
     /:
       # redirect: /index.html
-      root: /var/www/html
+      root: /home/mmad/Desktop/sssssss/root/content
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
@@ -65,21 +31,21 @@ server:
     /media/:    # url /data/../data/
       # redirect: /content/
       index: [message.txt]
-      root: /var/www/html
+      root: /ROOT/html
       autoindex: on
       methods: [get, delete]
 
     /content/:
       # redirect: /media/
-      root: /var/www/html
+      root: /ROOT/html
       index: index.txt
       autoindex: on
       methods: [get]
 
 
-    /uploads/:
-      # redirect : /content/
-      root : /home/mmad/Desktop/upload
-      index : test.txt
-      autoindex: on
-      methods: [delete, get, post]
+      # /uploads/:
+      #   # redirect : /content/
+      #   root : /home/mmad/Desktop/upload
+      #   index : test.txt
+      #   autoindex: on
+      #   methods: [delete, get, post]

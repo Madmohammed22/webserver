@@ -78,8 +78,11 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
 
   request[fd].checkHeaderSyntax(holder);
 
-  if (request[fd].getParsingState() == ERROR)
+ 
+  if (request[fd].getParsingState() == ERROR){
+
     return (false);
+  }
   if (request[fd].getParsingState() == END)
   {
     backup = state.bytesReceived;
@@ -97,8 +100,9 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     if (state.header.find("GET") != std::string::npos)
     {
       GET get;
-      if (header_parser(get, request[fd], state.header, tmpMap) == false)
+      if (header_parser(get, request[fd], state.header, tmpMap) == false){
         return false;
+      }
       request[fd].state.isComplete = true;
     }
     else if (state.header.find("POST") != std::string::npos)

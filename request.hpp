@@ -6,8 +6,8 @@
 #include "Cgi.hpp"
 
 #define MAX_URI_SIZE 2048
-#define MAX_HEADER_KEY_SIZE 8192
-#define MAX_HEADER_VALUE_SIZE 128
+#define MAX_HEADER_KEY_SIZE 128
+#define MAX_HEADER_VALUE_SIZE 8192
 
 enum parsingState
 {

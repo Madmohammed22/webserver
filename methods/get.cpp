@@ -70,10 +70,8 @@ bool Server::check(std::string url)
 {
 
     std::ifstream file(url.c_str());
-
     if (!file.is_open())
     {
-        // std::cout  << "[1]" << url <<  std::endl;
         return false;
     }
     return true;
@@ -179,6 +177,7 @@ bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &chec
             url = redundantSlash(location.redirect);
             request[fd].state.url = redundantSlash(location.redirect);
             checkState = 301;
+            // std::cout << "--> " << redundantSlash(location.root + location.path + url) << std::endl;
             return check(redundantSlash(location.root + location.path + url));
         }
         else if (location.index.size() > 0 && validateSearch(location.index, location.root + url) == true)
@@ -196,6 +195,10 @@ bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &chec
     }
     else
     {
+        if (url.find(location.root) != std::string::npos)
+        {
+            url = url.substr(url.rfind("/"), url.length());
+        }
         url = location.root + url;
         checkState = (check(url) == true) ? 200 : 404;
         return (checkState == 200) ? true : false;
@@ -256,9 +259,9 @@ int Server::continueFileTransfer(int fd, std::string url, Location location)
     return 200;
 }
 
-int Server::handleFileRequest(int fd, const std::string &url, std::string Connection, Location location)
+int Server::handleFileRequest(int fd, std::string &url, std::string Connection, Location location)
 {
-    std::cout << "---------------\n"; 
+
     request[fd].state.url = url;
     std::string contentType = Server::getContentType(url);
     request[fd].state.fileSize = getFileSize(url);
@@ -277,6 +280,7 @@ int Server::handleFileRequest(int fd, const std::string &url, std::string Connec
         std::string httpRespons;
         if (location.redirect.size() > 0 && request[fd].flag == 1)
         {
+            // exit(0);
             request[fd].flag = 0;
             httpRespons = MovedPermanently(contentType, redundantSlash(location.path + location.redirect));
             int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
@@ -506,25 +510,27 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
 
     size_t checkState;
     std::string save = url;
-    if (canBeOpen(fd, url, location, checkState, configIndex))
+    bool checkCan = false;
+    if ((checkCan = canBeOpen(fd, url, location, checkState, configIndex)))
     {
         if (t_stat_wait(url) == 1)
         {
             return sendFinalReques(fd, resolveUrl(url), configIndex, location, checkState);
         }
-        // return (handleFileRequest(fd, url, Connection, location) == -1) ? ((close(fd), request.erase(fd)) && 0) : 0;
         return (handleFileRequest(fd, url, Connection, location) == -1) ? 0 : 200;
     }
     else
     {
         if (checkState == 301)
         {
+
             location = getExactLocationBasedOnUrl(url, configIndex);
             if (t_stat_wait(location.root + url) == -1)
                 getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
             else
             {
                 std::string path = location.root + url;
+
                 if (canBeOpen(fd, url, location, checkState, configIndex))
                 {
 
@@ -557,7 +563,12 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 }
             }
         }
+        // if (checkCan == false)
+        //     exit(0);
+
         size_t tmp = checkState;
+        // std::cout << "tmp :" << tmp << std::endl;
+        // exit(0);
         checkState = 0;
         return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse)
                             : getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
