@@ -568,8 +568,9 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
         }
         size_t tmp = checkState;
         checkState = 0;
+
         return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse)
-                            : getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+                            : getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, Forbidden);
     }
     return 0;
 }
