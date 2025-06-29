@@ -141,7 +141,7 @@ std::string Server::createBadRequest(std::string contentType, size_t contentLeng
 
     return oss.str();
 }
-// 410 Gone
+
 std::string Server::goneHttpResponse(std::string contentType, size_t contentLength)
 {
     std::ostringstream oss;
@@ -244,6 +244,7 @@ std::string Server::listDirectory(const std::string &dir_path, const std::string
 int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t))
 {
     std::string content = readFile(file);
+    
     std::string httpResponse = f(getContentType(file), content.length());
     try
     {

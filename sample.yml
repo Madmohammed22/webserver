@@ -15,29 +15,30 @@ server:
   locations:
 
     /cgi-bin/:
-      root: /
+      root: home/snidbell/Desktop
       index: test_get.py
       autoindex: on
       cgi: .py:/usr/bin/python3
       methods: [get, post]
 
     /:
-      # redirect: /media/
-      root: /home/mmad/Desktop/sssssss/root/content
+      # redirect: /index.html
+      root: /home/snidbell/Desktop/webserver
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
+      upload: root/upload 
 
     /media/:    # url /data/../data/
       # redirect: /
       index: [message.txt]
-      root: /home/mmad/Desktop/sssssss/root/content
+      root: /home/snidbell/Desktop/webserver/media
       autoindex: on
       methods: [get, delete]
 
     /content/:
       # redirect: /media/
-      root: /ROOT/html
+      root: /home/snidbell/Desktop/webserver
       index: index.txt
       autoindex: on
       methods: [get]
@@ -49,3 +50,12 @@ server:
       #   index : test.txt
       #   autoindex: on
       #   methods: [delete, get, post]
+    /uploads/:
+      # redirect : /content/
+      root : /home/snidbell/Desktop/webserver/root/upload/
+      index : test.txt
+      autoindex: on
+      methods: [delete, get, post]
+      upload: root/upload 
+
+

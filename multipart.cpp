@@ -39,8 +39,9 @@ void Server::createFileName(std::string line, int fd)
     start += 10;
     size_t end = line.find("\"", start);
 
-    std::string fileName = request[fd].state.url + line.substr(start, end - start);
+    std::string fileName = request[fd].location.upload + line.substr(start, end - start);
     std::ofstream *newFile = new std::ofstream(fileName.c_str(), std::ios::binary | std::ios::trunc);
+    printf(" this is the newFile %p\n", newFile);
     if (!newFile->is_open())
     {
         std::cerr << "Error: Failed to open file : " << fileName << std::endl;
@@ -82,7 +83,7 @@ void Server::writeData(Binary_String &chunk, int fd)
         else
         {
             size_t boundaryPos = request[fd].multp.partialHeaderBuffer.find(boundary);
-            if (boundaryPos == std::string::npos)
+            if (!(boundaryPos != std::string::npos))
             {
                 if (!request[fd].multp.outFiles.empty())
                 {
@@ -108,12 +109,16 @@ void Server::writeData(Binary_String &chunk, int fd)
                 {
                     request[fd].multp.partialHeaderBuffer.clear();
                     request[fd].multp.outFiles.back()->close();
+                    delete request[fd].multp.outFiles.back();
                     request[fd].multp.readPosition = -2;
                     break;
                 }
                 else
                 {
                     request[fd].multp.outFiles.back()->close();
+                    /*printf(" this is the back %p \n", request[fd].multp.outFiles.back());*/
+                    /*if (!request[fd].multp.outFiles.empty())*/
+                    /*  delete request[fd].multp.outFiles.back();*/
                     request[fd].multp.isInHeader = true;
                 }
             }
@@ -134,33 +139,11 @@ bool checkEndPoint(std::string &filePath)
     return (false);
 }
 
-int Server::parsePostRequest(int fd, ConfigData &configIndex)
-{
-    std::string contentType;
-    std::string filePath;
-    FileTransferState &state = request[fd].state;
-    size_t boundaryStart;
-
-    contentType = request[fd].getContentType();
-    if (contentType.find("boundary=") != std::string::npos)
-    {
-        boundaryStart = contentType.find("boundary=") + 9;
-        request[fd].multp.boundary = contentType.substr(boundaryStart, contentType.length());
-        if (request[fd].multp.boundary.length() == 0)
-            return getSpecificRespond(fd, configIndex.getErrorPages().find(400)->second, createBadRequest);
-    }
-    else
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(400)->second, createBadRequest);
-    state.url = "root/Upload";
-    /*if (checkEndPoint(state.filePath) == false)*/
-    /*    return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);*/
-    return (0);
-}
 
 void Server::handlePostRequest(int fd)
 {
     Binary_String chunkedData;
-
+  
     if (request[fd].multp.readPosition == -2)
     {
         if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
@@ -170,10 +153,10 @@ void Server::handlePostRequest(int fd)
         }
         return ;
     }
-    request[fd].state.url = "root/Upload";
     chunkedData = readFileChunk_post(fd);
     if (chunkedData.empty())
         request.erase(fd);
+
     writeData(chunkedData, fd);
     if (request[fd].multp.readPosition == -2)
     {
@@ -184,15 +167,16 @@ void Server::handlePostRequest(int fd)
         if (faild == -1)
         {
             close(fd), request.erase(fd);
+            return ;
         }
         if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
-            request[fd].state.isComplete = true, close(fd), request.erase(fd);
-        request[fd].multp.file->close();
-        request[fd].state.isComplete = true;
-        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
-        {
-            close(fd);
-            request.erase(fd);
-        }
+            close(fd), request.erase(fd);
+
+        /*if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)*/
+        /*{*/
+        /*    close(fd);*/
+        /*    request.erase(fd);*/
+        /*}*/
     }
 }
+

@@ -32,3 +32,74 @@ void POST::buildFileTransfers()
     state.last_activity_time = time(NULL);
 }
 
+
+bool    checkRedirect(Location &location, Request &req)
+{
+    if (!location.redirect.empty())
+    {
+        req.code = 301;
+        if (location.redirect[0] != '/')
+            location.redirect.insert(location.redirect.begin(), '/');
+        return (false);
+    }
+    return (true);
+}
+
+int Server::parsePostRequest(int fd, ConfigData &configIndex, Request &req)
+{
+    std::string contentType;
+    size_t boundaryStart;
+    Location &location = req.location;
+    
+    if (checkAvailability(fd, location) == false)
+    {
+        req.code = 405;
+        return (1);
+    }
+
+    if (checkRedirect(location, req) == false)
+         return (1);
+
+    if (req.state.bytesReceived > (int) configIndex.getClientMaxBodySize())
+    {
+         req.code = 413;
+         return (1);
+    }
+   
+    if (location.upload.empty())
+    {
+      req.code = 403;
+      return (1);
+    }
+    
+    if (getFileType(location.upload) != 1)
+    {
+      req.code = 403;  
+      return (1);
+    }
+
+    if (location.upload[location.upload.length() - 1] != '/')
+      location.upload.insert(location.upload.end(), '/');
+    
+    contentType = request[fd].getContentType();
+    if (contentType.find("boundary=") != std::string::npos)
+    {
+        boundaryStart = contentType.find("boundary=") + 9;
+        request[fd].multp.boundary = contentType.substr(boundaryStart, contentType.length());
+        if (request[fd].multp.boundary.length() == 0)
+        {
+          req.code = 400;
+          return (1);
+        }
+    }
+    else
+    {
+      req.code = 400;
+      return (1);
+    }
+    
+    //[for mad] why it does not work then ??
+    req.state.last_activity_time = time(NULL);
+    req.state.PostHeaderIsValid = true;
+    return (0);
+}

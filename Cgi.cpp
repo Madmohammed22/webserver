@@ -139,12 +139,12 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
 
   if (req.getMethod() == "POST")
   {
-    fileNameIn = req.state.fileName;
+    fileNameIn = createTempFile();
     fdIn = open(fileNameIn.c_str(), O_RDWR | O_CREAT, 0644);  
     serv.writePostDataToCgi(req);
+    lseek(fdIn, 0, SEEK_SET);
   }
   int fdOut = open(fileNameOut.c_str(), O_WRONLY | O_CREAT, 0644);  
-  
   _pid = fork();
   if ( _pid < 0 )
   {
@@ -152,7 +152,6 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
     return ;
   }
 
-  // here we are in the child process
   if ( _pid == 0 )
   {
     dup2(fdOut, STDOUT_FILENO);
@@ -162,12 +161,12 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
       dup2(fdIn, STDIN_FILENO);
       close(fdIn);
     }
-    // else 
-    // {
-    //   int devNull = open("/dev/null", O_RDONLY);
-    //   dup2(devNull, STDIN_FILENO);
-    //   close(devNull);
-    // }
+    else 
+    {
+     int devNull = open("/dev/null", O_RDONLY);
+     dup2(devNull, STDIN_FILENO);
+     close(devNull);
+    }
     if ( execve(_argv[0], _argv, _env) == -1 )
        exit(1);
   }

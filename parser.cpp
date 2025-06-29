@@ -75,86 +75,91 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
   // [soukaina] this is really a bad thing we should figure out another solution
   std::string fileName_backup;
   ConfigData serverConfig;
+  Request &req = request[fd];
 
-  request[fd].checkHeaderSyntax(holder);
+  req.checkHeaderSyntax(holder);
 
- 
-  if (request[fd].getParsingState() == ERROR){
-
+  if (req.getParsingState() == ERROR)
     return (false);
-  }
-  if (request[fd].getParsingState() == END)
+  if (req.getParsingState() == END)
   {
     backup = state.bytesReceived;
     fileName_backup = state.fileName;
-    backup = backup - request[fd].bodyStart;
-    // [soukaina] here after the request is checked i will store the serverConfig in the request
-    serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], request[fd].getHost());
+    backup = backup - req.bodyStart;
+
+    serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], req.getHost());
     request[fd].serverConfig = serverConfig;
     state.headerFlag = false;
     tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header, serverConfig).first);
 
     if (!(state.header.find("POST") != std::string::npos))
-      request[fd].state.file->close();
+    {
+      req.state.file->close();
+      delete req.state.file;
+      remove(req.state.fileName.c_str());
+    }
 
     if (state.header.find("GET") != std::string::npos)
     {
+      // [for mad] here when get have a body >> segfault
       GET get;
-      if (header_parser(get, request[fd], state.header, tmpMap) == false){
+      if (header_parser(get, req, state.header, tmpMap) == false)
+      {
+        // [soukaina] bad request
+        req.code = 404;
         return false;
       }
-      request[fd].state.isComplete = true;
+      req.state.isComplete = true;
     }
     else if (state.header.find("POST") != std::string::npos)
     {
       POST post;
 
-      if (header_parser(post, request[fd], state.header, tmpMap) == false)
+      // [for mad] the same here
+      if (header_parser(post, req, state.header, tmpMap) == false)
       {
-        std::cout << "I was here\n";
         return false;
       }
-      request[fd].state.last_activity_time = time(NULL);
-
+      req.state.last_activity_time = time(NULL);
     }
     else if (state.header.find("DELETE") != std::string::npos)
     {
       DELETE delete_;
-
-      if (header_parser(delete_, request[fd], state.header, tmpMap) == false)
+      
+      // [for mad] the same here
+      if (header_parser(delete_, req, state.header, tmpMap) == false)
         return false;
         
-      request[fd].state.isComplete = true;
+      req.state.isComplete = true;
     }
+    req.location = getExactLocationBasedOnUrl(state.url, req.serverConfig);
 
-    if (request[fd].getContentLength() == "0"){
-      request[fd].state.last_activity_time = time(NULL);
-      request[fd].state.isComplete = true;
+    if (req.getContentLength() == "0")
+    {
+      req.state.last_activity_time = time(NULL);
+      req.state.isComplete = true;
       return true;
     }
-    if (request[fd].bodyStart)
+
+    if (req.bodyStart)
     {
-      Binary_String body = holder.substr(request[fd].bodyStart, backup);
+      Binary_String body = holder.substr(req.bodyStart, backup);
 
       state.file->write(body.c_str(), backup);
-      if (static_cast<int>(atoi(request[fd].contentLength.c_str())) <= (int)backup)
+      if (static_cast<int>(atoi(req.contentLength.c_str())) <= (int)backup)
       {
         state.isComplete = true;
         state.file->close();
       }
     }
-    // request[fd].state.url = "/path/../path/pathkhk/..";
-    // std::cout << "this is my resolved URL " << resolveUrl(request[fd].state.url)<< std::endl;
-    // exit(0);
-    // [soukaina] this must be changed to right function that extract the correct location
-    request[fd].location = serverConfig.getLocations().front();
-    // request[fd].location = getExactLocationBasedOnUrl(state.url, request[fd].serverConfig);
+
+    //[soukaina] check if the location is not found and return error if not
 
     if (request[fd].getMethod() != "POST")
     {
       request[fd].state.file->close();
     }
-    // std::cout << request[fd].location.root << std::endl;
+
     if (request[fd].state.url.find("/cgi-bin") != std::string::npos)
     {
 

@@ -1,8 +1,10 @@
 #include "./server.hpp"
 #include "./ConfigParsing.hpp"
 
-int main(int argc, char **argv) {
-    if (argc != 2) {
+int main(int argc, char **argv)
+{
+    if (argc != 2)
+    {
         std::cerr << "Error\n Usage: ./webserv <config file>" << std::endl;
         return EXIT_FAILURE;
     }
@@ -33,7 +35,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    while(true){
+    while(true) {
         if (server->handleClientConnectionsForMultipleServers() == EXIT_FAILURE) {
             break;
         }

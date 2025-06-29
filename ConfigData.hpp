@@ -57,7 +57,6 @@ public:
     std::vector<std::string> getMethods();
     std::map<std::string, std::string> getCgi();
 
-    //[soukaina] some of that shit should be deleted
     void setContent(std::string content);
     void setHost(std::string host);
     void setPort(int port);

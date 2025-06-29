@@ -51,15 +51,16 @@ void Server::handleClientData(int fd)
     if (state.headerFlag == true && !state.isComplete)
     {
         int serverSocket = clientToServer[fd];
-        // i should rethink about this part cause this part the host is not yet setted
-        // so there is a big probability that i am sending an empty string
-        /*state.buffer.append(holder, 0, bytes);*/
+
         if ((state.bytesReceived = bytes) && validateHeader(fd, state, holder) == false)
         {
-            // it did broke when it's called with post method
             ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], "");
             //[soukaina] here i should build the respond error for the code variable that was set by the validate header function
-            getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, createBadRequest);
+            //[mad] the same here 
+            getSpecificRespond(fd, serverConfig.getErrorPages().find(404)->second, createBadRequest);
+            close(fd);
+            request.erase(fd);
+            return ;
         }
 
         if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
@@ -77,7 +78,6 @@ void Server::handleClientData(int fd)
         if (static_cast<int>(atoi(request[fd].contentLength.c_str())) <= state.bytesReceived)
         {
             state.isComplete = true;
-            std::cout << "i was here once \n";
             state.file->close();
         }
         if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
@@ -98,14 +98,9 @@ void Server::handleClientOutput(int fd)
         return;
 
     ConfigData &serverConfig = req.serverConfig;
-    //[ soukaina ] here the location is still segfaulting if the post method with data called
 
-    // [soukaina] i have added this line in the parser file after the parsing
-    /*request[fd].location = getExactLocationBasedOnUrl(request[fd].state.filePath, serverConfig);*/
-    // request[fd].location = serverConfig.getLocations().front();
-
-    if (req.cgi.cgiState == CGI_RUNNING)
-        getCgiResponse(req);
+    if (req.cgi.cgiState == CGI_RUNNING || req.cgi.cgiState == CGI_COMPLETE)
+        getCgiResponse(req, fd);
     else if (req.getMethod() == "GET")
     {
         // std::cout << "-------( REQUEST PARSED )-------\n\n";
@@ -128,9 +123,9 @@ void Server::handleClientOutput(int fd)
     }
     else if (req.getMethod() == "DELETE")
     {
-        std::cout << "-------( REQUEST PARSED )-------\n\n";
-        std::cout << req.header << std::endl;
-        std::cout << "-------( END OF REQUEST )-------\n\n\n";
+        /*std::cout << "-------( REQUEST PARSED )-------\n\n";*/
+        /*std::cout << req.header << std::endl;*/
+        /*std::cout << "-------( END OF REQUEST )-------\n\n\n";*/
         int state = handle_delete_request(fd, serverConfig);
         if (state == 0)
         {
@@ -143,10 +138,22 @@ void Server::handleClientOutput(int fd)
     }
     else if (req.getMethod() == "POST")
     {
-        if (request[fd].getContentLength() == "0")
+        if (req.state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig, req) != 0)
         {
-            request[fd].state.file->close();
+            if (req.code != 200)
+            {
+              //[for mad] here what if the config file has not the error page i wanted
+            }
+            req.state.PostHeaderIsValid = true;
+        }
+
+        if (req.getContentLength() == "0")
+        {
             std::string httpRespons;
+
+            req.state.file->close();
+            delete req.state.file;
+            remove(req.state.fileName.c_str());
             httpRespons = httpResponse(request[fd].ContentType, request[fd].state.fileSize);
             int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
             if (faild == -1)
@@ -163,21 +170,44 @@ void Server::handleClientOutput(int fd)
             return;
         }
         //[soukaina] here i should check for the post if an error responce is sent
-        if (req.state.PostHeaderIsValid == false && parsePostRequest(fd, serverConfig) != 0)
-            req.state.PostHeaderIsValid = true;
         handlePostRequest(fd);
     }
 }
 
-void Server::getCgiResponse(Request &req)
+void Server::sendCgiResponse(Request &req, int fd, int totalBytes)
+{
+  std::ostringstream oss;
+  std::string httpRespons;
+
+  if (!(req.cgi.CgiBodyResponse.find("\r\n\r\n") != std::string::npos))
+  {
+     httpRespons = httpResponse(request[fd].ContentType, totalBytes);
+  }
+  oss << "HTTP/1.1 200 OK\r\n";
+  oss << req.cgi.CgiBodyResponse << "\r\n";
+  httpRespons += oss.str();
+  int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
+  if (faild == -1)
+  {
+      close(fd), request.erase(fd);
+  }
+  if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
+      request[fd].state.isComplete = true, close(fd), request.erase(fd);
+  request[fd].state.last_activity_time = time(NULL);
+  request[fd].cgi.cgiState = CGI_COMPLETE;
+}
+
+void Server::getCgiResponse(Request &req, int fd)
 {
     int status;
     int pid = waitpid(req.cgi.getPid(), &status, WNOHANG);
 
     if (pid == req.cgi.getPid())
     {
+        //[for mad] can we have this one edited
         if (WEXITSTATUS(status) != 0)
-            req.code = 502;
+            getSpecificRespond(fd, req.serverConfig.getErrorPages().find(502)->second, createBadRequest);
+    
         // adding specific error response here
 
         int fde = open(req.cgi.fileNameOut.c_str(), O_RDONLY, 0644);
@@ -188,26 +218,43 @@ void Server::getCgiResponse(Request &req)
             return;
         }
 
+        int totalBytes = 0;
         char buffer[CHUNK_SIZE];
         while (true)
         {
             int readBytes = read(fde, buffer, CHUNK_SIZE);
-
+            
+            std::cout << readBytes << std::endl;
             if (readBytes < 0)
             {
                 req.code = 500;
                 close(fde);
+                remove(req.cgi.fileNameOut.c_str());
                 return;
             }
             if (readBytes == 0)
             {
                 close(fde);
+                remove(req.cgi.fileNameOut.c_str());
                 break;
             }
             req.cgi.CgiBodyResponse.append(buffer, readBytes);
+            totalBytes += readBytes;
+            /*std::cout << req.cgi.CgiBodyResponse << std::endl;*/
         }
+        sendCgiResponse(req, fd, totalBytes);
+    }
+
+    if (request[fd].cgi.cgiState == CGI_COMPLETE)
+    {
+      if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+      {
+        close(fd);
+        request.erase(fd);
+      }
     }
 }
+
 
 int Server::handleClientConnectionsForMultipleServers()
 {

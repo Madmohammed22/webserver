@@ -117,7 +117,7 @@ void ConfigData::parseConfigData()
         {
             if (!_host.empty())
             {
-                throw WebservException("Configuration file : duplicated");
+                throw WebservException("Configuration file : Host duplicated");
             }
             if (value == "localhost")
 		        _host = "127.0.0.1";
@@ -126,9 +126,10 @@ void ConfigData::parseConfigData()
         }
         else if (key == "port")
         {
-            // check if post is duplicated and check for the port if is in the range
             _port = atoi(value.c_str());
-            if (_port > 65536)
+            /*if (_port != -1)*/
+            /*    throw WebservException("Configuration file : Port duplicated");*/
+            if (_port > 65536 || _port < 0)
                 throw WebservException("Configuration file : unvalid Port number");
         }
         else if (key == "server_name")

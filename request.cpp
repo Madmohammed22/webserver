@@ -201,7 +201,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
                     method.erase(0, 1);
                 else
                 {
-                    code = 501;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -211,7 +211,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
             if (buffer[i] != ' ')
             {
-                code = 450;
+                code = 400;
                 _parsingState = ERROR;
                 break;
             }
@@ -221,7 +221,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
             if (buffer[i] != '/')
             {
-                code = 451;
+                code = 400;
                 _parsingState = ERROR;
                 break;
             }
@@ -235,14 +235,14 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
             }
             if (!IsReservedChar(buffer[i]) == false && !IsUnreservedChar(buffer[i]) == false)
             {
-                code = 452;
+                code = 400;
                 _parsingState = ERROR;
                 break;
             }
             _urlLength++;
             if (_urlLength > MAX_URI_SIZE)
             {
-                code = 414;
+                code = 400;
                 _parsingState = ERROR;
                 break;
             }
@@ -251,7 +251,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (buffer[i] != 'H')
                 {
-                    code = 453;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -261,7 +261,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (buffer[i] != 'T')
                 {
-                    code = 454;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -271,7 +271,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (buffer[i] != 'T')
                 {
-                    code = 455;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -281,7 +281,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (buffer[i] != 'P')
                 {
-                    code = 456;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -291,7 +291,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (buffer[i] != '/')
                 {
-                    code = 457;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -301,7 +301,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (!isdigit(buffer[i]))
                 {
-                    code = 458;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -311,7 +311,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (buffer[i] != '.')
                 {
-                    code = 459;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -321,7 +321,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (!isdigit(buffer[i]))
                 {
-                    code = 460;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -331,7 +331,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (buffer[i] != '\r')
                 {
-                    code = 461;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -341,7 +341,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
                 if (buffer[i] != '\n')
                 {
-                    code = 462;
+                    code = 400;
                     _parsingState = ERROR;
                     break;
                 }
@@ -363,14 +363,14 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
             }
             else if (!isValidHeaderKeyChar(buffer[i]))
             {
-                code = 463;
+                code = 400;
                 _parsingState = ERROR;
                 break;
             }
             _keyLength++;
             if (_keyLength > MAX_HEADER_KEY_SIZE)
             {
-                code = 414;
+                code = 400;
                 _parsingState = ERROR;
                 break;
             }
@@ -384,14 +384,14 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
             }
             else if (!isValidHeaderValueChar(buffer[i]))
             {
-                code = 464;
+                code = 400;
                 _parsingState = ERROR;
                 break;
             }
             _valueLength++;
             if (_valueLength > MAX_HEADER_VALUE_SIZE)
             {
-                code = 465;
+                code = 400;
                 _parsingState = ERROR;
                 break;
             }
@@ -400,7 +400,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         {
             if (buffer[i] != '\n')
             {
-                code = 466;
+                code = 400;
                 break;
             }
             state.header += buffer[i];

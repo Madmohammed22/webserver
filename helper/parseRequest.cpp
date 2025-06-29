@@ -43,6 +43,7 @@ std::string url_decode(const std::string &value)
 
     return decoded.str();
 }
+
 std::string Server::redundantSlash(std::string url)
 {
     std::string new_url;

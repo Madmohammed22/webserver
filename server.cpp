@@ -177,38 +177,42 @@ ConfigData Server::getConfigForRequest(t_listen listen, std::string serverName)
 
 void Server::writePostDataToCgi(Request& req)
 {
-     if (req.multp.readPosition == 0)
-     {
-         req.multp.file = new std::ifstream(req.state.fileName.c_str(), std::ios::binary);
-         if (!req.multp.file->is_open())
-         {
-             std::cout << "is not open\n\n";
-             req.code = 500;
-             cleanupResources(req);
-             return ;
-         }
-     }
+    req.multp.file = new std::ifstream(req.state.fileName.c_str(), std::ios::binary);
+    if (!req.multp.file->is_open())
+    {
+        std::cout << "is not open\n\n";
+        req.code = 500;
+        //[soukaina] cleanup resources is not enough
+        cleanupResources(req);
+        return ;
+    }
 
      char* buffer = (char *)malloc(CHUNK_SIZE);
      req.multp.file->read(buffer, CHUNK_SIZE);
 
      int bytesRead = req.multp.file->gcount();
 
-     if (bytesRead > 0)
-     {
-        int bytesSent = write(req.cgi.fdIn, buffer, bytesRead);
-        if (bytesSent < 0)
-        {
-          req.code = 500;
+    while(true)
+    {
+      if (bytesRead > 0)
+      {
+         int bytesSent = write(req.cgi.fdIn, buffer, bytesRead);
+         if (bytesSent < 0)
+         {
+           req.code = 500;
+           cleanupResources(req);
+         }
+    
+         req.multp.readPosition += bytesRead;
+         req.cgi.bytesSend += bytesSent;
+      }
+       
+      if (bytesRead == 0 || req.cgi.bytesSend >= static_cast<int>(atoi(req.contentLength.c_str())))
+      {
           cleanupResources(req);
-        }
-
-        req.multp.readPosition += bytesRead;
-        req.cgi.bytesSend += bytesSent;
-     }
-
-     if (bytesRead == 0 || req.cgi.bytesSend >= req.state.bytesReceived)
-         cleanupResources(req);
+          break;
+      }
+   }
 }
 
 void Server::cleanupResources(Request& req)
@@ -216,12 +220,8 @@ void Server::cleanupResources(Request& req)
     if (req.multp.file)
     {
         req.multp.file->close();
+        remove(req.state.fileName.c_str());
         delete req.multp.file;
-    }
-    if (req.cgi.fdIn != -1)
-    {
-        close(req.cgi.fdIn);
-        req.cgi.fdIn = -1;
     }
 }
 

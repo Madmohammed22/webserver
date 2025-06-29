@@ -120,7 +120,8 @@ public:
     int handle_delete_request(int fd, ConfigData configIndex);
 
     //Cgi
-    void getCgiResponse(Request &req);
+    void getCgiResponse(Request &req, int fd);
+    void sendCgiResponse(Request &req, int fd, int totalBytes);
     void writePostDataToCgi(Request &req);
 
     // Post method
@@ -129,7 +130,7 @@ public:
     Binary_String readFileChunk_post(int fd);
     void createFileName(std::string line, int fd);
     void writeData(Binary_String& chunk, int fd);
-    int parsePostRequest(int fd, ConfigData& configIndex);
+    int parsePostRequest(int fd, ConfigData& configIndex, Request &req);
 
     // Functions helper
     std::string httpResponseIncludeCookie(std::string contentType, size_t contentLength, std::string setCookie);

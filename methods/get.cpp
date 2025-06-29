@@ -169,6 +169,7 @@ bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
     }
     return true;
 }
+
 bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &checkState, ConfigData configIndex)
 {
     std::string root = configIndex.getDefaultRoot();
@@ -351,6 +352,7 @@ std::string returnNewPath(std::string path)
 
     return path.substr(0, pos + 1);
 }
+
 Location returnDefault(ConfigData configIndex)
 {
     Location location;
@@ -364,6 +366,7 @@ Location returnDefault(ConfigData configIndex)
     }
     return location;
 }
+
 Location Server::getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex)
 {
     Location location;
@@ -491,7 +494,6 @@ bool Server::timedFunction(int timeoutSeconds, time_t startTime)
 
 int Server::serve_file_request(int fd, ConfigData configIndex)
 {
-    // return 200;
     std::string Connection = request[fd].connection;
     std::string url = request[fd].state.url;
     Location location = getExactLocationBasedOnUrl(url, configIndex);
