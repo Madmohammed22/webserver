@@ -70,8 +70,11 @@ bool Server::check(std::string url)
 {
 
     std::ifstream file(url.c_str());
+
     if (!file.is_open())
     {
+        std::cout << "[2]" << url << std::endl;
+
         return false;
     }
     return true;
