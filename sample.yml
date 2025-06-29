@@ -22,16 +22,16 @@ server:
       methods: [get, post]
 
     /:
-      # redirect: /index.html
+      # redirect: /media/
       root: /home/mmad/Desktop/sssssss/root/content
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
 
     /media/:    # url /data/../data/
-      # redirect: /content/
+      # redirect: /
       index: [message.txt]
-      root: /ROOT/html
+      root: /home/mmad/Desktop/sssssss/root/content
       autoindex: on
       methods: [get, delete]
 

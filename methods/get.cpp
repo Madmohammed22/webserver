@@ -495,7 +495,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     std::string Connection = request[fd].connection;
     std::string url = request[fd].state.url;
     Location location = getExactLocationBasedOnUrl(url, configIndex);
-
+    std::cout << "location: " << location.path << std::endl;
     if (location.path.empty() == true)
     {
         return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
@@ -566,15 +566,10 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 }
             }
         }
-        // if (checkCan == false)
-        //     exit(0);
-
         size_t tmp = checkState;
-        // std::cout << "tmp :" << tmp << std::endl;
-        // exit(0);
         checkState = 0;
         return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse)
-                            : getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
+                            : getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
     }
     return 0;
 }

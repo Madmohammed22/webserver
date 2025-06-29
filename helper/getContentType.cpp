@@ -260,8 +260,8 @@ int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::s
         else
         {
             // request[fd].state.isComplete = true;
-            // close(fd);
-            // request.erase(fd);
+            close(fd);
+            request.erase(fd);
         }
         return 0;
     }
