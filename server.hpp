@@ -20,6 +20,8 @@ using namespace std;
 
 // #include <curl/curl.h>
 
+typedef std::string (*retfun)(std::string, size_t);
+
 typedef struct s_listen
 {
     int port;
@@ -121,7 +123,7 @@ public:
 
     //Cgi
     void getCgiResponse(Request &req, int fd);
-    void sendCgiResponse(Request &req, int fd, int totalBytes);
+    void sendCgiResponse(Request &req, int fd);
     void writePostDataToCgi(Request &req);
 
     // Post method
@@ -172,7 +174,11 @@ public:
     // std::string movedPermanently(std::string contentType, size_t contentLength);
 
     // Response headers
+    retfun errorFunction(int errorCode);
+    static std::string notImplemented(std::string contentType, size_t contentLength);
+    static std::string payloadTooLarge(std::string contentType, size_t contentLength);
     static std::string createNotFoundResponse(std::string contentType, size_t contentLength);
+    static std::string internalServerError(std::string contentType, size_t contentLength);
     std::string createChunkedHttpResponse(std::string contentType);
     static std::string httpResponse(std::string contentType, size_t contentLength);
     static std::string methodNotAllowedResponse(std::string contentType, size_t contentLength);

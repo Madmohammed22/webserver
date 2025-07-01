@@ -33,10 +33,26 @@ Cgi::~Cgi()
   }
 }
 
+std::string Cgi::getFileExtension(std::string& path, std::string &url)
+{
+    std::string path_tmp;
+    size_t end;
+
+    path_tmp = path.substr(path.find("."));
+    size_t firstSlash = path_tmp.find('/');
+    end = firstSlash;
+    if (path_tmp.empty())
+      return ("");
+    if (!(firstSlash != std::string::npos))
+      end = path_tmp.length();
+    url = path.substr(0, end + path.find("."));
+    return (path_tmp.substr(0, end));
+}
 
 void Cgi::parseCgi(Request &req)
 {
   std::string path = req.state.url;
+  std::string url;
 
   size_t quePos = path.find('?');
 
@@ -55,7 +71,6 @@ void Cgi::parseCgi(Request &req)
   else 
     _path = path;
 
-
   if (_path[0] == '/')
     _path.erase(0, 1);
    // if (getFileType(_path) != 2)
@@ -64,19 +79,10 @@ void Cgi::parseCgi(Request &req)
   //   return ;
   // }
 
-  int ExtensionPos = _path.rfind('.');
-
-      
   // if the file is not executable ( the nginx default behavior is to send it as a static file)
-  if (!(req.location.cgi.find(_path.substr(ExtensionPos)) != req.location.cgi.end()))
-  {
-    std::cout << _path.substr(ExtensionPos) << std::endl;
-    std::cout << req.location.cgi[_path.substr(ExtensionPos)] << std::endl;
-    exit(0);
+  if (!(req.location.cgi.find(getFileExtension(_path, url)) != req.location.cgi.end()))
     return ;
-  }
-
-  if (access(_path.c_str(), R_OK | X_OK ) == -1)
+  if (access(url.c_str(), R_OK | X_OK ) == -1)
   {
     req.code = 403;
     return ;
@@ -93,38 +99,52 @@ void Cgi::parseCgi(Request &req)
 }
 
 
+
+std::string Cgi::getPathInfo(std::string &path, std::string &ext)
+{
+  int pathStart;
+  int pathEnd;
+  std::string PathInfo;
+  
+  std::cout << path << std::endl;
+  pathStart = path.find(ext);
+  std::cout << ext.length() << std::endl;
+  pathEnd = path.find("?");
+  PathInfo = path.substr(pathStart + ext.length());
+  return (PathInfo);
+}
+
 void Cgi::setEnv(Request &req)
 {
   size_t allocSize = 11;
   std::string scriptName;
   std::string ext;
+  std::string url;
   std::string query;
   int i = 0;
 
-  int start = _path.rfind("/");
-  scriptName = _path.substr(start + 1, _path.length());
 
+  ext = getFileExtension(_path, url);
   _env = (char **)calloc(allocSize + 1, sizeof(char *));
+  _env[i++] = strdup(("PATH_INFO" + getPathInfo(_path, ext)).c_str());//
   _env[i++] = strdup(("REQUEST_METHOD=" + req.getMethod()).c_str());
-  _env[i++] = strdup(("SCRIPT_NAME=" + _path).c_str());
+  int start = _path.rfind("/");
+  scriptName = _path.substr(start + 1, url.length());
   _env[i++] = strdup(("SCRIPT_FILENAME=" + scriptName).c_str());
   _env[i++] = strdup(("QUERY_STRING=" + _query).c_str());
   _env[i++] = strdup(("SERVER_NAME=" + req.getHost()).c_str());
-  _env[i++] = strdup(("COOKIES=" + req.Cookie).c_str());
+  _env[i++] = strdup(("HTTP_COOKIE=" + req.Cookie).c_str());
   // [soukaina] just for know but it should be changed  
-  _env[i++] = strdup("SERVER_PORT=8080");
-  _env[i++] = strdup("SERVER_PROTOCOL=HTTP/1.1");
+  _env[i++] = strdup("SERVER_PORT=8000");
   _env[i++] = strdup(("CONTENT_TYPE=" + req.getContentType()).c_str());
   _env[i++] = strdup(("CONTENT_LENGTH=" + req.getContentLength()).c_str());
   _env[i] = NULL;
 
   // i should protect this function
-  // ext = _path.substr(_path.rfind("."), _path.length());
-  ext = ".py";
   _argv = (char **)malloc(sizeof(char *) * 3);
   // [ soukaina ] before that line i should verify if the binary with the extension is present (this is in the parser)
   _argv[0] = strdup(req.location.cgi[ext].c_str());
-  _argv[1] = strdup(this->_path.c_str());
+  _argv[1] = strdup(url.c_str());
   _argv[2] = NULL;
 }
 
@@ -132,18 +152,17 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
 {
   (void) serverConfig;
   (void)fd;
-  (void )serv;
-  (void) req;
 
   fileNameOut = createTempFile();
 
-  if (req.getMethod() == "POST")
+  if (req.getMethod() == "POST" && req.getContentLength() != "0")
   {
     fileNameIn = createTempFile();
     fdIn = open(fileNameIn.c_str(), O_RDWR | O_CREAT, 0644);  
     serv.writePostDataToCgi(req);
     lseek(fdIn, 0, SEEK_SET);
   }
+
   int fdOut = open(fileNameOut.c_str(), O_WRONLY | O_CREAT, 0644);  
   _pid = fork();
   if ( _pid < 0 )
@@ -156,7 +175,7 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
   {
     dup2(fdOut, STDOUT_FILENO);
     close(fdOut);
-    if (req.getMethod() == "POST")
+    if (req.getMethod() == "POST" && fdIn != -1)
     {
       dup2(fdIn, STDIN_FILENO);
       close(fdIn);
@@ -170,6 +189,7 @@ void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
     if ( execve(_argv[0], _argv, _env) == -1 )
        exit(1);
   }
+
   close(fdOut);
 }
 

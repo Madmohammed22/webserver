@@ -62,8 +62,7 @@ void Server::handleClientData(int fd)
             request.erase(fd);
             return ;
         }
-
-        if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
+        if (state.isComplete == true && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
         {
             request[fd].cgi.runCgi(*this, fd, request[fd], request[fd].serverConfig);
             request[fd].cgi.cgiState = CGI_RUNNING;
@@ -74,7 +73,7 @@ void Server::handleClientData(int fd)
     {
         state.file->write(holder.c_str(), bytes);
         state.bytesReceived += bytes;
-
+          
         if (static_cast<int>(atoi(request[fd].contentLength.c_str())) <= state.bytesReceived)
         {
             state.isComplete = true;
@@ -93,13 +92,12 @@ void Server::handleClientData(int fd)
 void Server::handleClientOutput(int fd)
 {
     Request &req = request[fd];
-
     if (!req.state.isComplete)
         return;
 
     ConfigData &serverConfig = req.serverConfig;
-
-    if (req.cgi.cgiState == CGI_RUNNING || req.cgi.cgiState == CGI_COMPLETE)
+    
+    if (req.cgi.cgiState == CGI_RUNNING || req.cgi.cgiState == CGI_COMPLETE)    
         getCgiResponse(req, fd);
     else if (req.getMethod() == "GET")
     {
@@ -174,26 +172,28 @@ void Server::handleClientOutput(int fd)
     }
 }
 
-void Server::sendCgiResponse(Request &req, int fd, int totalBytes)
+void Server::sendCgiResponse(Request &req, int fd)
 {
   std::ostringstream oss;
   std::string httpRespons;
+  
+  httpRespons = req.cgi.CgiBodyResponse;
 
-  if (!(req.cgi.CgiBodyResponse.find("\r\n\r\n") != std::string::npos))
+  if (!(httpRespons.find("HTTP/1.1") != std::string::npos))
   {
-     httpRespons = httpResponse(request[fd].ContentType, totalBytes);
+		httpRespons.insert(0, "HTTP/1.1 200 OK\r\n");
+  
   }
-  oss << "HTTP/1.1 200 OK\r\n";
-  oss << req.cgi.CgiBodyResponse << "\r\n";
-  httpRespons += oss.str();
   int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
+
   if (faild == -1)
   {
-      close(fd), request.erase(fd);
+    // [for mad  ] here too
+    close(fd), request.erase(fd);
+    return ;
   }
   if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
-      request[fd].state.isComplete = true, close(fd), request.erase(fd);
-  request[fd].state.last_activity_time = time(NULL);
+      close(fd), request.erase(fd);
   request[fd].cgi.cgiState = CGI_COMPLETE;
 }
 
@@ -202,14 +202,24 @@ void Server::getCgiResponse(Request &req, int fd)
     int status;
     int pid = waitpid(req.cgi.getPid(), &status, WNOHANG);
 
+    if (request[fd].cgi.cgiState == CGI_COMPLETE)
+    {
+      if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+      {
+        close(fd);
+        request.erase(fd);
+      }
+      return ;
+    }
     if (pid == req.cgi.getPid())
     {
-        //[for mad] can we have this one edited
         if (WEXITSTATUS(status) != 0)
-            getSpecificRespond(fd, req.serverConfig.getErrorPages().find(502)->second, createBadRequest);
+        {
+            getSpecificRespond(fd, req.serverConfig.getErrorPages().find(400)->second, createBadRequest);
+            return ;
+        }
     
         // adding specific error response here
-
         int fde = open(req.cgi.fileNameOut.c_str(), O_RDONLY, 0644);
         if (fde < 0)
         {
@@ -218,13 +228,13 @@ void Server::getCgiResponse(Request &req, int fd)
             return;
         }
 
+
         int totalBytes = 0;
         char buffer[CHUNK_SIZE];
         while (true)
         {
             int readBytes = read(fde, buffer, CHUNK_SIZE);
             
-            std::cout << readBytes << std::endl;
             if (readBytes < 0)
             {
                 req.code = 500;
@@ -240,19 +250,11 @@ void Server::getCgiResponse(Request &req, int fd)
             }
             req.cgi.CgiBodyResponse.append(buffer, readBytes);
             totalBytes += readBytes;
-            /*std::cout << req.cgi.CgiBodyResponse << std::endl;*/
         }
-        sendCgiResponse(req, fd, totalBytes);
+        sendCgiResponse(req, fd);
+        request[fd].state.last_activity_time = time(NULL);
     }
 
-    if (request[fd].cgi.cgiState == CGI_COMPLETE)
-    {
-      if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
-      {
-        close(fd);
-        request.erase(fd);
-      }
-    }
 }
 
 

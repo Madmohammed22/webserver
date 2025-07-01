@@ -101,7 +101,6 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
 
     if (state.header.find("GET") != std::string::npos)
     {
-      // [for mad] here when get have a body >> segfault
       GET get;
       if (header_parser(get, req, state.header, tmpMap) == false)
       {
@@ -115,7 +114,6 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     {
       POST post;
 
-      // [for mad] the same here
       if (header_parser(post, req, state.header, tmpMap) == false)
       {
         return false;
@@ -126,7 +124,6 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     {
       DELETE delete_;
       
-      // [for mad] the same here
       if (header_parser(delete_, req, state.header, tmpMap) == false)
         return false;
         
@@ -134,14 +131,23 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     }
     req.location = getExactLocationBasedOnUrl(state.url, req.serverConfig);
 
-    if (req.getContentLength() == "0")
+    if (req.contentLength == "0")
     {
-      req.state.last_activity_time = time(NULL);
-      req.state.isComplete = true;
-      return true;
+      req.state.file->close();
+      delete req.state.file;
+      remove(fileName_backup.c_str());
+      state.isComplete = true;
     }
 
-    if (req.bodyStart)
+    if (request[fd].state.url.find("/cgi-bin") != std::string::npos)
+    {
+      request[fd].cgi.parseCgi(request[fd]);
+      if (request[fd].code != 200)
+        return (false);
+      request[fd].cgi.setEnv(request[fd]);
+    }
+
+    if (req.getMethod() == "POST" && req.bodyStart)
     {
       Binary_String body = holder.substr(req.bodyStart, backup);
 
@@ -153,27 +159,17 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
       }
     }
 
-    //[soukaina] check if the location is not found and return error if not
-
-    if (request[fd].getMethod() != "POST")
+    state.fileName = fileName_backup;
+    state.bytesReceived = backup;
+    
+    if (req.cgi.getIsCgi() == false && req.getContentLength() == "0"
+        && req.getMethod() == "POST")
     {
-      request[fd].state.file->close();
-    }
-
-    if (request[fd].state.url.find("/cgi-bin") != std::string::npos)
-    {
-
-      request[fd].cgi.parseCgi(request[fd]);
-      if (request[fd].code != 200)
-      {
-        std::cout << "i have been here\n";
-        return (false);
-      }
-      request[fd].cgi.setEnv(request[fd]);
+      req.state.last_activity_time = time(NULL);
+      req.state.isComplete = true;
+      return true;
     }
     state.buffer.clear();
   }
-  state.fileName = fileName_backup;
-  state.bytesReceived = backup;
   return true;
 }

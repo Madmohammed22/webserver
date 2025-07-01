@@ -152,6 +152,36 @@ std::string Server::goneHttpResponse(std::string contentType, size_t contentLeng
     return oss.str();
 }
 
+std::string Server::notImplemented(std::string contentType, size_t contentLength)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 501 Not Implemented\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT1() << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+    return oss.str();
+}
+
+std::string Server::internalServerError(std::string contentType, size_t contentLength)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 500 Internal Server Error\r\n" 
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT1() << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+    return oss.str();
+}
+
+std::string Server::payloadTooLarge(std::string contentType, size_t contentLength)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 413 Payload Too Large\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT1() << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+    return oss.str();
+}
+
 std::string Server::methodNotAllowedResponse(std::string contentType, size_t contentLength)
 {
     (void)contentLength;
@@ -241,10 +271,68 @@ std::string Server::listDirectory(const std::string &dir_path, const std::string
     return os.str();
 }
 
+std::string statusCodeString(int statusCode)
+{
+  switch (statusCode)
+  {
+      case 400:
+        return "Bad Request";
+      case 401:
+        return "Unauthorized";
+      case 403:
+        return "Forbidden";
+      case 404:
+        return "Not Found";
+      case 405:
+        return "Method Not Allowed";
+      case 413:
+        return "Payload Too Large";
+      case 414:
+        return "URI Too Long";
+      case 415:
+        return "Unsupported Media Type";
+      case 500:
+        return "Internal Server Error";
+      case 501:
+        return "Not Implemented";
+      case 502:
+        return "Bad Gateway";
+      case 503:
+        return "Service Unavailable";
+      case 504:
+        return "Gateway Timeout";
+      case 505:
+        return "HTTP Version Not Supported";
+      default:
+        return "Internal Server Error";
+    }
+}
+
+std::string getErrorPage(int errorCode)
+{
+    std::ostringstream oss;
+    
+    oss << "<html>\r\n"
+        << "<head><title>" << errorCode << " " << statusCodeString(errorCode) << "</title></head>\r\n"
+        << "<body>\r\n"
+        << "<center><h1>" << errorCode << " " << statusCodeString(errorCode) << "</h1></center>\r\n"
+        << "<hr>\r\n"
+        << "<center>WebServer</center>\r\n"
+        << "</body>\r\n"
+        << "</html>";
+    
+    return oss.str();
+}
+
 int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t))
 {
-    std::string content = readFile(file);
-    
+    std::string content;
+
+    if (!file.empty())
+      content = readFile(file);
+    if (content.empty() || file.empty())
+      content = getErrorPage(400);   
+        
     std::string httpResponse = f(getContentType(file), content.length());
     try
     {
@@ -260,7 +348,7 @@ int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::s
             return request.erase(fd), close(fd), 0;
         else
         {
-            // request[fd].state.isComplete = true;
+            request[fd].state.isComplete = true;
             close(fd);
             request.erase(fd);
         }
@@ -268,8 +356,26 @@ int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::s
     }
     catch (const std::exception &e)
     {
-
         return 0;
     }
     return 0;
 }
+
+retfun Server::errorFunction(int errorCode)
+{
+  if (errorCode == 400)
+    return (createBadRequest);
+  else if (errorCode == 501)
+    return (notImplemented);
+  else if (errorCode == 404)
+    return (createNotFoundResponse);
+  else if (errorCode == 405)
+    return (methodNotAllowedResponse);
+  else if (errorCode == 413)
+    return (payloadTooLarge);
+  else if (errorCode == 500)
+    return (internalServerError);
+  return (internalServerError);
+}
+
+

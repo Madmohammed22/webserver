@@ -307,17 +307,49 @@ void ConfigData::parseBodySize(const std::string &value)
         sizeValue = value.substr(0, value.size() - 1);
     }
     _client_max_body_size = atoi(sizeValue.c_str()) * multiplier;
+    //[soukaina] why this commented
     /*if (_client_max_body_size < 0)*/
     /*    throw WebservException("Configuration file : invalid body size");*/
 }
 
 void ConfigData::parseCgiPair(const std::string &value, std::map<std::string, std::string> &target)
 {
-    size_t colonPos = value.find(':');
-    if (colonPos != std::string::npos)
+    if (value.empty())
+        return;
+
+    if (value[0] == '[')
     {
+        std::string cleaned = value.substr(1, value.size() - 2);
+        std::vector<std::string> pairs = split(cleaned, ',');
+        
+        for (size_t i = 0; i < pairs.size(); i++)
+        {
+            std::string pair = trim(pairs[i], " \"'");
+            size_t colonPos = pair.find(':');
+            if (colonPos == std::string::npos)
+                throw WebservException("Configuration file: invalid CGI pair format");
+            
+            std::string ext = trim(pair.substr(0, colonPos));
+            std::string interpreter = trim(pair.substr(colonPos + 1));
+            
+            if (ext.empty() || interpreter.empty())
+                throw WebservException("Configuration file: empty cgi");
+            
+            target[ext] = interpreter;
+        }
+    }
+    else
+    {
+        size_t colonPos = value.find(':');
+        if (colonPos == std::string::npos)
+            throw WebservException("Configuration file: invalid CGI pair format");
+        
         std::string ext = trim(value.substr(0, colonPos));
         std::string interpreter = trim(value.substr(colonPos + 1));
+        
+        if (ext.empty() || interpreter.empty())
+            throw WebservException("Configuration file: empty extension or interpter");
+        
         target[ext] = interpreter;
     }
 }

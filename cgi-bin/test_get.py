@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-import os
-
-print("Content-Type: text/plain\n")
-print(f"COOKIES: {os.environ.get('COOKIES', '')}")
-print(f"GET Request Received")
-print(f"Query String: {os.environ.get('QUERY_STRING', '')}")
-print(f"User Agent: {os.environ.get('SERVER_PROTOCOL', '')}")
+print("HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/plain\r\n"
+      "Content-Length: 0\r\n\r\n")

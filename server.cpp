@@ -180,20 +180,19 @@ void Server::writePostDataToCgi(Request& req)
     req.multp.file = new std::ifstream(req.state.fileName.c_str(), std::ios::binary);
     if (!req.multp.file->is_open())
     {
-        std::cout << "is not open\n\n";
         req.code = 500;
         //[soukaina] cleanup resources is not enough
         cleanupResources(req);
         return ;
     }
 
-     char* buffer = (char *)malloc(CHUNK_SIZE);
-     req.multp.file->read(buffer, CHUNK_SIZE);
-
-     int bytesRead = req.multp.file->gcount();
-
+    char buffer[CHUNK_SIZE];
     while(true)
     {
+      req.multp.file->read(buffer, CHUNK_SIZE);
+
+      int bytesRead = req.multp.file->gcount();
+
       if (bytesRead > 0)
       {
          int bytesSent = write(req.cgi.fdIn, buffer, bytesRead);
