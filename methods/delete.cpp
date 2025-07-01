@@ -99,11 +99,11 @@ std::string readFiles(std::string path)
 int Server::deleteTargetUrl(int fd, std::string url, ConfigData configdata, Location location, int state)
 {
     if (access(url.c_str(), R_OK | W_OK) == -1)
-        return getSpecificRespond(fd, configdata.getErrorPages().find(403)->second, Forbidden);
+        return getSpecificRespond(fd, configdata.getErrorPages().find(403)->second, Forbidden, 403);
     if (state == 1)
     {
         if (state == 1 && fetchIndex(location.root + location.path, location.index).empty())
-            return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
+            return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 404);
         if (DELETE(url.c_str()) == -1)
         {
             return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << url << std::endl, 0;
@@ -129,19 +129,19 @@ int Server::handle_delete_request(int fd, ConfigData configdata)
     std::string url = request[fd].state.url;
     Location location = getExactLocationBasedOnUrl(url, configdata);
     if (location.path.empty() == true)
-        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
+        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 405);
     if (checkAvailability(fd, location) == false)
-        return getSpecificRespond(fd, configdata.getErrorPages().find(405)->second, methodNotAllowedResponse), EXIT_FAILURE;
+        return getSpecificRespond(fd, configdata.getErrorPages().find(405)->second, methodNotAllowedResponse, 405), EXIT_FAILURE;
     int state;
     size_t checkState = 0;
     if ((state = getFileType(location.root + url)) == -1)
     {
-        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
+        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 404);
     }
 
     if (state == 1 && location.index.empty())
     {
-        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
+        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 404);
     }
     if (canBeOpen(fd, url, location, checkState, configdata))
     {
@@ -164,7 +164,7 @@ int Server::handle_delete_request(int fd, ConfigData configdata)
             {
                 return checkState = 0, deleteTargetUrl(fd, url, configdata, location, state);
             }
-            return checkState = 0, getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse);
+            return checkState = 0, getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 404);
         }
     }
 

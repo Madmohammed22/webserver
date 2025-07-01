@@ -55,16 +55,16 @@ void Server::handleClientData(int fd)
         if ((state.bytesReceived = bytes) && validateHeader(fd, state, holder) == false)
         {
             ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], "");
-            //[soukaina] here i should build the respond error for the code variable that was set by the validate header function
-            //[mad] the same here 
-            getSpecificRespond(fd, serverConfig.getErrorPages().find(404)->second, createBadRequest);
+  
+            getSpecificRespond(fd, serverConfig.getErrorPages().find(request[fd].code)->second,
+                               errorFunction(request[fd].code), request[fd].code);
             close(fd);
             request.erase(fd);
             return ;
         }
         if (state.isComplete == true && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
         {
-            request[fd].cgi.runCgi(*this, fd, request[fd], request[fd].serverConfig);
+            request[fd].cgi.runCgi(*this, request[fd]);
             request[fd].cgi.cgiState = CGI_RUNNING;
             return;
         }
@@ -81,7 +81,16 @@ void Server::handleClientData(int fd)
         }
         if (state.isComplete && request[fd].cgi.getIsCgi() == true && request[fd].cgi.cgiState == CGI_NOT_STARTED)
         {
-            request[fd].cgi.runCgi(*this, fd, request[fd], request[fd].serverConfig);
+            request[fd].cgi.runCgi(*this, request[fd]);
+            if (request[fd].code != 200)
+            {
+              //[soukaina] i think it should be in the epollout
+              getSpecificRespond(fd, request[fd].serverConfig.getErrorPages().find(request[fd].code)->second,
+                               errorFunction(request[fd].code), request[fd].code);
+              close(fd);
+              request.erase(fd);
+              return ;
+            }
             request[fd].cgi.cgiState = CGI_RUNNING;
             return;
         }
@@ -92,6 +101,7 @@ void Server::handleClientData(int fd)
 void Server::handleClientOutput(int fd)
 {
     Request &req = request[fd];
+
     if (!req.state.isComplete)
         return;
 
@@ -140,7 +150,11 @@ void Server::handleClientOutput(int fd)
         {
             if (req.code != 200)
             {
-              //[for mad] here what if the config file has not the error page i wanted
+              getSpecificRespond(fd, request[fd].serverConfig.getErrorPages().find(request[fd].code)->second,
+                               errorFunction(request[fd].code), request[fd].code);
+              close(fd);
+              request.erase(fd);
+              return ;
             }
             req.state.PostHeaderIsValid = true;
         }
@@ -148,10 +162,13 @@ void Server::handleClientOutput(int fd)
         if (req.getContentLength() == "0")
         {
             std::string httpRespons;
-
-            req.state.file->close();
-            delete req.state.file;
-            remove(req.state.fileName.c_str());
+            
+            if (req.state.file->is_open())
+            {
+              req.state.file->close();
+              delete req.state.file;
+              remove(req.state.fileName.c_str());
+            }
             httpRespons = httpResponse(request[fd].ContentType, request[fd].state.fileSize);
             int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
             if (faild == -1)
@@ -215,7 +232,7 @@ void Server::getCgiResponse(Request &req, int fd)
     {
         if (WEXITSTATUS(status) != 0)
         {
-            getSpecificRespond(fd, req.serverConfig.getErrorPages().find(400)->second, createBadRequest);
+            req.code = 500;
             return ;
         }
     

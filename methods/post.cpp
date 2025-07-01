@@ -98,7 +98,6 @@ int Server::parsePostRequest(int fd, ConfigData &configIndex, Request &req)
       return (1);
     }
     
-    //[for mad] why it does not work then ??
     req.state.last_activity_time = time(NULL);
     req.state.PostHeaderIsValid = true;
     return (0);

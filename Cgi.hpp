@@ -45,7 +45,7 @@ public:
   std::string getPathInfo(std::string &path, std::string &ext);
   void parseCgi(Request &req);
   bool getIsCgi();
-  void runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig);
+  void runCgi(Server &serv, Request &req);
   std::string getQuery();
   void setQuery(std::string query);
   void setEnv(Request &req);

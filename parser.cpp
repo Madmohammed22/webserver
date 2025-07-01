@@ -72,7 +72,6 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
 {
   std::map<std::string, std::string> tmpMap;
   static size_t backup;
-  // [soukaina] this is really a bad thing we should figure out another solution
   std::string fileName_backup;
   ConfigData serverConfig;
   Request &req = request[fd];
@@ -130,7 +129,6 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
       req.state.isComplete = true;
     }
     req.location = getExactLocationBasedOnUrl(state.url, req.serverConfig);
-
     if (req.contentLength == "0")
     {
       req.state.file->close();

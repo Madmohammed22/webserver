@@ -450,7 +450,7 @@ int Server::helper(int fd, std::string &url, ConfigData configIndex, Location lo
     }
     if (checkAvailability(fd, location) == false)
     {
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse), EXIT_FAILURE;
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse, 405), EXIT_FAILURE;
     }
     return EXIT_FAILURE;
 }
@@ -476,7 +476,7 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
     }
     else
     {
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden);
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden, 403);
     }
 }
 
@@ -500,7 +500,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     std::cout << "location: " << location.path << std::endl;
     if (location.path.empty() == true)
     {
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404);
     }
     if (helper(fd, url, configIndex, location) == EXIT_SUCCESS)
     {
@@ -531,7 +531,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
 
             location = getExactLocationBasedOnUrl(url, configIndex);
             if (t_stat_wait(location.root + url) == -1)
-                getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+                getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404);
             else
             {
                 std::string path = location.root + url;
@@ -564,15 +564,15 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                             return 0;
                         }
                     }
-                    return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse);
+                    return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404);
                 }
             }
         }
         size_t tmp = checkState;
         checkState = 0;
 
-        return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse)
-                            : getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, Forbidden);
+        return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404)
+                            : getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, Forbidden, 404);
     }
     return 0;
 }

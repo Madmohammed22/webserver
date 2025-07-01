@@ -37,12 +37,12 @@ std::string Cgi::getFileExtension(std::string& path, std::string &url)
 {
     std::string path_tmp;
     size_t end;
-
+    
+    if (!(path.find(".") != std::string::npos))
+      return ("");
     path_tmp = path.substr(path.find("."));
     size_t firstSlash = path_tmp.find('/');
     end = firstSlash;
-    if (path_tmp.empty())
-      return ("");
     if (!(firstSlash != std::string::npos))
       end = path_tmp.length();
     url = path.substr(0, end + path.find("."));
@@ -81,7 +81,11 @@ void Cgi::parseCgi(Request &req)
 
   // if the file is not executable ( the nginx default behavior is to send it as a static file)
   if (!(req.location.cgi.find(getFileExtension(_path, url)) != req.location.cgi.end()))
-    return ;
+  {
+      req.code = 403;
+      return ;
+  }
+
   if (access(url.c_str(), R_OK | X_OK ) == -1)
   {
     req.code = 403;
@@ -148,10 +152,8 @@ void Cgi::setEnv(Request &req)
   _argv[2] = NULL;
 }
 
-void Cgi::runCgi(Server &serv, int fd, Request &req, ConfigData &serverConfig)
+void Cgi::runCgi(Server &serv, Request &req)
 {
-  (void) serverConfig;
-  (void)fd;
 
   fileNameOut = createTempFile();
 

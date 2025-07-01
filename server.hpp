@@ -188,7 +188,7 @@ public:
     static std::string goneHttpResponse(std::string contentType, size_t contentLength);
     std::string deleteResponse(Server *server);
     static std::string createTimeoutResponse(std::string contentType, size_t contentLength);
-    int getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t));
+    int getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t), int code);
     std::pair<size_t, std::string> returnTargetFromRequest(std::string header, std::string target);
 
     // Transfer-Encoding: chunked
@@ -213,7 +213,7 @@ std::pair<T, T> ft_parseRequest_T(int fd, Server* server, T header, ConfigData s
     }
     catch (const std::exception &e)
     {
-        server->getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, server->createBadRequest);
+        server->getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, server->createBadRequest, 400);
     }
 
     return pair_request;

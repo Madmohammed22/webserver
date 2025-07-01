@@ -5,6 +5,6 @@ int Server::processMethodNotAllowed(int fd, Server *server, std::string request)
     std::cout << "-------( REQUEST PARSED )-------\n\n";
     std::cout << request << std::endl;
     std::cout << "-------( END OF REQUEST )-------\n\n\n";
-    return getSpecificRespond(fd, "405.html", server->methodNotAllowedResponse);
+    return getSpecificRespond(fd, "405.html", server->methodNotAllowedResponse, 405);
 }
 
