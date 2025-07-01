@@ -438,7 +438,7 @@ int Server::t_stat_wait(std::string path)
     return -1;
 }
 
-int Server::helper(int fd, std::string &url, ConfigData configIndex, Location location)
+int Server::helper(int fd, std::string &url, Location location)
 {
 
     if (t_stat(url, location) == 1 && url.at(url.size() - 1) != '/')
@@ -450,12 +450,12 @@ int Server::helper(int fd, std::string &url, ConfigData configIndex, Location lo
     }
     if (checkAvailability(fd, location) == false)
     {
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(405)->second, methodNotAllowedResponse, 405), EXIT_FAILURE;
+        return getResponse(fd, 405);
     }
     return EXIT_FAILURE;
 }
 
-int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Location location, size_t checkState)
+int Server::sendFinalReques(int fd, std::string url, Location location, size_t checkState)
 {
     if (location.autoindex == true)
     {
@@ -476,7 +476,7 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
     }
     else
     {
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, forbidden, 403);
+        return getResponse(fd, 403);
     }
 }
 
@@ -500,9 +500,9 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     std::cout << "location: " << location.path << std::endl;
     if (location.path.empty() == true)
     {
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404);
+        return getResponse(fd, 404);
     }
-    if (helper(fd, url, configIndex, location) == EXIT_SUCCESS)
+    if (helper(fd, url, location) == EXIT_SUCCESS)
     {
         return 0;
     }
@@ -520,7 +520,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     {
         if (t_stat_wait(url) == 1)
         {
-            return sendFinalReques(fd, resolveUrl(url), configIndex, location, checkState);
+            return sendFinalReques(fd, resolveUrl(url), location, checkState);
         }
         return (handleFileRequest(fd, url, Connection, location) == -1) ? 0 : 200;
     }
@@ -531,7 +531,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
 
             location = getExactLocationBasedOnUrl(url, configIndex);
             if (t_stat_wait(location.root + url) == -1)
-                getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404);
+                getResponse(fd, 404);
             else
             {
                 std::string path = location.root + url;
@@ -541,7 +541,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
 
                     if (t_stat_wait(url) == 1)
                     {
-                        return sendFinalReques(fd, url, configIndex, location, checkState);
+                        return sendFinalReques(fd, url, location, checkState);
                     }
                     if (handleFileRequest(fd, url, Connection, location) == 201)
                     {
@@ -564,13 +564,14 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                             return 0;
                         }
                     }
-                    return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404);
+                    return getResponse(fd, 404);
                 }
             }
         }
         size_t tmp = checkState;
         checkState = 0;
 
+        //soukaina : this is confusing 
         return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404)
                             : getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, forbidden, 404);
     }

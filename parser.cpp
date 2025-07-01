@@ -89,7 +89,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], req.getHost());
     request[fd].serverConfig = serverConfig;
     state.headerFlag = false;
-    tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header, serverConfig).first);
+    tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header).first);
 
     if (!(state.header.find("POST") != std::string::npos))
     {

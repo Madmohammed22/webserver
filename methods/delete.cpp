@@ -96,14 +96,14 @@ std::string readFiles(std::string path)
     return oss.str();
 }
 
-int Server::deleteTargetUrl(int fd, std::string url, ConfigData configdata, Location location, int state)
+int Server::deleteTargetUrl(int fd, std::string url, Location location, int state)
 {
     if (access(url.c_str(), R_OK | W_OK) == -1)
-        return getSpecificRespond(fd, configdata.getErrorPages().find(403)->second, forbidden, 403);
+        return getResponse(fd, 403);
     if (state == 1)
     {
         if (state == 1 && fetchIndex(location.root + location.path, location.index).empty())
-            return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 404);
+            return getResponse(fd, 404);
         if (DELETE(url.c_str()) == -1)
         {
             return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << url << std::endl, 0;
@@ -129,23 +129,23 @@ int Server::handle_delete_request(int fd, ConfigData configdata)
     std::string url = request[fd].state.url;
     Location location = getExactLocationBasedOnUrl(url, configdata);
     if (location.path.empty() == true)
-        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 405);
+        return getResponse(fd, 404);
     if (checkAvailability(fd, location) == false)
-        return getSpecificRespond(fd, configdata.getErrorPages().find(405)->second, methodNotAllowedResponse, 405), EXIT_FAILURE;
+        return getResponse(fd, 405);
     int state;
     size_t checkState = 0;
     if ((state = getFileType(location.root + url)) == -1)
     {
-        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 404);
+        return getResponse(fd, 404);
     }
 
     if (state == 1 && location.index.empty())
     {
-        return getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 404);
+        return getResponse(fd, 404);
     }
     if (canBeOpen(fd, url, location, checkState, configdata))
     {
-        return request[fd].state.logFile.insert(url), checkState = 0, deleteTargetUrl(fd, url, configdata, location, state);
+        return request[fd].state.logFile.insert(url), checkState = 0, deleteTargetUrl(fd, url, location, state);
     }
     else
     {
@@ -162,9 +162,9 @@ int Server::handle_delete_request(int fd, ConfigData configdata)
                 url = location.path;
             if (canBeOpen(fd, url, location, checkState, configdata))
             {
-                return checkState = 0, deleteTargetUrl(fd, url, configdata, location, state);
+                return checkState = 0, deleteTargetUrl(fd, url, location, state);
             }
-            return checkState = 0, getSpecificRespond(fd, configdata.getErrorPages().find(404)->second, createNotFoundResponse, 404);
+            return checkState = 0, getResponse(fd, 404);
         }
     }
 

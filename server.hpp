@@ -140,12 +140,12 @@ public:
     static int t_stat_wait(std::string path);
     static bool timedFunction(int timeoutSeconds, time_t startTime);
     static Location getExactLocationBasedOnUrlContainer(std::string target, ConfigData configIndex);
-    int sendFinalReques(int fd, std::string url, ConfigData configIndex,  Location location, size_t checkState);
-    int helper(int fd, std::string &url, ConfigData configIndex,  Location location);
+    int sendFinalReques(int fd, std::string url,  Location location, size_t checkState);
+    int helper(int fd, std::string &url,  Location location);
     static std::string fetchIndex(std::string root, std::vector<std::string> indexFile);
     static bool check(std::string url);
     static std::string redundantSlash(std::string url);
-    int deleteTargetUrl(int fd, std::string url, ConfigData configIndex, Location location, int state);
+    int deleteTargetUrl(int fd, std::string url, Location location, int state);
     int handle_delete_request___(int fd, ConfigData configIndex);
     std::string listDirectory(const std::string &dir_path, const std::string &fileName, std::string& mime);
     int t_stat(std::string path, Location location);
@@ -171,7 +171,7 @@ public:
     void key_value_pair_header(int fd, std::string header);
     std::pair<Binary_String, Binary_String> ft_parseRequest_binary(Binary_String header);
     void printfContentHeader(Server *server, int fd);
-    void getResponse(int fd, int code);
+    int getResponse(int fd, int code);
     static bool searchOnSpecificFile(std::string path, std::string fileTarget);
     // std::string movedPermanently(std::string contentType, size_t contentLength);
 
@@ -204,7 +204,7 @@ public:
 };
 
 template <typename T>
-std::pair<T, T> ft_parseRequest_T(int fd, Server* server, T header, ConfigData serverConfig)
+std::pair<T, T> ft_parseRequest_T(int fd, Server* server, T header)
 {
 
     std::pair<T, T> pair_request;
@@ -215,7 +215,7 @@ std::pair<T, T> ft_parseRequest_T(int fd, Server* server, T header, ConfigData s
     }
     catch (const std::exception &e)
     {
-        server->getSpecificRespond(fd, serverConfig.getErrorPages().find(400)->second, server->createBadRequest, 400);
+        server->getResponse(fd, 400);
     }
 
     return pair_request;

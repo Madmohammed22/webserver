@@ -56,8 +56,7 @@ void Server::handleClientData(int fd)
         {
             ConfigData serverConfig = getConfigForRequest(multiServers[serverSocket], "");
   
-            getSpecificRespond(fd, serverConfig.getErrorPages().find(request[fd].code)->second,
-                               errorFunction(request[fd].code), request[fd].code);
+            getResponse(fd, request[fd].code);
             close(fd);
             request.erase(fd);
             return ;
@@ -85,8 +84,7 @@ void Server::handleClientData(int fd)
             if (request[fd].code != 200)
             {
               //[soukaina] i think it should be in the epollout
-              getSpecificRespond(fd, request[fd].serverConfig.getErrorPages().find(request[fd].code)->second,
-                               errorFunction(request[fd].code), request[fd].code);
+              getResponse(fd, request[fd].code);
               close(fd);
               request.erase(fd);
               return ;
@@ -150,8 +148,7 @@ void Server::handleClientOutput(int fd)
         {
             if (req.code != 200)
             {
-              getSpecificRespond(fd, request[fd].serverConfig.getErrorPages().find(request[fd].code)->second,
-                               errorFunction(request[fd].code), request[fd].code);
+              getResponse(fd, req.code);
               close(fd);
               request.erase(fd);
               return ;

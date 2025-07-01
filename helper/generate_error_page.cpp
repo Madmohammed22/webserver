@@ -75,17 +75,18 @@ std::string getErrorPage(int errorCode)
     return oss.str();
 }
 
-void Server::getResponse(int fd, int code)
+int Server::getResponse(int fd, int code)
 {
     std::string file;
 
+    ConfigData serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], request[fd].getHost());
 
-    if (request[fd].serverConfig.getErrorPages().find(code) == 
-          request[fd].serverConfig.getErrorPages().end())
-      file = request[fd].serverConfig.getErrorPages().find(code)->second;
+    if (serverConfig.getErrorPages().find(code) == 
+          serverConfig.getErrorPages().end())
+      file = serverConfig.getErrorPages().find(code)->second;
     else
       file = "";
-    getSpecificRespond(fd, file, errorFunction(code), code);
+    return (getSpecificRespond(fd, file, errorFunction(code), code));
   
 }
 
