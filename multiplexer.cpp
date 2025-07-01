@@ -202,7 +202,8 @@ void Server::sendCgiResponse(Request &req, int fd)
 
   if (faild == -1)
   {
-    // [for mad  ] here too
+    //[soukaina] i have to send 500
+
     close(fd), request.erase(fd);
     return ;
   }

@@ -39,7 +39,6 @@ std::pair<bool, int> Build::chainOfResponsibility(RequstBuilder &requstBuilder)
     {
         if (!(*it)->validate(requstBuilder))
         {
-            std::cout << "Request is invalid." << std::endl;
             return_pair.first = false;
             return_pair.second = -1;
             return return_pair;

@@ -27,7 +27,6 @@ server:
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
-      upload: root/upload 
 
     /media/:    # url /data/../data/
       # redirect: /

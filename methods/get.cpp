@@ -483,7 +483,7 @@ int Server::sendFinalReques(int fd, std::string url, Location location, size_t c
 bool Server::timedFunction(int timeoutSeconds, time_t startTime)
 {
     time_t currentTime = time(NULL);
-    std::cout << "[" << difftime(currentTime, startTime) << "]" << std::endl;
+    /*std::cout << "[" << difftime(currentTime, startTime) << "]" << std::endl;*/
     if (difftime(currentTime, startTime) >= timeoutSeconds)
     {
         std::cout << "close fd\n";

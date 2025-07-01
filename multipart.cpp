@@ -41,7 +41,6 @@ void Server::createFileName(std::string line, int fd)
 
     std::string fileName = request[fd].location.upload + line.substr(start, end - start);
     std::ofstream *newFile = new std::ofstream(fileName.c_str(), std::ios::binary | std::ios::trunc);
-    printf(" this is the newFile %p\n", newFile);
     if (!newFile->is_open())
     {
         std::cerr << "Error: Failed to open file : " << fileName << std::endl;
@@ -51,9 +50,6 @@ void Server::createFileName(std::string line, int fd)
     }
     request[fd].multp.outFiles.push_back(newFile);
     request[fd].multp.currentFileIndex = request[fd].multp.outFiles.size() - 1;
-
-    std::cout << "Opened file #" << request[fd].multp.currentFileIndex
-              << ": " << fileName << std::endl;
 }
 
 void Server::writeData(Binary_String &chunk, int fd)
@@ -100,7 +96,7 @@ void Server::writeData(Binary_String &chunk, int fd)
                 if (!request[fd].multp.outFiles.empty() && boundaryPos > 0)
                 {
                     std::ofstream *file = request[fd].multp.outFiles.back();
-                    file->write(request[fd].multp.partialHeaderBuffer.data(), boundaryPos - 2);
+                    file->write(request[fd].multp.partialHeaderBuffer.data(), boundaryPos - 4);
                 }
 
                 request[fd].multp.partialHeaderBuffer.erase(0, boundaryPos + boundary.size());
@@ -115,7 +111,11 @@ void Server::writeData(Binary_String &chunk, int fd)
                 }
                 else
                 {
-                    request[fd].multp.outFiles.back()->close();
+                    if (request[fd].multp.outFiles.back()
+                      && request[fd].multp.outFiles.back()->is_open())
+                      request[fd].multp.outFiles.back()->close();
+                    if (request[fd].multp.outFiles.back())
+                      delete request[fd].multp.outFiles.back();
                     /*printf(" this is the back %p \n", request[fd].multp.outFiles.back());*/
                     /*if (!request[fd].multp.outFiles.empty())*/
                     /*  delete request[fd].multp.outFiles.back();*/
