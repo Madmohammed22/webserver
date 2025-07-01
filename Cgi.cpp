@@ -165,6 +165,7 @@ void Cgi::runCgi(Server &serv, Request &req)
     lseek(fdIn, 0, SEEK_SET);
   }
 
+  req.state.last_activity_time = time(NULL);
   int fdOut = open(fileNameOut.c_str(), O_WRONLY | O_CREAT, 0644);  
   _pid = fork();
   if ( _pid < 0 )

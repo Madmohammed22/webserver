@@ -476,7 +476,7 @@ int Server::sendFinalReques(int fd, std::string url, ConfigData configIndex, Loc
     }
     else
     {
-        return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, Forbidden, 403);
+        return getSpecificRespond(fd, configIndex.getErrorPages().find(403)->second, forbidden, 403);
     }
 }
 
@@ -572,7 +572,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
         checkState = 0;
 
         return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404)
-                            : getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, Forbidden, 404);
+                            : getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, forbidden, 404);
     }
     return 0;
 }

@@ -99,7 +99,7 @@ std::string readFiles(std::string path)
 int Server::deleteTargetUrl(int fd, std::string url, ConfigData configdata, Location location, int state)
 {
     if (access(url.c_str(), R_OK | W_OK) == -1)
-        return getSpecificRespond(fd, configdata.getErrorPages().find(403)->second, Forbidden, 403);
+        return getSpecificRespond(fd, configdata.getErrorPages().find(403)->second, forbidden, 403);
     if (state == 1)
     {
         if (state == 1 && fetchIndex(location.root + location.path, location.index).empty())

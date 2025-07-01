@@ -219,15 +219,18 @@ void Server::getCgiResponse(Request &req, int fd)
     int status;
     int pid = waitpid(req.cgi.getPid(), &status, WNOHANG);
 
-    if (request[fd].cgi.cgiState == CGI_COMPLETE)
+    if (request[fd].cgi.cgiState == CGI_COMPLETE
+        || request[fd].cgi.cgiState == CGI_RUNNING)
     {
       if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
       {
+        if (request[fd].cgi.cgiState == CGI_RUNNING)
+          getResponse(fd, 504);
         close(fd);
         request.erase(fd);
       }
-      return ;
     }
+
     if (pid == req.cgi.getPid())
     {
         if (WEXITSTATUS(status) != 0)
@@ -248,6 +251,8 @@ void Server::getCgiResponse(Request &req, int fd)
 
         int totalBytes = 0;
         char buffer[CHUNK_SIZE];
+          
+        request[fd].state.last_activity_time = time(NULL);
         while (true)
         {
             int readBytes = read(fde, buffer, CHUNK_SIZE);
@@ -267,6 +272,11 @@ void Server::getCgiResponse(Request &req, int fd)
             }
             req.cgi.CgiBodyResponse.append(buffer, readBytes);
             totalBytes += readBytes;
+            /*if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)*/
+            /*{*/
+            /*  close(fd);*/
+            /*  request.erase(fd);*/
+            /*}*/
         }
         sendCgiResponse(req, fd);
         request[fd].state.last_activity_time = time(NULL);

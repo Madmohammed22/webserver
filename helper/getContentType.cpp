@@ -88,10 +88,20 @@ std::string Server::httpResponseIncludeCookie(std::string contentType, size_t co
     return oss.str();
 }
 
-std::string Server::Forbidden(std::string contentType, size_t contentLength)
+std::string Server::forbidden(std::string contentType, size_t contentLength)
 {
     std::ostringstream oss;
     oss << "HTTP/1.1 403 OK\r\n"
+        << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
+        << "Last-Modified: " << getCurrentTimeInGMT() << "\r\n"
+        << "Content-Length: " << contentLength << "\r\n\r\n";
+    return oss.str();
+}
+
+std::string Server::gatewayTimeout(std::string contentType, size_t contentLength)
+{
+    std::ostringstream oss;
+    oss << "HTTP/1.1 504 OK\r\n"
         << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
         << "Last-Modified: " << getCurrentTimeInGMT() << "\r\n"
         << "Content-Length: " << contentLength << "\r\n\r\n";

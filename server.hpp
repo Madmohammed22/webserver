@@ -150,7 +150,8 @@ public:
     std::string listDirectory(const std::string &dir_path, const std::string &fileName, std::string& mime);
     int t_stat(std::string path, Location location);
     static void addSlashBasedOnMethod(std::string &target, std::string method);
-    static std::string Forbidden(std::string contentType, size_t contentLength);
+    static std::string forbidden(std::string contentType, size_t contentLength);
+    static std::string gatewayTimeout(std::string contentType, size_t contentLength);
     Location getExactLocationBasedOnUrl(std::string target, ConfigData configIndex);
     bool checkAvailability(int fd, Location location);
     void reWrite(std::string &url, ConfigData configData);
@@ -170,6 +171,7 @@ public:
     void key_value_pair_header(int fd, std::string header);
     std::pair<Binary_String, Binary_String> ft_parseRequest_binary(Binary_String header);
     void printfContentHeader(Server *server, int fd);
+    void getResponse(int fd, int code);
     static bool searchOnSpecificFile(std::string path, std::string fileTarget);
     // std::string movedPermanently(std::string contentType, size_t contentLength);
 

@@ -7,7 +7,7 @@ retfun Server::errorFunction(int errorCode)
   else if (errorCode == 501)
     return (notImplemented);
   else if (errorCode == 403)
-    return (Forbidden);
+    return (forbidden);
   else if (errorCode == 404)
     return (createNotFoundResponse);
   else if (errorCode == 405)
@@ -16,6 +16,8 @@ retfun Server::errorFunction(int errorCode)
     return (payloadTooLarge);
   else if (errorCode == 500)
     return (internalServerError);
+  else if (errorCode == 504)
+    return (gatewayTimeout);
   return (internalServerError);
 }
 
@@ -71,6 +73,20 @@ std::string getErrorPage(int errorCode)
         << "</html>";
     
     return oss.str();
+}
+
+void Server::getResponse(int fd, int code)
+{
+    std::string file;
+
+
+    if (request[fd].serverConfig.getErrorPages().find(code) == 
+          request[fd].serverConfig.getErrorPages().end())
+      file = request[fd].serverConfig.getErrorPages().find(code)->second;
+    else
+      file = "";
+    getSpecificRespond(fd, file, errorFunction(code), code);
+  
 }
 
 int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::string, size_t), int code)
