@@ -57,8 +57,6 @@ bool FileTransferValidator::validate(RequstBuilder &builder)
         {
             return false;
         }
-        if (builder.getRequest().keys.find(method)->second.find("HTTP/1.1") == std::string::npos)
-            return false;
     }
     return true;
 }

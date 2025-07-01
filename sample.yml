@@ -1,6 +1,6 @@
 server:
   port: 8000
-  host: localhost
+  host: 10.0.2.15
   server_name: mmad.com
   client_max_body_size: 1m
   root: /ROOT/html
@@ -15,46 +15,39 @@ server:
   locations:
 
     /cgi-bin/:
-      root: home/snidbell/Desktop
-      index: test_get.py
+      root: /home/mmad/Desktop/webserve/ROOT/html/
+      index: main.py
       autoindex: on
       cgi: [.py:/usr/bin/python3, .php:/usr/bin/php]
       methods: [get, post]
 
     /:
       # redirect: /index.html
-      root: /home/snidbell/Desktop/webserver
+      root: /home/mmad/Desktop/webserve/ROOT/html
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
 
     /media/:    # url /data/../data/
-      # redirect: /
+      # redirect: /content
       index: [message.txt]
-      root: /home/snidbell/Desktop/webserver/media
-      autoindex: on
+      root: /home/mmad/Desktop/webserve/ROOT/html
+      autoindex: off
       methods: [get, delete]
 
     /content/:
       # redirect: /media/
-      root: /home/snidbell/Desktop/webserver
+      root: /home/mmad/Desktop/webserve/ROOT/html
       index: index.txt
       autoindex: on
       methods: [get]
-
-
-      # /uploads/:
-      #   # redirect : /content/
-      #   root : /home/mmad/Desktop/upload
-      #   index : test.txt
-      #   autoindex: on
-      #   methods: [delete, get, post]
+    
     /uploads/:
       # redirect : /content/
-      root : /home/snidbell/Desktop/webserver/root/upload/
+      root : /home/mmad/Desktop/webserve/ROOT/html
       index : test.txt
       autoindex: on
       methods: [delete, get, post]
-      upload: root/upload 
+      upload: /home/mmad/Desktop/webserve/ROOT/html/upload
 
 

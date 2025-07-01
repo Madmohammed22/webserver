@@ -10,7 +10,7 @@ void Server::handleNewConnection(int fd)
         return;
     }
 
-    setnonblocking(conn_sock);
+    // setnonblocking(conn_sock);
 
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLOUT;
@@ -29,6 +29,7 @@ void Server::handleNewConnection(int fd)
     request[conn_sock].state.file = new std::ofstream();
     request[conn_sock].state.fileName = createTempFile();
     request[conn_sock].state.file->open(request[conn_sock].state.fileName.c_str(), std::ios::binary);
+    // request[conn_sock].
 }
 
 void Server::handleClientData(int fd)
@@ -298,7 +299,7 @@ int Server::handleClientConnectionsForMultipleServers()
         }
         else if (events[i].events & EPOLLIN)
         {
-            handleClientData(fd);
+            handleClientData(fd); // ----
         }
         else if (events[i].events & EPOLLOUT)
         {

@@ -307,8 +307,10 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
         faild = send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL);
         if (faild == -1)
             return close(fd), request.erase(fd), 0;
-        if (Connection == "close" || Connection.empty())
+        if (Connection == "close" || Connection.empty()){
+            std::cout << "Connection: close" << std::endl;
             return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
+        }
         // close(fd), request.erase(fd);
         return request[fd].state.isComplete = true, 200;
     }
@@ -483,7 +485,6 @@ int Server::sendFinalReques(int fd, std::string url, Location location, size_t c
 bool Server::timedFunction(int timeoutSeconds, time_t startTime)
 {
     time_t currentTime = time(NULL);
-    /*std::cout << "[" << difftime(currentTime, startTime) << "]" << std::endl;*/
     if (difftime(currentTime, startTime) >= timeoutSeconds)
     {
         std::cout << "close fd\n";
@@ -528,7 +529,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     {
         if (checkState == 301)
         {
-
             location = getExactLocationBasedOnUrl(url, configIndex);
             if (t_stat_wait(location.root + url) == -1)
                 getResponse(fd, 404);
@@ -568,12 +568,10 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 }
             }
         }
-        size_t tmp = checkState;
-        checkState = 0;
-
-        //soukaina : this is confusing 
-        return (tmp == 404) ? getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404)
-                            : getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, forbidden, 404);
+        // size_t tmp = checkState;
+        // checkState = 0;
+        return getResponse(fd, 404);
+        // return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404); 
     }
     return 0;
 }

@@ -104,6 +104,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
       if (header_parser(get, req, state.header, tmpMap) == false)
       {
         // [soukaina] bad request
+        // [mmad] bad request
         req.code = 404;
         return false;
       }
@@ -146,10 +147,10 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     }
 
     if (req.getMethod() == "POST" && req.bodyStart)
-    {
+    { 
       Binary_String body = holder.substr(req.bodyStart, backup);
-
-      state.file->write(body.c_str(), backup);
+      
+      state.file->write(body.c_str(), backup); //----
       if (static_cast<int>(atoi(req.contentLength.c_str())) <= (int)backup)
       {
         state.isComplete = true;

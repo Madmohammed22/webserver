@@ -81,7 +81,7 @@ int Server::getResponse(int fd, int code)
 
     ConfigData serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], request[fd].getHost());
 
-    if (serverConfig.getErrorPages().find(code) == 
+    if (serverConfig.getErrorPages().find(code) != 
           serverConfig.getErrorPages().end())
       file = serverConfig.getErrorPages().find(code)->second;
     else

@@ -38,8 +38,11 @@ void Server::createFileName(std::string line, int fd)
 
     start += 10;
     size_t end = line.find("\"", start);
-
     std::string fileName = request[fd].location.upload + line.substr(start, end - start);
+    // if (access(fileName.c_str(), R_OK | W_OK) == -1){
+    //     getResponse(fd, 403);
+    //     return;
+    // }
     std::ofstream *newFile = new std::ofstream(fileName.c_str(), std::ios::binary | std::ios::trunc);
     if (!newFile->is_open())
     {

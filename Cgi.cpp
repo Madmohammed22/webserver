@@ -107,13 +107,13 @@ void Cgi::parseCgi(Request &req)
 std::string Cgi::getPathInfo(std::string &path, std::string &ext)
 {
   int pathStart;
-  int pathEnd;
+  // int pathEnd;
   std::string PathInfo;
   
   std::cout << path << std::endl;
   pathStart = path.find(ext);
   std::cout << ext.length() << std::endl;
-  pathEnd = path.find("?");
+  // pathEnd = path.find("?");
   PathInfo = path.substr(pathStart + ext.length());
   return (PathInfo);
 }
