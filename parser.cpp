@@ -19,10 +19,11 @@ std::string resolveUrl(std::string &url)
 {
   std::vector<std::string> splitBySlash;
   std::vector<std::string> currentUrl;
+  std::string result;
 
   splitBySlash = split(url, '/');
   std::vector<std::string>::iterator it;
-
+  
   for (it = splitBySlash.begin(); it != splitBySlash.end(); it++)
   {
     if (*it == ".." && !currentUrl.empty())
@@ -32,9 +33,13 @@ std::string resolveUrl(std::string &url)
     else if (*it != ".")
       currentUrl.push_back(*it);
   }
+
   if (currentUrl.empty())
     return ("/");
-  return (concatenate(currentUrl));
+  result = concatenate(currentUrl);
+  if (url[url.length() - 1] == '/')
+    return (result + "/");
+  return (result);
 }
 
 template <typename T>
