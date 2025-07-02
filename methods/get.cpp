@@ -527,14 +527,11 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
             else
             {
                 std::string path = location.root + url;
-
                 if (canBeOpen(fd, url, location, checkState, configIndex))
                 {
 
                     if (t_stat_wait(url) == 1)
-                    {
                         return sendFinalReques(fd, url, location, checkState);
-                    }
                     if (handleFileRequest(fd, url, Connection, location) == 201)
                     {
                         if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
@@ -563,7 +560,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
         // size_t tmp = checkState;
         // checkState = 0;
         return getResponse(fd, 404);
-        // return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404);
     }
     return 0;
 }
