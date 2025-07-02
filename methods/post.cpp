@@ -68,19 +68,22 @@ int Server::parsePostRequest(int fd, ConfigData &configIndex, Request &req)
    
     if (location.upload.empty())
     {
+      std::cout << "this is the uplaod" << location.upload << std::endl;
       req.code = 403;
       return (1);
     }
     
     if (getFileType(location.upload) != 1)
     {
-      req.code = 403;  
+      req.code = 403;
       return (1);
     }
 
     if (location.upload[location.upload.length() - 1] != '/')
       location.upload.insert(location.upload.end(), '/');
     
+
+    //[soukaina] what if there is no data 0 content length 
     contentType = request[fd].getContentType();
     if (contentType.find("boundary=") != std::string::npos)
     {

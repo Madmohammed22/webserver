@@ -144,7 +144,8 @@ void Server::getListenPairs()
         if (itListen == listenVec.end())
             listenVec.push_back(newListen);
     }
-
+    
+    //[soukaina] should be removed i think
     std::vector<t_listen>::iterator itListen;
     for (itListen = listenVec.begin(); itListen != listenVec.end(); itListen++)
     {

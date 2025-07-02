@@ -1,6 +1,6 @@
 server:
   port: 8000
-  host: 10.0.2.15
+  host: localhost
   server_name: mmad.com
   client_max_body_size: 1m
   root: /ROOT/html
@@ -27,6 +27,7 @@ server:
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
+      # upload: root
 
     /media/:    # url /data/../data/
       # redirect: /content
@@ -44,10 +45,10 @@ server:
     
     /uploads/:
       # redirect : /content/
-      root : /home/mmad/Desktop/webserve/ROOT/html
+      root : root/html
       index : test.txt
       autoindex: on
-      methods: [delete, get, post]
-      upload: /home/mmad/Desktop/webserve/ROOT/html/upload
+      methods: [get, post]
+      upload: root/upload
 
 
