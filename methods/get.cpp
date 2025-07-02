@@ -173,7 +173,7 @@ bool validateSearch(std::vector<std::string> indexFile, std::string dir_name)
 bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &checkState, ConfigData configIndex)
 {
     std::string root = configIndex.getDefaultRoot();
-    if (redundantSlash((resolveUrl(url) + "/")) == redundantSlash(location.path))
+    if (redundantSlash((resolveUrl(url))) == redundantSlash(location.path))
     {
         if (location.redirect.size() > 0)
         {
@@ -216,11 +216,13 @@ bool sendChunk(int fd, const char *data, size_t size)
     std::ostringstream chunkHeader;
     chunkHeader << std::hex << size << "\r\n";
     std::string data_size = chunkHeader.str();
-    int faild;
-    faild = send(fd, data_size.c_str(), data_size.length(), MSG_NOSIGNAL);
-    faild = send(fd, data, size, MSG_NOSIGNAL);
-    faild = send(fd, "\r\n", 2, MSG_NOSIGNAL);
-    return (faild == -1) ? false : true;
+    if (send(fd, data_size.c_str(), data_size.length(), MSG_NOSIGNAL) == -1)
+        return false;
+    if (send(fd, data, size, MSG_NOSIGNAL) == -1)
+        return false;
+    if (send(fd, "\r\n", 2, MSG_NOSIGNAL) == -1)
+        return false;
+    return true;
 }
 
 bool sendFinalChunk(int fd)
@@ -284,14 +286,10 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
         std::string httpRespons;
         if (location.redirect.size() > 0 && request[fd].flag == 1)
         {
-            // exit(0);
             request[fd].flag = 0;
             httpRespons = MovedPermanently(contentType, redundantSlash(location.path + location.redirect));
-            int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
-            if (faild == -1)
-            {
+            if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
                 return close(fd), request.erase(fd), 0;
-            }
             return 0;
         }
         else
@@ -302,12 +300,14 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
                 httpRespons = httpResponse(contentType, request[fd].state.fileSize);
             // httpRespons = httpResponse(contentType, request[fd].state.fileSize);
         }
-        int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
-        faild = send(fd, readFile(url).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL);
-        faild = send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL);
-        if (faild == -1)
+        if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
             return close(fd), request.erase(fd), 0;
-        if (Connection == "close" || Connection.empty()){
+        if (send(fd, readFile(url).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL) == -1)
+            return close(fd), request.erase(fd), 0;
+        if (send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL) == -1)
+            return close(fd), request.erase(fd), 0;
+        if (Connection == "close" || Connection.empty())
+        {
             std::cout << "Connection: close" << std::endl;
             return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
         }
@@ -381,19 +381,10 @@ Location Server::getExactLocationBasedOnUrlContainer(std::string target, ConfigD
         return location;
     for (size_t i = 0; i < configIndex.getLocations().size(); i++)
     {
-        if ((resolveUrl(target) + "/") == redundantSlash(configIndex.getLocations()[i].path))
+        if (redundantSlash((resolveUrl(target))) == redundantSlash(configIndex.getLocations()[i].path))
             return location = configIndex.getLocations()[i];
     }
     return getExactLocationBasedOnUrlContainer(returnNewPath(target), configIndex);
-}
-
-void Server::addSlashBasedOnMethod(std::string &target, std::string method)
-{
-    if (method == "DELETE")
-    {
-        if (target.at(target.size() - 1) != '/')
-            target = target + "/";
-    }
 }
 
 Location Server::getExactLocationBasedOnUrl(std::string target, ConfigData configIndex)
@@ -470,9 +461,10 @@ int Server::sendFinalReques(int fd, std::string url, Location location, size_t c
         else
             httpRespons = httpResponse(mime, fileSize);
 
-        int faild = send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL);
-        faild = send(fd, listDirectory(url, resolveUrl(request[fd].state.url), mime).c_str(), fileSize, MSG_NOSIGNAL);
-        if (faild == -1)
+        if (send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL) == -1)
+            return close(fd), request.erase(fd), checkState = 0, 0;
+
+        if (send(fd, listDirectory(url, resolveUrl(request[fd].state.url), mime).c_str(), fileSize, MSG_NOSIGNAL) == -1)
             return close(fd), request.erase(fd), checkState = 0, 0;
         return checkState = 0, 200;
     }
@@ -521,7 +513,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     {
         if (t_stat_wait(url) == 1)
         {
-            return sendFinalReques(fd, resolveUrl(url), location, checkState);
+            return sendFinalReques(fd, url, location, checkState);
         }
         return (handleFileRequest(fd, url, Connection, location) == -1) ? 0 : 200;
     }
@@ -571,7 +563,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
         // size_t tmp = checkState;
         // checkState = 0;
         return getResponse(fd, 404);
-        // return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404); 
+        // return getSpecificRespond(fd, configIndex.getErrorPages().find(404)->second, createNotFoundResponse, 404);
     }
     return 0;
 }

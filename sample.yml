@@ -23,7 +23,7 @@ server:
 
     /:
       # redirect: /index.html
-      root: /home/mmad/Desktop/webserve/ROOT/html
+      root: ROOT/html
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
@@ -31,23 +31,23 @@ server:
     /media/:    # url /data/../data/
       # redirect: /content
       index: [message.txt]
-      root: /home/mmad/Desktop/webserve/ROOT/html
+      root: ROOT/html
       autoindex: off
       methods: [get, delete]
 
     /content/:
       # redirect: /media/
-      root: /home/mmad/Desktop/webserve/ROOT/html
+      root: ROOT/html
       index: index.txt
       autoindex: on
       methods: [get]
     
     /uploads/:
       # redirect : /content/
-      root : /home/mmad/Desktop/webserve/ROOT/html
+      root : ROOT/html
       index : test.txt
       autoindex: on
       methods: [delete, get, post]
-      upload: /home/mmad/Desktop/webserve/ROOT/html/upload
+      upload: ROOT/html/upload
 
 

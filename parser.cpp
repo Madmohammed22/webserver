@@ -10,7 +10,10 @@ std::string concatenate(std::vector<std::string> &vec)
 
   for (it = vec.begin(); it != vec.end(); it++)
   {
-    result += '/' + *it;
+    if (result.empty())
+      result = *it;
+    else
+      result += '/' + *it;
   }
   return result;
 }
@@ -38,7 +41,9 @@ std::string resolveUrl(std::string &url)
     return ("/");
   result = concatenate(currentUrl);
   if (url[url.length() - 1] == '/')
-    return (result + "/");
+    result += "/";
+  if (url[0] == '/')
+    result = "/" + result;
   return (result);
 }
 
@@ -110,7 +115,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
       {
         // [soukaina] bad request
         // [mmad] bad request
-        req.code = 404;
+        req.code = 400;
         return false;
       }
       req.state.isComplete = true;
@@ -135,6 +140,8 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
       req.state.isComplete = true;
     }
     req.location = getExactLocationBasedOnUrl(state.url, req.serverConfig);
+    std::cout << "location: " << req.location.path << std::endl;
+
     if (req.contentLength == "0")
     {
       req.state.file->close();

@@ -149,7 +149,6 @@ public:
     int handle_delete_request___(int fd, ConfigData configIndex);
     std::string listDirectory(const std::string &dir_path, const std::string &fileName, std::string& mime);
     int t_stat(std::string path, Location location);
-    static void addSlashBasedOnMethod(std::string &target, std::string method);
     static std::string forbidden(std::string contentType, size_t contentLength);
     static std::string gatewayTimeout(std::string contentType, size_t contentLength);
     Location getExactLocationBasedOnUrl(std::string target, ConfigData configIndex);

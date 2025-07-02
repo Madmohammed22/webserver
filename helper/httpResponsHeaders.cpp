@@ -234,6 +234,7 @@ std::string Server::MovedPermanently(std::string contentType, std::string locati
 
 std::string Server::listDirectory(const std::string &dir_path, const std::string &url, std::string &mime)
 {
+    
     std::string nameFile = "file.html";
     mime = getContentType(nameFile);
     std::ofstream outFile(nameFile.c_str());
