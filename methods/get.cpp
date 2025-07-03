@@ -293,13 +293,7 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
             return 0;
         }
         else
-        {
-            if (request[fd].getCookie() != "undefined")
-                httpRespons = httpResponseIncludeCookie(contentType, request[fd].state.fileSize, request[fd].getCookie());
-            else
                 httpRespons = httpResponse(contentType, request[fd].state.fileSize);
-            // httpRespons = httpResponse(contentType, request[fd].state.fileSize);
-        }
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
             return close(fd), request.erase(fd), 0;
         if (send(fd, readFile(url).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL) == -1)
@@ -456,11 +450,7 @@ int Server::sendFinalReques(int fd, std::string url, Location location, size_t c
         location.path = redundantSlash(location.path);
         std::string mime;
         size_t fileSize = listDirectory(url, resolveUrl(request[fd].state.url), mime).size();
-        if (request[fd].getCookie() != "undefined")
-            httpRespons = httpResponseIncludeCookie(mime, fileSize, request[fd].getCookie());
-        else
-            httpRespons = httpResponse(mime, fileSize);
-
+        httpRespons = httpResponse(mime, fileSize);
         if (send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL) == -1)
             return close(fd), request.erase(fd), checkState = 0, 0;
 

@@ -135,7 +135,6 @@ public:
     int parsePostRequest(int fd, ConfigData& configIndex, Request &req);
 
     // Functions helper
-    std::string httpResponseIncludeCookie(std::string contentType, size_t contentLength, std::string setCookie);
     static bool areSameDirectories(const char *path1, const char *path2);
     static int t_stat_wait(std::string path);
     static bool timedFunction(int timeoutSeconds, time_t startTime);

@@ -1,6 +1,6 @@
 server:
   port: 8000
-  host: localhost
+  host: 10.0.2.15
   server_name: mmad.com
   client_max_body_size: 1m
   root: /ROOT/html
@@ -15,8 +15,8 @@ server:
   locations:
 
     /cgi-bin/:
-      root: /home/mmad/Desktop/webserve/ROOT/html/
-      index: main.py
+      root: ROOT/html/
+      index: cookies.py
       autoindex: on
       cgi: [.py:/usr/bin/python3, .php:/usr/bin/php]
       methods: [get, post]
