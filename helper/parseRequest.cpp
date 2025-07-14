@@ -1,19 +1,5 @@
 #include "../server.hpp"
 
-// void reWrite(std::string &url, ConfigData configData){
-//     if (url == "/")
-//         url =  configData.get
-// }
-void Server::printfContentHeader(Server *server, int fd)
-{
-    std::map<std::string, std::string>::iterator it = server->request[fd].state.mapOnHeader.begin();
-    while (it != server->request[fd].state.mapOnHeader.end())
-    {
-        std::cout << it->first << " " << it->second << std::endl;
-        it++;
-    }
-}
-
 std::string url_decode(const std::string &value)
 {
     std::ostringstream decoded;
@@ -168,10 +154,7 @@ std::map<std::string, std::string> Server::key_value_pair(std::string header)
         }
     }
     std::string result = header.substr(j, header.length());
-    for (int i = 0; i < (int)header.length(); i++)
-      std::cout << "__" << header[i] << "-" << std::endl;
-    if (!result.empty())
-      mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), trim(result.substr(result.find(" "), result.length()))));
+    mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), trim(result.substr(result.find(" "), result.length()))));
     return mapv;
 }
 

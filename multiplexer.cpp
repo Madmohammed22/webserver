@@ -84,7 +84,6 @@ void Server::handleClientData(int fd)
             request[fd].cgi.runCgi(*this, request[fd]);
             if (request[fd].code != 200)
             {
-              //[soukaina] i think it should be in the epollout
               getResponse(fd, request[fd].code);
               close(fd);
               request.erase(fd);
@@ -110,9 +109,6 @@ void Server::handleClientOutput(int fd)
         getCgiResponse(req, fd);
     else if (req.getMethod() == "GET")
     {
-        // std::cout << "-------( REQUEST PARSED )-------\n\n";
-        // std::cout << req.header << std::endl;
-        // std::cout << "-------( END OF REQUEST )-------\n\n\n";
         int state = serve_file_request(fd, serverConfig);
         if (state == 310)
         {
@@ -130,9 +126,6 @@ void Server::handleClientOutput(int fd)
     }
     else if (req.getMethod() == "DELETE")
     {
-        /*std::cout << "-------( REQUEST PARSED )-------\n\n";*/
-        /*std::cout << req.header << std::endl;*/
-        /*std::cout << "-------( END OF REQUEST )-------\n\n\n";*/
         int state = handle_delete_request(fd, serverConfig);
         if (state == 0)
         {

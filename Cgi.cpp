@@ -73,11 +73,11 @@ void Cgi::parseCgi(Request &req)
 
   if (_path[0] == '/')
     _path.erase(0, 1);
-   // if (getFileType(_path) != 2)
-  // {
-  //   req.code = 404;
-  //   return ;
-  // }
+   if (getFileType(_path) != 2)
+  {
+    req.code = 404;
+    return ;
+  }
 
   // if the file is not executable ( the nginx default behavior is to send it as a static file)
   if (!(req.location.cgi.find(getFileExtension(_path, url)) != req.location.cgi.end()))
@@ -92,8 +92,6 @@ void Cgi::parseCgi(Request &req)
     return ;
   }
 
-  // [soukaina] here i supposed that you already check if the method in the request is allowed in the location
-  // if not you should add it
   if (req.getMethod() == "DELETE")
   {
     req.code = 405;
@@ -107,13 +105,9 @@ void Cgi::parseCgi(Request &req)
 std::string Cgi::getPathInfo(std::string &path, std::string &ext)
 {
   int pathStart;
-  // int pathEnd;
   std::string PathInfo;
   
-  std::cout << path << std::endl;
   pathStart = path.find(ext);
-  std::cout << ext.length() << std::endl;
-  // pathEnd = path.find("?");
   PathInfo = path.substr(pathStart + ext.length());
   return (PathInfo);
 }
@@ -125,9 +119,12 @@ void Cgi::setEnv(Request &req)
   std::string ext;
   std::string url;
   std::string query;
+  stringstream stream;
+  std::string port;
   int i = 0;
-
-
+  
+  stream << req.serverConfig.getPort();
+  stream >> port;
   ext = getFileExtension(_path, url);
   _env = (char **)calloc(allocSize + 1, sizeof(char *));
   _env[i++] = strdup(("PATH_INFO" + getPathInfo(_path, ext)).c_str());//
@@ -138,15 +135,13 @@ void Cgi::setEnv(Request &req)
   _env[i++] = strdup(("QUERY_STRING=" + _query).c_str());
   _env[i++] = strdup(("SERVER_NAME=" + req.getHost()).c_str());
   _env[i++] = strdup(("HTTP_COOKIE=" + req.Cookie).c_str());
-  // [soukaina] just for know but it should be changed  
-  _env[i++] = strdup("SERVER_PORT=8000");
+  _env[i++] = strdup(("SERVER_PORT" + port).c_str());
   _env[i++] = strdup(("CONTENT_TYPE=" + req.getContentType()).c_str());
   _env[i++] = strdup(("CONTENT_LENGTH=" + req.getContentLength()).c_str());
   _env[i] = NULL;
 
   // i should protect this function
   _argv = (char **)malloc(sizeof(char *) * 3);
-  // [ soukaina ] before that line i should verify if the binary with the extension is present (this is in the parser)
   _argv[0] = strdup(req.location.cgi[ext].c_str());
   _argv[1] = strdup(url.c_str());
   _argv[2] = NULL;

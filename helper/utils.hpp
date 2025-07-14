@@ -6,8 +6,6 @@
 #include <cstdlib>
 
 
-template <typename T>
-std::string toString(const T val);
 std::string createTempFile();
 int getFileType(std::string path);
 int ft_strlen(char *str);

@@ -15,21 +15,6 @@ void ConfigParsing::start(std::string configFile)
     removeComments();
     parseEachServer();    
     std::vector<ConfigData>::iterator server_it;
-    /*for (server_it = configData.begin(); server_it != configData.end(); server_it++)*/
-    /*{*/
-    /*    std::vector<std::string> serverContent = server_it->getContent();*/
-    /*    std::vector<std::string>::iterator line_it;*/
-
-        /*std::cout << "-------------------------------------------------" << std::endl;*/
-        /**/
-        /*for (line_it = serverContent.begin(); line_it != serverContent.end(); line_it++)*/
-        /*{*/
-        /*    std::string line = *line_it;*/
-        /*    std::cout << line << std::endl;*/
-        /*}    */
-        /*std::cout << "-------------------------------------------------" << std::endl;*/
-    /*}*/
-    
     for (server_it = configData.begin(); server_it != configData.end(); server_it++)
     {
         server_it->parseConfigData();

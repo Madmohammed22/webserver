@@ -18,7 +18,6 @@
 #include "globalInclude.hpp"
 using namespace std;
 
-// #include <curl/curl.h>
 
 typedef std::string (*retfun)(std::string, size_t);
 
@@ -27,47 +26,6 @@ typedef struct s_listen
     int port;
     std::string host;
 } t_listen;
-
-class CONFIG
-{
-    int port;
-    int maxevents;
-    int chunksize;
-    int timeout;
-    int timeoutms;
-    std::string pathc;
-    std::string pathe;
-    std::string pathu;
-    std::string test;
-
-public:
-    CONFIG(const CONFIG &conf)
-    {
-        this->port = conf.port;
-        this->maxevents = conf.maxevents;
-        this->chunksize = conf.chunksize;
-        this->timeout = conf.timeout;
-        this->timeoutms = conf.timeoutms;
-
-        this->pathc = conf.pathc;
-        this->pathe = conf.pathe;
-        this->pathu = conf.pathu;
-        this->test = conf.test;
-    }
-
-public:
-    void set_port(int port) { this->port = port; };
-    void set_maxevents(int maxevents) { this->maxevents = maxevents; };
-    void set_chunksize(int chunksize) { this->chunksize = chunksize; };
-    void set_timeout(int timeout) { this->timeout = timeout; };
-    void set_timeoutms(int timeoutms) { this->timeoutms = timeoutms; };
-
-public:
-    void set_pathc(std::string pathc) { this->pathc = pathc; };
-    void set_pathe(std::string pathe) { this->pathe = pathe; };
-    void set_pathu(std::string pathu) { this->pathu = pathu; };
-    void set_test(std::string test) { this->test = test; };
-};
 
 class Binary_String;
 class Request;
@@ -135,7 +93,6 @@ public:
     int parsePostRequest(int fd, ConfigData& configIndex, Request &req);
 
     // Functions helper
-    std::string httpResponseIncludeCookie(std::string contentType, size_t contentLength, std::string setCookie);
     static bool areSameDirectories(const char *path1, const char *path2);
     static int t_stat_wait(std::string path);
     static bool timedFunction(int timeoutSeconds, time_t startTime);
@@ -169,10 +126,8 @@ public:
     std::string key_value_pair_header(std::string request, std::string target_key);
     void key_value_pair_header(int fd, std::string header);
     std::pair<Binary_String, Binary_String> ft_parseRequest_binary(Binary_String header);
-    void printfContentHeader(Server *server, int fd);
     int getResponse(int fd, int code);
     static bool searchOnSpecificFile(std::string path, std::string fileTarget);
-    // std::string movedPermanently(std::string contentType, size_t contentLength);
 
     // Response headers
     retfun errorFunction(int errorCode);
