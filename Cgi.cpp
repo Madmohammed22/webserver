@@ -127,7 +127,7 @@ void Cgi::setEnv(Request &req)
   stream >> port;
   ext = getFileExtension(_path, url);
   _env = (char **)calloc(allocSize + 1, sizeof(char *));
-  _env[i++] = strdup(("PATH_INFO" + getPathInfo(_path, ext)).c_str());//
+  _env[i++] = strdup(("PATH_INFO" + getPathInfo(_path, ext)).c_str());
   _env[i++] = strdup(("REQUEST_METHOD=" + req.getMethod()).c_str());
   int start = _path.rfind("/");
   scriptName = _path.substr(start + 1, url.length());
@@ -140,7 +140,6 @@ void Cgi::setEnv(Request &req)
   _env[i++] = strdup(("CONTENT_LENGTH=" + req.getContentLength()).c_str());
   _env[i] = NULL;
 
-  // i should protect this function
   _argv = (char **)malloc(sizeof(char *) * 3);
   _argv[0] = strdup(req.location.cgi[ext].c_str());
   _argv[1] = strdup(url.c_str());

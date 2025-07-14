@@ -10,7 +10,6 @@ void Server::handleNewConnection(int fd)
         return;
     }
 
-    // setnonblocking(conn_sock);
 
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLOUT;
@@ -29,7 +28,6 @@ void Server::handleNewConnection(int fd)
     request[conn_sock].state.file = new std::ofstream();
     request[conn_sock].state.fileName = createTempFile();
     request[conn_sock].state.file->open(request[conn_sock].state.fileName.c_str(), std::ios::binary);
-    // request[conn_sock].
 }
 
 void Server::handleClientData(int fd)
@@ -238,12 +236,10 @@ void Server::getCgiResponse(Request &req, int fd)
             return ;
         }
     
-        // adding specific error response here
         int fde = open(req.cgi.fileNameOut.c_str(), O_RDONLY, 0644);
         if (fde < 0)
         {
             req.code = 500;
-            // adding specific error response here
             return;
         }
 
@@ -271,11 +267,11 @@ void Server::getCgiResponse(Request &req, int fd)
             }
             req.cgi.CgiBodyResponse.append(buffer, readBytes);
             totalBytes += readBytes;
-            /*if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)*/
-            /*{*/
-            /*  close(fd);*/
-            /*  request.erase(fd);*/
-            /*}*/
+            if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+            {
+              close(fd);
+              request.erase(fd);
+            }
         }
         sendCgiResponse(req, fd);
         request[fd].state.last_activity_time = time(NULL);
@@ -299,7 +295,7 @@ int Server::handleClientConnectionsForMultipleServers()
         }
         else if (events[i].events & EPOLLIN)
         {
-            handleClientData(fd); // ----
+            handleClientData(fd);
         }
         else if (events[i].events & EPOLLOUT)
         {

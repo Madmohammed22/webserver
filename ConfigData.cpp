@@ -383,7 +383,7 @@ void ConfigData::printData()
     for (loc_it = _locations.begin(); loc_it != _locations.end(); ++loc_it)
     {
         std::cout << "-------------------------------------------------\n";
-        std::cout << "  " << loc_it->path << ":" << std::endl; // Assuming 'path' is the member name instead of 'first'
+        std::cout << "  " << loc_it->path << ":" << std::endl;
         std::cout << "    Root: " << loc_it->root << std::endl;
 
         std::cout << "    Redirect: " << loc_it->redirect << std::endl;

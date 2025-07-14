@@ -188,7 +188,6 @@ std::string Server::methodNotAllowedResponse(std::string contentType, size_t con
     oss << "HTTP/1.1 405 Method Not Allowed\r\n"
         << "Content-Type: " << contentType + "; charset=utf-8" << "\r\n"
         << "Allow: GET, POST, DELETE\r\n\r\n";
-    // << "Content-Length: " << contentLength << "\r\n\r\n";
 
     return oss.str();
 }

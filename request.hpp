@@ -208,7 +208,6 @@ public:
     Request getRequest() const { return request; }
 };
 
-//
 class DELETE : public RequstBuilder
 {
 public:

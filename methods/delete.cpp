@@ -25,7 +25,6 @@ void DELETE::buildFileTransfers()
     FileTransferState &state = request.state;
     state.url = Server::parseSpecificRequest(request.header);
     state.offset = 0;
-    // state.fileSize = Server::getFileSize(PATHC + state.url);
     state.isComplete = false;
     state.isValidHeader = false;
     state.logFile.insert("");
@@ -108,7 +107,6 @@ int Server::deleteTargetUrl(int fd, std::string url, Location location, int stat
         {
             return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << url << std::endl, 0;
         }
-        // deleteDirectoryContents(location.root + location.path);
     }
     else if (state == 2)
     {
@@ -120,7 +118,6 @@ int Server::deleteTargetUrl(int fd, std::string url, Location location, int stat
         getResponse(fd, 408);
         return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
     }
-    // return close(fd), request.erase(fd), 0;
     request[fd].state.last_activity_time
      = time(NULL);
     return 0;

@@ -161,7 +161,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     { 
       Binary_String body = holder.substr(req.bodyStart, backup);
       
-      state.file->write(body.c_str(), backup); //----
+      state.file->write(body.c_str(), backup);
       if (static_cast<int>(atoi(req.contentLength.c_str())) <= (int)backup)
       {
         state.isComplete = true;

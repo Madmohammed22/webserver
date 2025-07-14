@@ -270,7 +270,8 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
     request[fd].state.url = url;
     std::string contentType = Server::getContentType(url);
     request[fd].state.fileSize = getFileSize(url);
-    const size_t LARGE_FILE_THRESHOLD = 1024 * 1024; // 1mb
+    size_t LARGE_FILE_THRESHOLD = 1024 * 1024;
+
     if (request[fd].state.fileSize > LARGE_FILE_THRESHOLD)
     {
         request[fd].state.test = 1;
@@ -309,7 +310,6 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
             std::cout << "Connection: close" << std::endl;
             return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
         }
-        // close(fd), request.erase(fd);
         return request[fd].state.isComplete = true, 200;
     }
     return 0;
@@ -419,7 +419,6 @@ int Server::t_stat(std::string path, Location location)
 
 int Server::t_stat_wait(std::string path)
 {
-    // std::string path = location.root + path;
     struct stat s;
     if (stat(path.c_str(), &s) == 0)
     {
@@ -552,8 +551,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 }
             }
         }
-        // size_t tmp = checkState;
-        // checkState = 0;
         return getResponse(fd, 404);
     }
     return 0;
