@@ -67,7 +67,6 @@ void Server::writeData(Binary_String &chunk, int fd)
 
     while (true)
     {
-
         if (request[fd].multp.isInHeader)
         {
             if (!(request[fd].multp.partialHeaderBuffer.find("filename=\"") != std::string::npos))

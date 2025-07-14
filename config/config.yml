@@ -1,6 +1,6 @@
 server:
   port: 8080
-  host: 10.14.6.4
+  host: localhost
   server_name: mmad.com
   client_max_body_size: 1m
   root: /ROOT/html
