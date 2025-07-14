@@ -8,4 +8,3 @@ int Server::processMethodNotAllowed(int fd, Server *server, std::string request)
     std::cout << "-------( END OF REQUEST )-------\n\n\n";
     return getSpecificRespond(fd, "405.html", server->methodNotAllowedResponse, 405);
 }
-

@@ -246,6 +246,8 @@ int Server::continueFileTransfer(int fd, std::string url, Location location)
 
     if (!sendChunk(fd, buffer, bytesRead))
     {
+        getResponse(fd, 500);
+        close(fd), request.erase(fd);
         return request[fd].getConnection() == "close" ? -1 : 0;
     }
     request[fd].state.offset += bytesRead;
@@ -254,6 +256,8 @@ int Server::continueFileTransfer(int fd, std::string url, Location location)
     {
         if (!sendFinalChunk(fd))
         {
+            getResponse(fd, 500);
+            close(fd), request.erase(fd);
             return request[fd].getConnection() == "close" ? -1 : 0;
         }
         if (request[fd].getConnection() == "close")
@@ -276,8 +280,11 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
     {
         request[fd].state.test = 1;
         std::string httpRespons = createChunkedHttpResponse(contentType);
-        if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
+        if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1){
+            getResponse(fd, 500);
+            close(fd), request.erase(fd);
             return std::cerr << "Failed to send chunked HTTP header." << std::endl, 0;
+        }
         return continueFileTransfer(fd, request[fd].state.url, location);
     }
     else
@@ -288,8 +295,10 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
         {
             request[fd].flag = 0;
             httpRespons = MovedPermanently(contentType, redundantSlash(location.path + location.redirect));
-            if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
+            if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1){
+                getResponse(fd, 500);
                 return close(fd), request.erase(fd), 0;
+            }
             return 0;
         }
         else
@@ -301,11 +310,11 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
             // httpRespons = httpResponse(contentType, request[fd].state.fileSize);
         }
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
-            return close(fd), request.erase(fd), 0;
+            return getResponse(fd, 500), close(fd), request.erase(fd), 0;
         if (send(fd, readFile(url).c_str(), request[fd].state.fileSize, MSG_NOSIGNAL) == -1)
-            return close(fd), request.erase(fd), 0;
+            return getResponse(fd, 500), close(fd), request.erase(fd), 0;
         if (send(fd, "\r\n\r\n", 4, MSG_NOSIGNAL) == -1)
-            return close(fd), request.erase(fd), 0;
+            return getResponse(fd, 500), close(fd), request.erase(fd), 0;
         if (Connection == "close" || Connection.empty())
         {
             std::cout << "Connection: close" << std::endl;
@@ -437,8 +446,10 @@ int Server::helper(int fd, std::string &url, Location location)
     if (t_stat(url, location) == 1 && url.at(url.size() - 1) != '/')
     {
         std::string httpRespons = MovedPermanently(getContentType(url), location.path);
-        if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
+        if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1){
+            getResponse(fd, 500), close(fd), request.erase(fd);
             return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
+        }
         return EXIT_SUCCESS;
     }
     if (checkAvailability(fd, location) == false)
@@ -462,10 +473,10 @@ int Server::sendFinalReques(int fd, std::string url, Location location, size_t c
             httpRespons = httpResponse(mime, fileSize);
 
         if (send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL) == -1)
-            return close(fd), request.erase(fd), checkState = 0, 0;
+            return getResponse(fd, 500), close(fd), request.erase(fd), checkState = 0, 0;
 
         if (send(fd, listDirectory(url, resolveUrl(request[fd].state.url), mime).c_str(), fileSize, MSG_NOSIGNAL) == -1)
-            return close(fd), request.erase(fd), checkState = 0, 0;
+            return getResponse(fd, 500), close(fd), request.erase(fd), checkState = 0, 0;
         return checkState = 0, 200;
     }
     else
@@ -549,7 +560,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                         {
                             std::string httpRespons = MovedPermanently(getContentType(url), location.path);
                             if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
-                                return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
+                                return getResponse(fd, 500), close(fd), request.erase(fd), std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
                             return 0;
                         }
                     }

@@ -171,12 +171,14 @@ void Server::handleClientOutput(int fd)
             int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
             if (faild == -1)
             {
+                getResponse(fd, 500);
                 close(fd), request.erase(fd);
             }
             if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
                 request[fd].state.isComplete = true, close(fd), request.erase(fd);
             if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
             {
+                getResponse(fd, 408);
                 close(fd);
                 request.erase(fd);
             }
@@ -209,8 +211,7 @@ void Server::sendCgiResponse(Request &req, int fd)
 
   if (faild == -1)
   {
-    //[soukaina] i have to send 500
-
+    getResponse(fd, 500);
     close(fd), request.erase(fd);
     return ;
   }

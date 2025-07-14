@@ -6,7 +6,6 @@ SRC = main.cpp multiplexer.cpp parser.cpp server.cpp $(SRC_DIR2)/get.cpp $(SRC_D
 	$(SRC_DIR1)/httpResponsHeaders.cpp $(SRC_DIR1)/parseRequest.cpp $(SRC_DIR1)/Binary_String.cpp \
 	$(SRC_DIR1)/establishingServer.cpp\
 	$(SRC_DIR1)/utils.cpp\
-	$(SRC_DIR1)/processMethodNotAllowed.cpp\
 	request.cpp ConfigData.cpp ConfigParsing.cpp multipart.cpp Cgi.cpp $(SRC_DIR1)/generate_error_page.cpp\
 
 OBJ = $(SRC:.cpp=.o)

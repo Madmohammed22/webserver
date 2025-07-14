@@ -18,6 +18,8 @@ retfun Server::errorFunction(int errorCode)
     return (internalServerError);
   else if (errorCode == 504)
     return (gatewayTimeout);
+  else if (errorCode == 408)
+    return (createTimeoutResponse);
   return (internalServerError);
 }
 
@@ -36,6 +38,8 @@ std::string statusCodeString(int statusCode)
         return "Not Found";
       case 405:
         return "Method Not Allowed";
+      case 408:
+        return "Request Timeout";
       case 413:
         return "Payload Too Large";
       case 414:
@@ -86,6 +90,7 @@ int Server::getResponse(int fd, int code)
       file = serverConfig.getErrorPages().find(code)->second;
     else
       file = "";
+    
     return (getSpecificRespond(fd, file, errorFunction(code), code));
   
 }
@@ -115,13 +120,12 @@ int Server::getSpecificRespond(int fd, std::string file, std::string (*f)(std::s
         else
         {
             request[fd].state.isComplete = true;
-            close(fd);
-            request.erase(fd);
         }
         return 0;
     }
     catch (const std::exception &e)
     {
+        close(fd), request.erase(fd);
         return 0;
     }
     return 0;

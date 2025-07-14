@@ -116,8 +116,10 @@ int Server::deleteTargetUrl(int fd, std::string url, Location location, int stat
             return request.erase(fd), close(fd), std::cerr << "Failed to delete file or directory: " << url << std::endl, 0;
     }
     std::string httpResponse = deleteResponse(this);
-    if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1)
+    if (send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL) == -1){
+        getResponse(fd, 408);
         return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
+    }
     // return close(fd), request.erase(fd), 0;
     request[fd].state.last_activity_time = time(NULL);
     return 0;
@@ -152,8 +154,11 @@ int Server::handle_delete_request(int fd, ConfigData configdata)
         if (checkState == 301)
         {
             std::string httpRespons = MovedPermanently(getContentType(url), location.path);
-            if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1)
+            if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1){
+                getResponse(fd, 500);
+                close(fd), request.erase(fd);
                 return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
+            }
             return 0;
         }
         if (location.path == "/")
