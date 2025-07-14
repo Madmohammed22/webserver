@@ -54,3 +54,111 @@ server:
 
 
 
+server:
+  port: 9090
+  host: localhost
+  server_name: mmad.com
+  client_max_body_size: 1m
+  root: /ROOT/html
+  error_page:
+     403: root/error/403.html
+     400: root/error/400.html
+     404: root/error/404.html
+     405: root/error/405.html
+     408: root/error/408.html
+     410: root/error/410.html
+    #  500: root/error/500.html
+     415: root/error/415.html
+  locations:
+
+    /cgi-bin/:
+      root: root/content
+      index: cookies.py
+      autoindex: on
+      cgi: [.py:/usr/bin/python3, .php:/usr/bin/php]
+      methods: [get, post]
+
+    /:
+      # redirect: /index.html
+      root: root/content
+      index: [index.html]
+      autoindex: on
+      methods: [get, delete, post]
+      # upload: root
+
+    /media/:    # url /data/../data/
+      # redirect: /content
+      index: [message.txt]
+      root: root/content
+      autoindex: off
+      methods: [get, delete]
+
+    /content/:
+      # redirect: /media/
+      root: root/
+      index: index.txt
+      autoindex: on
+      methods: [get, delete]
+    
+    /uploads/:
+      # redirect : /content/
+      root : root/content
+      index : test.txt
+      autoindex: on
+      methods: [get, post]
+      upload: root/upload
+
+
+server:
+  port: 7070
+  host: 10.14.9.9
+  server_name: mmad.com
+  client_max_body_size: 1m
+  root: /ROOT/html
+  error_page:
+     403: root/error/403.html
+     400: root/error/400.html
+     404: root/error/404.html
+     405: root/error/405.html
+     408: root/error/408.html
+     410: root/error/410.html
+    #  500: root/error/500.html
+     415: root/error/415.html
+  locations:
+
+    /cgi-bin/:
+      root: root/content
+      index: cookies.py
+      autoindex: on
+      cgi: [.py:/usr/bin/python3, .php:/usr/bin/php]
+      methods: [get, post]
+
+    /:
+      # redirect: /index.html
+      root: root/content
+      index: [index.html]
+      autoindex: on
+      methods: [get, delete, post]
+      # upload: root
+
+    /media/:    # url /data/../data/
+      # redirect: /content
+      index: [message.txt]
+      root: root/content
+      autoindex: off
+      methods: [get, delete]
+
+    /content/:
+      # redirect: /media/
+      root: root/
+      index: index.txt
+      autoindex: on
+      methods: [get, delete]
+    
+    /uploads/:
+      # redirect : /content/
+      root : root/content
+      index : test.txt
+      autoindex: on
+      methods: [get, post]
+      upload: root/upload
