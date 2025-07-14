@@ -53,7 +53,7 @@ public:
     int getPort();
     std::string getServerName();
     size_t getClientMaxBodySize();
-    std::map<int, std::string> getErrorPages();
+    std::map<int, std::string>& getErrorPages();
     std::vector<std::string> getMethods();
     std::map<std::string, std::string> getCgi();
 

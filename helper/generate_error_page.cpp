@@ -84,9 +84,8 @@ int Server::getResponse(int fd, int code)
     std::string file;
 
     ConfigData serverConfig = getConfigForRequest(multiServers[clientToServer[fd]], request[fd].getHost());
-
-    if (serverConfig.getErrorPages().find(code) != 
-          serverConfig.getErrorPages().end())
+    
+    if (serverConfig.getErrorPages().find(code) != serverConfig.getErrorPages().end())
       file = serverConfig.getErrorPages().find(code)->second;
     else
       file = "";

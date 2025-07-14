@@ -1,6 +1,6 @@
 server:
-  port: 8000
-  host: 10.0.2.15
+  port: 8080
+  host: 10.14.6.4
   server_name: mmad.com
   client_max_body_size: 1m
   root: /ROOT/html
@@ -11,6 +11,7 @@ server:
      405: root/error/405.html
      408: root/error/408.html
      410: root/error/410.html
+     500: root/error/500.html
      415: root/error/415.html
   locations:
 

@@ -29,7 +29,7 @@ size_t ConfigData::getClientMaxBodySize()
     return _client_max_body_size;
 }
 
-std::map<int, std::string> ConfigData::getErrorPages()
+std::map<int, std::string>& ConfigData::getErrorPages()
 {
     return _error_pages;
 }
