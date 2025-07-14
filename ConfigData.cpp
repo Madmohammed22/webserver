@@ -127,8 +127,6 @@ void ConfigData::parseConfigData()
         else if (key == "port")
         {
             _port = atoi(value.c_str());
-            /*if (_port != -1)*/
-            /*    throw WebservException("Configuration file : Port duplicated");*/
             if (_port > 65536 || _port < 0)
                 throw WebservException("Configuration file : unvalid Port number");
         }
@@ -216,7 +214,6 @@ void ConfigData::parseConfigData()
                 parseLine(line, key, value, baseIndent2);
                 int code = atoi(key.c_str());
                 _error_pages[code] = value;
-                /*parseErrorPage(value);*/
                 it++;
             }
         }

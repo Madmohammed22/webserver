@@ -100,7 +100,6 @@ std::string Server::fetchIndex(std::string root, std::vector<std::string> indexF
 
 bool is_directory_empty(const char *dir_path)
 {
-    std::cout << "dir: " << dir_path << std::endl;
     DIR *dir = opendir(dir_path);
     if (dir == NULL)
     {
@@ -178,7 +177,6 @@ bool Server::canBeOpen(int fd, std::string &url, Location location, size_t &chec
             url = redundantSlash(location.redirect);
             request[fd].state.url = redundantSlash(location.redirect);
             checkState = 301;
-            // std::cout << "--> " << redundantSlash(location.root + location.path + url) << std::endl;
             return check(redundantSlash(location.root + location.path + url));
         }
         else if (location.index.size() > 0 && validateSearch(location.index, location.root + url) == true)

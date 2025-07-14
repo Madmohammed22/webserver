@@ -77,7 +77,6 @@ public:
     void parseArrayValue(std::string value, std::vector<std::string>& target);
     void parseCgiPair(const std::string& value, std::map<std::string, std::string>& target);
     void parseBodySize(const std::string& value);
-    void parseErrorPage(const std::string& value);
     void printData();
 };
 

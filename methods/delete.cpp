@@ -121,7 +121,8 @@ int Server::deleteTargetUrl(int fd, std::string url, Location location, int stat
         return std::cerr << "Failed to send HTTP header." << std::endl, request.erase(fd), close(fd), 0;
     }
     // return close(fd), request.erase(fd), 0;
-    request[fd].state.last_activity_time = time(NULL);
+    request[fd].state.last_activity_time
+     = time(NULL);
     return 0;
 }
 
