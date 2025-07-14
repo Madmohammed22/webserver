@@ -71,7 +71,11 @@ void Server::writeData(Binary_String &chunk, int fd)
         if (request[fd].multp.isInHeader)
         {
             if (!(request[fd].multp.partialHeaderBuffer.find("filename=\"") != std::string::npos))
-                exit(0);
+            {
+                request[fd].code = 501;
+                return ;
+            }
+
             size_t headerEnd = request[fd].multp.partialHeaderBuffer.find("\r\n\r\n");
             if (headerEnd == std::string::npos)
                 break;

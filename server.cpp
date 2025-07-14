@@ -49,17 +49,6 @@ Server::~Server()
     std::cout << "[Server] Destructor is called" << std::endl;
 }
 
-void Server::setnonblocking(int fd)
-{
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1)
-        (perror("fcntl"), exit(EXIT_FAILURE));
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-    {
-        perror("fcntl");
-        exit(EXIT_FAILURE);
-    }
-}
 
 int Server::establishingMultiServer(t_listen listen_)
 {

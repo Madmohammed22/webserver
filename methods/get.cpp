@@ -320,7 +320,7 @@ std::string Server::readFile(std::string path)
 
     std::ifstream infile(path.c_str(), std::ios::binary);
     if (!infile)
-        return std::cerr << "Failed to open file:: " << path << std::endl, "";
+        return "";
 
     std::ostringstream oss;
     oss << infile.rdbuf();
@@ -474,7 +474,7 @@ bool Server::timedFunction(int timeoutSeconds, time_t startTime)
     time_t currentTime = time(NULL);
     if (difftime(currentTime, startTime) >= timeoutSeconds)
     {
-        std::cout << "close fd\n";
+        // std::cout << "close fd\n";
         return false;
     }
     return true;

@@ -38,15 +38,16 @@ void Server::handleClientData(int fd)
     Binary_String holder(CHUNK_SIZE);
     size_t bytes = recv(fd, &holder[0], CHUNK_SIZE - 1, 0);
 
-    holder[bytes + 1] = '\0';
     if (bytes <= 0)
     {
+        getResponse(fd, 500);
         close(fd);
         request.erase(fd);
         clientToServer.erase(fd);
         return;
     }
-
+    holder[bytes + 1] = '\0';
+    
     if (state.headerFlag == true && !state.isComplete)
     {
         int serverSocket = clientToServer[fd];
