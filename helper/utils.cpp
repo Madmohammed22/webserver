@@ -1,13 +1,5 @@
 #include "../globalInclude.hpp"
 
-template <typename T>
-std::string toString(const T val)
-{
-    std::stringstream stream;
-    stream << val;
-    return stream.str();
-}
-
 std::string createTempFile()
 {
     std::ostringstream filename;

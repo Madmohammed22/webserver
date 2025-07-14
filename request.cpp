@@ -86,7 +86,6 @@ bool ContentTypeValidator::validate(RequstBuilder &builder)
     }
     else if (builder.getRequest().getMethod() == "POST")
     {
-        // return true;
         if (builder.getRequest().getContentLength() == "0"){
             return true;
         }
@@ -134,8 +133,9 @@ bool ConnectionValidator::validate(RequstBuilder &builder)
     return check;
 }
 
-bool CookieValidator::validate(RequstBuilder &builder){
-    (void)builder;
+bool CookieValidator::validate(RequstBuilder &builder)
+{
+    (void) builder;
     return true;
 }
 
@@ -407,7 +407,6 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
             _parsingState = END;
             return code;
         }
-        std::cout << _parsingState << std::endl;
         state.header += buffer[i];
         i++;
     }

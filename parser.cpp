@@ -61,7 +61,6 @@ bool header_parser(T method, Request &request, std::string header, std::map<std:
     return false;
   }
 
-  //[soukaina] can you just assign methaData to request ???
 
   methaData = method.getRequest();
   request.method = methaData.getMethod();
@@ -100,6 +99,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
     request[fd].serverConfig = serverConfig;
     state.headerFlag = false;
     tmpMap = key_value_pair(ft_parseRequest_T(fd, this, state.header).first);
+
     if (!(state.header.find("POST") != std::string::npos))
     {
       req.state.file->close();
@@ -112,8 +112,6 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
       GET get;
       if (header_parser(get, req, state.header, tmpMap) == false)
       {
-        // [soukaina] bad request
-        // [mmad] bad request
         req.code = 400;
         return false;
       }
@@ -125,6 +123,7 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
 
       if (header_parser(post, req, state.header, tmpMap) == false)
       {
+        req.code = 400;
         return false;
       }
       req.state.last_activity_time = time(NULL);
@@ -134,12 +133,13 @@ bool Server::validateHeader(int fd, FileTransferState &state, Binary_String hold
       DELETE delete_;
       
       if (header_parser(delete_, req, state.header, tmpMap) == false)
+      {
+        req.code = 400;
         return false;
-        
+      }  
       req.state.isComplete = true;
     }
     req.location = getExactLocationBasedOnUrl(state.url, req.serverConfig);
-    std::cout << "location: " << req.location.path << std::endl;
 
     if (req.contentLength == "0")
     {

@@ -307,9 +307,6 @@ void ConfigData::parseBodySize(const std::string &value)
         sizeValue = value.substr(0, value.size() - 1);
     }
     _client_max_body_size = atoi(sizeValue.c_str()) * multiplier;
-    //[soukaina] why this commented
-    /*if (_client_max_body_size < 0)*/
-    /*    throw WebservException("Configuration file : invalid body size");*/
 }
 
 void ConfigData::parseCgiPair(const std::string &value, std::map<std::string, std::string> &target)
@@ -405,10 +402,6 @@ void ConfigData::printData()
 
         std::cout << "    Autoindex: " << (loc_it->autoindex ? "on" : "off") << std::endl;
 
-        std::cout << "    CGI: ";
-        /*std::map<std::string, std::string>::const_iterator cgi_it;*/
-        /*for (cgi_it = loc_it->cgi.begin(); cgi_it != loc_it->cgi.end(); ++cgi_it)*/
-        /*    std::cout << cgi_it->first << ":" << cgi_it->second << (std::next(cgi_it) != loc_it->cgi.end() ? ", " : "");*/
         std::cout << std::endl;
         std::cout << "-------------------------------------------------\n";
     }

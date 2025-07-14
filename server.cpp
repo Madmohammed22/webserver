@@ -97,7 +97,6 @@ int Server::establishingMultiServer(t_listen listen_)
         return EXIT_FAILURE;
     }
 
-    // std::cout << "Server started on port " << listen_.port << std::endl;
     return serverSocket;
 }
 
@@ -145,7 +144,6 @@ void Server::getListenPairs()
             listenVec.push_back(newListen);
     }
     
-    //[soukaina] should be removed i think
     std::vector<t_listen>::iterator itListen;
     for (itListen = listenVec.begin(); itListen != listenVec.end(); itListen++)
     {
@@ -182,7 +180,6 @@ void Server::writePostDataToCgi(Request& req)
     if (!req.multp.file->is_open())
     {
         req.code = 500;
-        //[soukaina] cleanup resources is not enough
         cleanupResources(req);
         return ;
     }

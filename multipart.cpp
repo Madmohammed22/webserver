@@ -187,4 +187,3 @@ void Server::handlePostRequest(int fd)
             close(fd), request.erase(fd);
     }
 }
-
