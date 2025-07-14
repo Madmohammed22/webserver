@@ -135,7 +135,7 @@ bool ConnectionValidator::validate(RequstBuilder &builder)
 }
 
 bool CookieValidator::validate(RequstBuilder &builder){
-    std::cout << "Cookie value: " << builder.getRequest().getCookie() << std::endl;
+    (void)builder;
     return true;
 }
 
@@ -347,7 +347,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
         else if (_parsingState == HeaderKey)
         {
             if (buffer[i] == '\r')
-                _parsingState = END;
+                _parsingState = TERMINATOR;
             else if (buffer[i] == '\n')
             {
                 _keyLength = 0;
@@ -393,7 +393,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
                 break;
             }
         }
-        else if (_parsingState == END)
+        else if (_parsingState == TERMINATOR)
         {
             if (buffer[i] != '\n')
             {
@@ -404,8 +404,10 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
             state.header += '\0';
             if (buffer[i + 1] != '\0')
                 bodyStart = i + 1;
+            _parsingState = END;
             return code;
         }
+        std::cout << _parsingState << std::endl;
         state.header += buffer[i];
         i++;
     }

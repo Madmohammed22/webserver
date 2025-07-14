@@ -29,6 +29,7 @@ enum parsingState
     HeaderKey,
     HeaderValue,
     ERROR,
+    TERMINATOR,
     END
 };
  

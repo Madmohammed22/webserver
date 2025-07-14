@@ -32,27 +32,31 @@ Binary_String Server::readFileChunk_post(int fd)
     return chunk;
 }
 
-void Server::createFileName(std::string line, int fd)
+
+bool Server::createFileName(std::string line, int fd)
 {
     size_t start = line.find("filename=\"");
-
+    
     start += 10;
     size_t end = line.find("\"", start);
+  
+    if (line.substr(start, end - start).empty())
+    {
+      request[fd].code = 405;
+      return (false);
+    }
     std::string fileName = request[fd].location.upload + line.substr(start, end - start);
-    // if (access(fileName.c_str(), R_OK | W_OK) == -1){
-    //     getResponse(fd, 403);
-    //     return;
-    // }
     std::ofstream *newFile = new std::ofstream(fileName.c_str(), std::ios::binary | std::ios::trunc);
     if (!newFile->is_open())
     {
         std::cerr << "Error: Failed to open file : " << fileName << std::endl;
         delete newFile;
-        //[soukaina] here what should i do ???? quit the program !
-        return;
+        request[fd].code = 500;
+        return (false);
     }
     request[fd].multp.outFiles.push_back(newFile);
     request[fd].multp.currentFileIndex = request[fd].multp.outFiles.size() - 1;
+    return (true);
 }
 
 void Server::writeData(Binary_String &chunk, int fd)
@@ -67,6 +71,8 @@ void Server::writeData(Binary_String &chunk, int fd)
 
         if (request[fd].multp.isInHeader)
         {
+            if (!(request[fd].multp.partialHeaderBuffer.find("filename=\"") != std::string::npos))
+                exit(0);
             size_t headerEnd = request[fd].multp.partialHeaderBuffer.find("\r\n\r\n");
             if (headerEnd == std::string::npos)
                 break;
@@ -74,7 +80,8 @@ void Server::writeData(Binary_String &chunk, int fd)
             std::string headers = request[fd].multp.partialHeaderBuffer.substr(0, headerEnd);
             size_t namePos = headers.find("filename=\"");
             if (namePos != std::string::npos)
-                createFileName(headers, fd);
+                if(createFileName(headers, fd) == false)
+                  return ;
 
             request[fd].multp.partialHeaderBuffer.erase(0, headerEnd + 4);
             request[fd].multp.isInHeader = false;
@@ -119,9 +126,12 @@ void Server::writeData(Binary_String &chunk, int fd)
                       request[fd].multp.outFiles.back()->close();
                     if (request[fd].multp.outFiles.back())
                       delete request[fd].multp.outFiles.back();
-                    /*printf(" this is the back %p \n", request[fd].multp.outFiles.back());*/
-                    /*if (!request[fd].multp.outFiles.empty())*/
-                    /*  delete request[fd].multp.outFiles.back();*/
+                    if (request[fd].state.file->is_open())
+                    {
+                      request[fd].state.file->close();
+                      delete request[fd].state.file;
+                      remove(request[fd].state.fileName.c_str());
+                    }
                     request[fd].multp.isInHeader = true;
                 }
             }
@@ -159,8 +169,9 @@ void Server::handlePostRequest(int fd)
     chunkedData = readFileChunk_post(fd);
     if (chunkedData.empty())
         request.erase(fd);
-
     writeData(chunkedData, fd);
+    if (request[fd].code != 200)
+      return ; 
     if (request[fd].multp.readPosition == -2)
     {
         std::string httpRespons;
@@ -174,12 +185,6 @@ void Server::handlePostRequest(int fd)
         }
         if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
             close(fd), request.erase(fd);
-
-        /*if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)*/
-        /*{*/
-        /*    close(fd);*/
-        /*    request.erase(fd);*/
-        /*}*/
     }
 }
 

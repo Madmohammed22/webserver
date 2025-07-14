@@ -182,8 +182,14 @@ void Server::handleClientOutput(int fd)
             }
             return;
         }
-        //[soukaina] here i should check for the post if an error responce is sent
         handlePostRequest(fd);
+        if (req.code != 200)
+        {
+              getResponse(fd, req.code);
+              close(fd);
+              request.erase(fd);
+              return ;
+        }
     }
 }
 

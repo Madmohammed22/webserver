@@ -168,7 +168,10 @@ std::map<std::string, std::string> Server::key_value_pair(std::string header)
         }
     }
     std::string result = header.substr(j, header.length());
-    mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), trim(result.substr(result.find(" "), result.length()))));
+    for (int i = 0; i < (int)header.length(); i++)
+      std::cout << "__" << header[i] << "-" << std::endl;
+    if (!result.empty())
+      mapv.insert(std::pair<std::string, std::string>(trim(result.substr(0, result.find(" "))), trim(result.substr(result.find(" "), result.length()))));
     return mapv;
 }
 

@@ -130,11 +130,12 @@ public:
     void cleanupResources(Request& req);
     void handlePostRequest(int fd);
     Binary_String readFileChunk_post(int fd);
-    void createFileName(std::string line, int fd);
+    bool createFileName(std::string line, int fd);
     void writeData(Binary_String& chunk, int fd);
     int parsePostRequest(int fd, ConfigData& configIndex, Request &req);
 
     // Functions helper
+    std::string httpResponseIncludeCookie(std::string contentType, size_t contentLength, std::string setCookie);
     static bool areSameDirectories(const char *path1, const char *path2);
     static int t_stat_wait(std::string path);
     static bool timedFunction(int timeoutSeconds, time_t startTime);
