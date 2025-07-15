@@ -210,6 +210,7 @@ void Server::sendCgiResponse(Request &req, int fd)
   request[fd].cgi.cgiState = CGI_COMPLETE;
 }
 
+
 void Server::getCgiResponse(Request &req, int fd)
 {
     int status;

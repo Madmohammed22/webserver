@@ -92,6 +92,7 @@ response_bytes = response_body.encode("utf-8")
 content_length = len(response_bytes)
 
 # Print CGI headers
+print("HTTP/1.1 200 OK")
 if "username" not in cookies:
     print("Set-Cookie: username=Mohammed; Path=/; HttpOnly")
 if "theme" not in cookies:

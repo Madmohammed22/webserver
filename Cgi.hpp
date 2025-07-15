@@ -41,6 +41,7 @@ public:
   int bytesSend;
   int readPosition;
 
+  void freeResources();
   std::string getFileExtension(std::string& path, std::string &url);  
   std::string getPathInfo(std::string &path, std::string &ext);
   void parseCgi(Request &req);
