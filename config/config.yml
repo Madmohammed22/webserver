@@ -108,7 +108,7 @@ server:
 
 server:
   port: 7070
-  host: 10.0.2.15
+  host: localhost
   server_name: mmad.com
   client_max_body_size: 1m
   root: /root/html

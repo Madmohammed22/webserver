@@ -118,6 +118,7 @@ void Server::writeData(Binary_String &chunk, int fd)
                     request[fd].multp.partialHeaderBuffer.clear();
                     request[fd].multp.outFiles.back()->close();
                     delete request[fd].multp.outFiles.back();
+                    remove(request[fd].state.fileName.c_str());
                     request[fd].multp.readPosition = -2;
                     break;
                 }
