@@ -210,5 +210,7 @@ void Server::cleanupResources(Request& req)
         remove(req.state.fileName.c_str());
         delete req.multp.file;
     }
+    if (!req.cgi.fileNameIn.empty())
+      remove(req.cgi.fileNameIn.c_str());
 }
 
