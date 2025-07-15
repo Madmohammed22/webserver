@@ -134,31 +134,31 @@ server:
       methods: [get, post]
 
     /:
-      # redirect: /index.html
-      root: root/content
+      redirect: /index.html
+      root: root/www/
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
       # upload: root
 
     /media/:    # url /data/../data/
-      # redirect: /content
-      index: [message.txt]
-      root: root/content
-      autoindex: off
+      redirect: /content
+      index: [message.txsst]
+      autoindex: on
       methods: [get, delete]
+      root: root/content
 
     /content/:
       # redirect: /media/
       root: root/
-      index: index.txt
+      index: shortss.mp4
       autoindex: on
       methods: [get, delete]
     
     /uploads/:
       # redirect : /content/
-      root : root/content
+      root : root/
       index : test.txt
       autoindex: on
-      methods: [get, post]
+      methods: [get, post, delete]
       upload: root/upload

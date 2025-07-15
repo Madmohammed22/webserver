@@ -435,8 +435,10 @@ int Server::helper(int fd, std::string &url, Location location)
     {
         std::string httpRespons = MovedPermanently(getContentType(url), location.path);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1){
-            getResponse(fd, 500), close(fd), request.erase(fd);
-            return std::cerr << "Failed to send HTTP header." << std::endl, EXIT_FAILURE;
+            std::cerr << "Failed to send HTTP header...." << std::endl;
+            getResponse(fd, 500);
+            close(fd), request.erase(fd);
+            return EXIT_FAILURE;
         }
         return EXIT_SUCCESS;
     }
@@ -454,12 +456,12 @@ int Server::sendFinalReques(int fd, std::string url, Location location, size_t c
         std::string httpRespons;
         location.path = redundantSlash(location.path);
         std::string mime;
-        size_t fileSize = listDirectory(url, resolveUrl(request[fd].state.url), mime).size();
+        size_t fileSize = listDirectory(url, redundantSlash(resolveUrl(request[fd].state.url)), mime).size();
         httpRespons = httpResponse(mime, fileSize);
         if (send(fd, httpRespons.c_str(), httpRespons.size(), MSG_NOSIGNAL) == -1)
             return getResponse(fd, 500), close(fd), request.erase(fd), checkState = 0, 0;
 
-        if (send(fd, listDirectory(url, resolveUrl(request[fd].state.url), mime).c_str(), fileSize, MSG_NOSIGNAL) == -1)
+        if (send(fd, listDirectory(url, redundantSlash(resolveUrl(request[fd].state.url)), mime).c_str(), fileSize, MSG_NOSIGNAL) == -1)
             return getResponse(fd, 500), close(fd), request.erase(fd), checkState = 0, 0;
         return checkState = 0, 200;
     }
@@ -505,8 +507,9 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     bool checkCan = false;
     if ((checkCan = canBeOpen(fd, url, location, checkState, configIndex)))
     {
-        if (t_stat_wait(url) == 1)
+        if (t_stat_wait(url) == 1 )
         {
+
             return sendFinalReques(fd, url, location, checkState);
         }
         return (handleFileRequest(fd, url, Connection, location) == -1) ? 0 : 200;
@@ -523,9 +526,10 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 std::string path = location.root + url;
                 if (canBeOpen(fd, url, location, checkState, configIndex))
                 {
-
-                    if (t_stat_wait(url) == 1)
-                        return sendFinalReques(fd, url, location, checkState);
+                    if (t_stat_wait(url) == 1){
+                        
+                        return sendFinalReques(fd, redundantSlash(url), location, checkState);
+                    }
                     if (handleFileRequest(fd, url, Connection, location) == 201)
                     {
                         if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)

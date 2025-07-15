@@ -231,6 +231,7 @@ std::string Server::listDirectory(const std::string &dir_path, const std::string
         std::cerr << "Failed to open file:: " << url << std::endl;
         return "";
     }
+    // std::cout << "dir :" << dir_path << std::endl;
 
     outFile << "<!DOCTYPE html>\n"
             << "<html>\n"
@@ -238,10 +239,11 @@ std::string Server::listDirectory(const std::string &dir_path, const std::string
             << "    <title>Directory Listing</title>\n"
             << "</head>\n"
             << "<body>\n"
-            << "    <h1>Index of " << url << "</h1>\n"
+            << "    <h1>Index of " << url  << "</h1>\n"
             << "    <hr>\n"
             << "    <pre>\n";
-    DIR *dp = opendir(dir_path.c_str());
+    DIR *dp = opendir(redundantSlash(dir_path).c_str());
+    
     if (dp == NULL)
     {
         std::cerr << "Error: Unable to open directory " << dir_path << std::endl;
