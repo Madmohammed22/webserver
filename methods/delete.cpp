@@ -97,8 +97,9 @@ std::string readFiles(std::string path)
 
 int Server::deleteTargetUrl(int fd, std::string url, Location location, int state)
 {
-    if (access(url.c_str(), R_OK | W_OK) == -1)
+    if (access(url.c_str(), R_OK | W_OK) == -1){
         return getResponse(fd, 403);
+    }
     if (state == 1)
     {
         if (state == 1 && fetchIndex(location.root + location.path, location.index).empty())
@@ -149,6 +150,8 @@ int Server::handle_delete_request(int fd, ConfigData configdata)
     }
     else
     {
+        if (access(url.c_str(), R_OK | W_OK) == -1)
+            return getResponse(fd, 403), close(fd), request.erase(fd), 0;
         if (checkState == 301)
         {
             std::string httpRespons = MovedPermanently(getContentType(url), location.path);
