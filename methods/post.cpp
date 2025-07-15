@@ -37,9 +37,7 @@ bool    checkRedirect(Location &location, Request &req)
 {
     if (!location.redirect.empty())
     {
-        req.code = 301;
-        if (location.redirect[0] != '/')
-            location.redirect.insert(location.redirect.begin(), '/');
+        req.code = 501;
         return (false);
     }
     return (true);

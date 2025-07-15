@@ -23,12 +23,10 @@ server:
       methods: [get, post]
 
     /:
-      # redirect: /index.html
       root: root/content
-      index: [index.html]
       autoindex: on
       methods: [get, delete, post]
-      # upload: root
+      upload: root
 
     /media/:    # url /data/../data/
       # redirect: /content
@@ -45,7 +43,6 @@ server:
       methods: [get, delete]
     
     /uploads/:
-      # redirect : /content/
       root : root/content
       index : test.txt
       autoindex: on

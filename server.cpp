@@ -185,6 +185,7 @@ void Server::writePostDataToCgi(Request& req)
          int bytesSent = write(req.cgi.fdIn, buffer, bytesRead);
          if (bytesSent < 0)
          {
+           std::cerr << "write: fork failed\n";
            req.code = 500;
            cleanupResources(req);
          }

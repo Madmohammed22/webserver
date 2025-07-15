@@ -76,24 +76,27 @@ void Cgi::parseCgi(Request &req)
    if (getFileType(_path) != 2)
   {
     req.code = 404;
+    std::cerr << "CGI: Not a file\n";
     return ;
   }
 
-  // if the file is not executable ( the nginx default behavior is to send it as a static file)
   if (!(req.location.cgi.find(getFileExtension(_path, url)) != req.location.cgi.end()))
   {
       req.code = 403;
+      std::cerr << "CGI: extension not supported\n";
       return ;
   }
 
   if (access(url.c_str(), R_OK | X_OK ) == -1)
   {
     req.code = 403;
+    std::cerr << "CGI: access denied\n";
     return ;
   }
 
   if (req.getMethod() == "DELETE")
   {
+    std::cerr << "CGI: unsupported method\n";
     req.code = 405;
     return ;
   }
@@ -165,6 +168,7 @@ void Cgi::runCgi(Server &serv, Request &req)
   if ( _pid < 0 )
   {
     req.code = 500;
+    std::cerr << "CGI: fork failed\n";
     return ;
   }
 

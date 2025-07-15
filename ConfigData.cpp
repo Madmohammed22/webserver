@@ -42,10 +42,10 @@ void ConfigData::setContent(std::string content)
 void ConfigData::setHost(std::string host)
 {
 	if (host == "localhost")
-    {
+  {
 		  _host = "127.0.0.1";
       return ;
-    }
+  }
     _host = host;
 }
 
@@ -220,6 +220,8 @@ void ConfigData::parseConfigData()
         else
             throw WebservException("Configuration file : invalid key");
     }
+    if (_default_root.empty())
+      _default_root = "index.html";
 }
 
 void ConfigData::parseLine(std::string line, std::string &key, std::string &value, int &baseIndent)

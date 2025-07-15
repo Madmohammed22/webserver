@@ -103,7 +103,6 @@ void Server::handleClientOutput(int fd)
         return;
 
     ConfigData &serverConfig = req.serverConfig;
-    
     if (req.cgi.cgiState == CGI_RUNNING || req.cgi.cgiState == CGI_COMPLETE)    
         getCgiResponse(req, fd);
     else if (req.getMethod() == "GET")
@@ -196,8 +195,7 @@ void Server::sendCgiResponse(Request &req, int fd)
 
   if (!(httpRespons.find("HTTP/1.1") != std::string::npos))
   {
-		httpRespons.insert(0, "HTTP/1.1 200 OK\r\n");
-  
+		httpRespons.insert(0, "HTTP/1.1 200 OK\r\n\r\n");
   }
   int faild = send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL);
 
