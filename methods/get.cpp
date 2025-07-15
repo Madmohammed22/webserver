@@ -68,7 +68,7 @@ bool readFileChunk(const std::string &path, char *buffer, size_t offset, size_t 
 
 bool Server::check(std::string url)
 {
-
+    url = redundantSlash(url);
     std::ifstream file(url.c_str());
 
     if (!file.is_open())
@@ -435,7 +435,6 @@ int Server::helper(int fd, std::string &url, Location location)
     {
         std::string httpRespons = MovedPermanently(getContentType(url), location.path);
         if (send(fd, httpRespons.c_str(), httpRespons.length(), MSG_NOSIGNAL) == -1){
-            std::cerr << "Failed to send HTTP header...." << std::endl;
             getResponse(fd, 500);
             close(fd), request.erase(fd);
             return EXIT_FAILURE;
@@ -476,7 +475,6 @@ bool Server::timedFunction(int timeoutSeconds, time_t startTime)
     time_t currentTime = time(NULL);
     if (difftime(currentTime, startTime) >= timeoutSeconds)
     {
-        // std::cout << "close fd\n";
         return false;
     }
     return true;
@@ -503,13 +501,11 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
     }
 
     size_t checkState;
-    std::string save = url;
     bool checkCan = false;
     if ((checkCan = canBeOpen(fd, url, location, checkState, configIndex)))
     {
         if (t_stat_wait(url) == 1 )
         {
-
             return sendFinalReques(fd, url, location, checkState);
         }
         return (handleFileRequest(fd, url, Connection, location) == -1) ? 0 : 200;
@@ -523,7 +519,6 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 getResponse(fd, 404);
             else
             {
-                std::string path = location.root + url;
                 if (canBeOpen(fd, url, location, checkState, configIndex))
                 {
                     if (t_stat_wait(url) == 1){

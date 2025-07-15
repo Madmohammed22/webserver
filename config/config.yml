@@ -111,10 +111,10 @@ server:
 
 server:
   port: 7070
-  host: 10.14.9.9
+  host: 10.0.2.15
   server_name: mmad.com
   client_max_body_size: 1m
-  root: /ROOT/html
+  root: /root/html
   error_page:
      403: root/error/403.html
      400: root/error/400.html
@@ -142,16 +142,15 @@ server:
       # upload: root
 
     /media/:    # url /data/../data/
-      redirect: /content
-      index: [message.txsst]
+      redirect: /content/
+      index: [message.txt]
       autoindex: on
       methods: [get, delete]
-      root: root/content
+      root: root/www
 
     /content/:
-      # redirect: /media/
-      root: root/
-      index: shortss.mp4
+      root: root/www
+      index: tests.txt
       autoindex: on
       methods: [get, delete]
     
