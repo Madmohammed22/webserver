@@ -115,7 +115,7 @@ void Server::handleClientOutput(int fd)
         }
         if (state == 200 || state == 0)
         {
-            if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+            if (timedFunction(TIMEOUT, request[fd].state.last_activity_time) == false)
             {
                 close(fd);
                 request.erase(fd);
@@ -127,7 +127,7 @@ void Server::handleClientOutput(int fd)
         int state = handle_delete_request(fd, serverConfig);
         if (state == 0)
         {
-            if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+            if (timedFunction(TIMEOUT, request[fd].state.last_activity_time) == false)
             {
                 close(fd);
                 request.erase(fd);
@@ -167,7 +167,7 @@ void Server::handleClientOutput(int fd)
             }
             if (request[fd].getConnection() == "close" || request[fd].getConnection().empty())
                 request[fd].state.isComplete = true, close(fd), request.erase(fd);
-            if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+            if (timedFunction(TIMEOUT, request[fd].state.last_activity_time) == false)
             {
                 getResponse(fd, 408);
                 close(fd);
@@ -219,12 +219,13 @@ void Server::getCgiResponse(Request &req, int fd)
     if (request[fd].cgi.cgiState == CGI_COMPLETE
         || request[fd].cgi.cgiState == CGI_RUNNING)
     {
-      if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+      if (timedFunction(TIMEOUT, request[fd].state.last_activity_time) == false)
       {
         if (request[fd].cgi.cgiState == CGI_RUNNING)
           getResponse(fd, 504);
         close(fd);
         request.erase(fd);
+        kill(req.cgi.getPid(), SIGKILL);
       }
     }
 
@@ -267,7 +268,7 @@ void Server::getCgiResponse(Request &req, int fd)
             }
             req.cgi.CgiBodyResponse.append(buffer, readBytes);
             totalBytes += readBytes;
-            if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+            if (timedFunction(TIMEOUT, request[fd].state.last_activity_time) == false)
             {
               close(fd);
               request.erase(fd);
@@ -284,6 +285,9 @@ int Server::handleClientConnectionsForMultipleServers()
 {
     struct epoll_event events[MAX_EVENTS];
     int nfds = epoll_wait(epollfd, events, MAX_EVENTS, TIMEOUTMS);
+  
+    if (nfds == -1)
+      return (0);
 
     for (int i = 0; i < nfds; ++i)
     {

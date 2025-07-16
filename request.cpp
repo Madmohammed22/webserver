@@ -179,7 +179,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
                 method = "ELETE";
             else
             {
-                code = 501;
+                code = 405;
                 _parsingState = ERROR;
                 break ;
             }
@@ -198,7 +198,7 @@ int    Request::checkHeaderSyntax(Binary_String buffer)
                     method.erase(0, 1);
                 else
                 {
-                    code = 400;
+                    code = 405;
                     _parsingState = ERROR;
                     break;
                 }

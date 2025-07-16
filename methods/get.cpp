@@ -527,7 +527,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                     }
                     if (handleFileRequest(fd, url, Connection, location) == 201)
                     {
-                        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+                        if (timedFunction(TIMEOUT, request[fd].state.last_activity_time) == false)
                             return 310;
                         return 0;
                     }
@@ -536,7 +536,7 @@ int Server::serve_file_request(int fd, ConfigData configIndex)
                 {
                     if (checkState == 301)
                     {
-                        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+                        if (timedFunction(TIMEOUT, request[fd].state.last_activity_time) == false)
                             return 310;
                         else
                         {

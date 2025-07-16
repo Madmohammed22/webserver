@@ -160,7 +160,7 @@ void Server::handlePostRequest(int fd)
 
     if (request[fd].multp.readPosition == -2)
     {
-        if (timedFunction(TIMEOUTREDIRACTION, request[fd].state.last_activity_time) == false)
+        if (timedFunction(TIMEOUT, request[fd].state.last_activity_time) == false)
         {
             getResponse(fd, 408);
             close(fd);

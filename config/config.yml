@@ -3,7 +3,7 @@ server:
   host: localhost
   server_name: mmad.com
   client_max_body_size: 1m
-  root: /ROOT/html
+  root: /root/html
   error_page:
      403: root/error/403.html
      400: root/error/400.html
@@ -11,7 +11,6 @@ server:
      405: root/error/405.html
      408: root/error/408.html
      410: root/error/410.html
-    #  500: root/error/500.html
      415: root/error/415.html
   locations:
 
@@ -28,15 +27,13 @@ server:
       methods: [get, delete, post]
       upload: root
 
-    /media/:    # url /data/../data/
-      # redirect: /content
+    /media/:
       index: [message.txt]
       root: root/content
       autoindex: off
       methods: [get, delete]
 
     /content/:
-      # redirect: /media/
       root: root/
       index: index.txt
       autoindex: on
@@ -56,7 +53,7 @@ server:
   host: localhost
   server_name: mmad.com
   client_max_body_size: 1m
-  root: /ROOT/html
+
   error_page:
      403: root/error/403.html
      400: root/error/400.html
@@ -64,7 +61,6 @@ server:
      405: root/error/405.html
      408: root/error/408.html
      410: root/error/410.html
-    #  500: root/error/500.html
      415: root/error/415.html
   locations:
 
@@ -76,29 +72,24 @@ server:
       methods: [get, post]
 
     /:
-      # redirect: /index.html
       root: root/content
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
-      # upload: root
 
-    /media/:    # url /data/../data/
-      # redirect: /content
+    /media/:
       index: [message.txt]
       root: root/content
       autoindex: off
       methods: [get, delete]
 
     /content/:
-      # redirect: /media/
       root: root/
       index: index.txt
       autoindex: on
       methods: [get, delete]
     
     /uploads/:
-      # redirect : /content/
       root : root/content
       index : test.txt
       autoindex: on
@@ -119,7 +110,6 @@ server:
      405: root/error/405.html
      408: root/error/408.html
      410: root/error/410.html
-    #  500: root/error/500.html
      415: root/error/415.html
   locations:
 
@@ -136,9 +126,8 @@ server:
       index: [index.html]
       autoindex: on
       methods: [get, delete, post]
-      # upload: root
 
-    /media/:    # url /data/../data/
+    /media/:
       redirect: /content/
       index: [message.txt]
       autoindex: on
@@ -152,7 +141,6 @@ server:
       methods: [get, delete]
     
     /uploads/:
-      # redirect : /content/
       root : root/
       index : test.txt
       autoindex: on

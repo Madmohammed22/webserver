@@ -220,8 +220,6 @@ void ConfigData::parseConfigData()
         else
             throw WebservException("Configuration file : invalid key");
     }
-    if (_default_root.empty())
-      _default_root = "index.html";
 }
 
 void ConfigData::parseLine(std::string line, std::string &key, std::string &value, int &baseIndent)
