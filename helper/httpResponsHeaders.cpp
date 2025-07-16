@@ -231,7 +231,6 @@ std::string Server::listDirectory(const std::string &dir_path, const std::string
         std::cerr << "Failed to open file:: " << url << std::endl;
         return "";
     }
-    // std::cout << "dir :" << dir_path << std::endl;
 
     outFile << "<!DOCTYPE html>\n"
             << "<html>\n"

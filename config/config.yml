@@ -49,7 +49,7 @@ server:
 
 
 server:
-  port: 9090
+  port: 8040
   host: localhost
   server_name: mmad.com
   client_max_body_size: 1m

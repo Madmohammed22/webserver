@@ -15,10 +15,20 @@ void ConfigParsing::start(std::string configFile)
     removeComments();
     parseEachServer();    
     std::vector<ConfigData>::iterator server_it;
+    std::vector<ConfigData>::iterator server_it2;
     for (server_it = configData.begin(); server_it != configData.end(); server_it++)
     {
         server_it->parseConfigData();
         // server_it->printData();
+    }
+    
+    for (server_it = configData.begin(); server_it != configData.end(); server_it++)
+    {
+      for (server_it2 = server_it + 1; server_it2 != configData.end(); server_it2++)
+      {
+        if (server_it->getPort() == server_it2->getPort())
+          throw WebservException("Configuration file : Port duplicated");
+      }
     }
 }
  

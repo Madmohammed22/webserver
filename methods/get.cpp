@@ -307,7 +307,6 @@ int Server::handleFileRequest(int fd, std::string &url, std::string Connection, 
             return getResponse(fd, 500), close(fd), request.erase(fd), 0;
         if (Connection == "close" || Connection.empty())
         {
-            std::cout << "Connection: close" << std::endl;
             return request[fd].state.isComplete = true, close(fd), request.erase(fd), 0;
         }
         return request[fd].state.isComplete = true, 200;

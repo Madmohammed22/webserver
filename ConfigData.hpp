@@ -71,7 +71,6 @@ public:
     void parseConfigData();
     void parseLine(std::string line, std::string &key, std::string &value, int &baseIndent);
     void parseLocation(std::string key, std::string value, Location &currentLocation);
-    void parseServerDirective(std::string line, int &firstIndent, std::string& currentKey, Location*& currentLocation, int& currentIndent, int indent);
     void createNewLocation(std::string value, Location& currentLocation);
     void handleServerConfigDirective(const std::string& key, const std::string& value);
     void parseArrayValue(std::string value, std::vector<std::string>& target);
